@@ -1,0 +1,5 @@
+# local node install
+node_modules/
+
+# secrets
+.env
