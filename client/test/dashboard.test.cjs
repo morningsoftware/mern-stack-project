@@ -86,6 +86,7 @@ let db = {
     },
   ],
   builds: [],
+  "playtest-sessions": [],
   "bug-reports": [
     {
       _id: "bug1",
@@ -199,7 +200,11 @@ global.fetch = async (path, options = {}) => {
       Object.assign(data, JSON.parse(options.body));
     }
   } else if (options.method === "POST") {
-    data = { _id: "new" + calls.length, ...JSON.parse(options.body) };
+    data = {
+      _id: "new" + calls.length,
+      ...(resource === "playtest-sessions" ? { status: "open" } : {}),
+      ...JSON.parse(options.body),
+    };
     db[resource].push(data);
     status = 201;
   } else
@@ -1202,6 +1207,88 @@ test("notifications persist read state, keep failed changes, filter unread, and 
     assert.equal(field("Title").value, "Movement notification task");
   } finally {
     rejectNotification = false;
+    await act(async () => root.unmount());
+  }
+});
+
+test("playtest sessions create and edit instructions, link feedback, and handle failed close", async () => {
+  db["playtest-sessions"] = [];
+  db.builds = [
+    {
+      _id: "session-build",
+      version: "0.5",
+      platform: "web",
+      downloadUrl: "https://example.com/play",
+    },
+  ];
+  db["playtest-feedback"] = [];
+  sessionStorage.setItem("mern_token", "fixture");
+  root = createRoot(document.getElementById("root"));
+  try {
+    await act(async () => {
+      root.render(React.createElement(App));
+      await tick();
+    });
+    await click("Open");
+    await click("Open");
+    await click("Playtest sessions");
+    await change("Session title", "Movement test");
+    await change("Session build", "session-build");
+    await change("Testing instructions", "Try the ledge jump with a gamepad.");
+    await change("Feedback deadline", "2099-05-01T12:00");
+    await act(async () => {
+      findButton("Create session").form.dispatchEvent(
+        new window.Event("submit", { bubbles: true, cancelable: true }),
+      );
+      await tick();
+    });
+    assert.equal(db["playtest-sessions"].length, 1);
+    assert(
+      document
+        .querySelector(".playtest-sessions")
+        .textContent.includes("Movement test"),
+    );
+    await click("Edit session");
+    await change("Testing instructions", "Try both keyboard and gamepad.");
+    await act(async () => {
+      findButton("Save session").form.dispatchEvent(
+        new window.Event("submit", { bubbles: true, cancelable: true }),
+      );
+      await tick();
+    });
+    assert.equal(
+      db["playtest-sessions"][0].instructions,
+      "Try both keyboard and gamepad.",
+    );
+    await click("Submit session feedback");
+    assert(field("Build tested").disabled);
+    await change("Comments", "Keyboard feels good.");
+    await act(async () => {
+      findButton("Add feedback").form.dispatchEvent(
+        new window.Event("submit", { bubbles: true, cancelable: true }),
+      );
+      await tick();
+    });
+    assert.equal(
+      db["playtest-feedback"][0].sessionId,
+      db["playtest-sessions"][0]._id,
+    );
+    assert.equal(db["playtest-feedback"][0].buildId, "session-build");
+    await click("Playtest sessions");
+    rejectStatus = true;
+    await click("Close session");
+    assert.notEqual(db["playtest-sessions"][0].status, "closed");
+    assert(
+      document
+        .querySelector(".playtest-sessions")
+        .textContent.includes("Project update rejected"),
+    );
+    rejectStatus = false;
+    await click("Close session");
+    assert.equal(db["playtest-sessions"][0].status, "closed");
+    assert(findButton("Submit session feedback").disabled);
+  } finally {
+    rejectStatus = false;
     await act(async () => root.unmount());
   }
 });

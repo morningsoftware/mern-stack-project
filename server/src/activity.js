@@ -11,6 +11,8 @@ const tracked = [
   "milestoneId",
   "dueDate",
   "reviewStatus",
+  "instructions",
+  "deadline",
 ];
 const value = (input) =>
   input == null

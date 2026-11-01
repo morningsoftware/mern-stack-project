@@ -6,6 +6,7 @@ export const VIEWS = [
   "bugs",
   "builds",
   "feedback",
+  "sessions",
   "activity",
   "notifications",
 ];

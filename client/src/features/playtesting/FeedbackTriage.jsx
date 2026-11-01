@@ -3,6 +3,7 @@ import { Field } from "../../components/Forms.jsx";
 
 export function FeedbackTriage({
   feedback,
+  sessions = [],
   builds,
   users,
   bugs,
@@ -115,6 +116,13 @@ export function FeedbackTriage({
                   ? `Build: ${builds.find((build) => build._id === item.buildId)?.version || "Unavailable build"}`
                   : "General project feedback"}
               </p>
+              {item.sessionId && (
+                <p className="meta">
+                  Session:{" "}
+                  {sessions.find((session) => session._id === item.sessionId)
+                    ?.title || "Linked playtest session"}
+                </p>
+              )}
               <p className="release-notes">
                 {item.comments || "No comments provided."}
               </p>
@@ -177,6 +185,23 @@ export function FeedbackTriage({
         aria-labelledby="submit-feedback-title"
       >
         <h3 id="submit-feedback-title">Submit playtest feedback</h3>
+        {note.sessionId && (
+          <div className="source-notice">
+            <p>
+              Feedback for session:{" "}
+              {sessions.find((item) => item._id === note.sessionId)?.title ||
+                "Selected session"}
+              . Its build is fixed.
+            </p>
+            <button
+              type="button"
+              className="text-button"
+              onClick={() => updateNote("sessionId", "")}
+            >
+              Unlink session
+            </button>
+          </div>
+        )}
         <form
           onSubmit={(event) => {
             event.preventDefault();
@@ -186,6 +211,7 @@ export function FeedbackTriage({
           <fieldset className="stack" disabled={pending}>
             <Field label="Build tested">
               <select
+                disabled={Boolean(note.sessionId)}
                 value={note.buildId}
                 onChange={(event) => updateNote("buildId", event.target.value)}
               >

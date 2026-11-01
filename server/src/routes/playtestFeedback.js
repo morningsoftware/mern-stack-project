@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { validateSessionReference } from "../sessionReference.js";
 import { recordActivity } from "../activity.js";
 import { validateBuildReference } from "../buildReference.js";
 import { requireProjectTeamMember } from "../projectAccess.js";
@@ -51,10 +52,17 @@ playtestFeedbackRouter.post(
       req.body?.buildId,
       projectId,
     );
+    const sessionId = await validateSessionReference(
+      req.app.locals.db,
+      req.body?.sessionId,
+      projectId,
+      buildId,
+    );
     const userId = actorId(req);
     const doc = {
       projectId,
       ...(buildId ? { buildId } : {}),
+      ...(sessionId ? { sessionId } : {}),
       userId,
       rating,
       comments,
@@ -96,6 +104,17 @@ playtestFeedbackRouter.patch(
     const id = parseObjectId(req.params.id, "id");
     const feedback = req.app.locals.db.collection("playtestFeedback");
     const existing = await requireDoc(feedback, id, "Playtest feedback");
+    if (req.body?.sessionId !== undefined)
+      throw httpError(
+        400,
+        "Session association cannot be changed after submission",
+      );
+    if (
+      existing.sessionId &&
+      req.body?.buildId !== undefined &&
+      existing.buildId?.toString() !== req.body.buildId
+    )
+      throw httpError(400, "Session feedback must keep its original build");
     const isAuthor = existing.userId.toString() === req.user._id.toString();
     const hasReview = req.body?.reviewStatus !== undefined;
     const hasContent = ["rating", "comments", "buildId"].some(

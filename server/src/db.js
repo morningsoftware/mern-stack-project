@@ -11,6 +11,15 @@ export async function connectDatabase(uri) {
 
 export async function ensureIndexes(db) {
   await db
+    .collection("playtestSessions")
+    .createIndex(
+      { projectId: 1, deadline: 1 },
+      { name: "sessions_by_project_deadline" },
+    );
+  await db
+    .collection("playtestFeedback")
+    .createIndex({ sessionId: 1 }, { name: "feedback_by_session" });
+  await db
     .collection("notifications")
     .createIndex(
       { userId: 1, projectId: 1, _id: -1 },

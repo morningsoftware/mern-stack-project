@@ -8,6 +8,7 @@ import { MilestoneEditor } from "../features/planning/MilestoneEditor.jsx";
 import { BugReports } from "../features/playtesting/BugReports.jsx";
 import { FeedbackTriage } from "../features/playtesting/FeedbackTriage.jsx";
 import { emptyBugDraft } from "../features/playtesting/BugDetailsFields.jsx";
+import { PlaytestSessions } from "../features/playtesting/PlaytestSessions.jsx";
 import { Notifications } from "../features/activity/Notifications.jsx";
 import { ActivityFeed } from "../features/activity/ActivityFeed.jsx";
 import { MyWork } from "../features/work/MyWork.jsx";
@@ -33,6 +34,7 @@ export function ProjectScreen({
   const [feedback, setFeedback] = useState([]);
   const [builds, setBuilds] = useState([]);
   const [members, setMembers] = useState([]);
+  const [sessions, setSessions] = useState([]);
   const [queuedFeedback, setQueuedFeedback] = useState(null);
   const [drawer, setDrawer] = useState(null);
   const [editingMilestone, setEditingMilestone] = useState(null);
@@ -56,7 +58,12 @@ export function ProjectScreen({
     priority: "medium",
   });
   const [bug, setBug] = useState(emptyBugDraft);
-  const [note, setNote] = useState({ rating: "4", comments: "", buildId: "" });
+  const [note, setNote] = useState({
+    rating: "4",
+    comments: "",
+    buildId: "",
+    sessionId: "",
+  });
 
   const emptyReport = emptyBugDraft();
   const dirty =
@@ -67,7 +74,8 @@ export function ProjectScreen({
     Object.keys(emptyReport).some((key) => bug[key] !== emptyReport[key]) ||
     note.comments !== "" ||
     note.rating !== "4" ||
-    note.buildId !== "";
+    note.buildId !== "" ||
+    Boolean(note.sessionId);
   useUnsavedChanges(dirty, pending);
   function startMilestone() {
     onViewChange("milestones");
@@ -262,6 +270,24 @@ export function ProjectScreen({
         aria-busy={pending}
       >
         <div className="grid workspace-grid">
+          <section hidden={view !== "sessions"}>
+            <PlaytestSessions
+              projectId={project._id}
+              builds={builds}
+              feedback={feedback}
+              canManage={canReview}
+              active={view === "sessions"}
+              onSessionsChange={setSessions}
+              onFeedback={(session) => {
+                setNote((old) => ({
+                  ...old,
+                  buildId: session.buildId,
+                  sessionId: session._id,
+                }));
+                onViewChange("feedback");
+              }}
+            />
+          </section>
           <section hidden={view !== "notifications"}>
             <Notifications
               projectId={project._id}
@@ -537,7 +563,7 @@ export function ProjectScreen({
                 patch(`/api/builds/${id}`, body, reset)
               }
               onFeedback={(buildId) => {
-                setNote((old) => ({ ...old, buildId }));
+                setNote((old) => ({ ...old, buildId, sessionId: "" }));
                 onViewChange("feedback");
               }}
             />
@@ -555,6 +581,7 @@ export function ProjectScreen({
               }
               onReportBug={reportFeedback}
               onOpenBug={(id) => setDrawer({ kind: "bug", id })}
+              sessions={sessions}
               note={note}
               onNoteChange={setNote}
               onSubmit={() =>
@@ -565,8 +592,15 @@ export function ProjectScreen({
                     rating: Number(note.rating),
                     comments: note.comments,
                     ...(note.buildId ? { buildId: note.buildId } : {}),
+                    ...(note.sessionId ? { sessionId: note.sessionId } : {}),
                   },
-                  () => setNote({ rating: "4", comments: "", buildId: "" }),
+                  () =>
+                    setNote({
+                      rating: "4",
+                      comments: "",
+                      buildId: "",
+                      sessionId: "",
+                    }),
                 )
               }
             />

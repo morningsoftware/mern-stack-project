@@ -183,3 +183,11 @@ The project inbox shows assignments and new feedback from other people, not
 self-generated alerts. Read/unread state is persistent and recipient-private.
 Use explicit refresh, an unread filter, and links to related work. This release
 does not send email or device push notifications or imply real-time delivery.
+
+## Playtest sessions
+
+Sessions organize one immutable build, explicit test instructions, and a local-time
+deadline (stored as UTC). Team members manage sessions; signed-in playtesters can
+read and submit feedback while open and before the server-enforced deadline. Show
+Open, Closed, and Deadline passed as text. Session feedback keeps its build and
+association after submission. General feedback remains available.
