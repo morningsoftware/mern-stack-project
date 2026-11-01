@@ -2,7 +2,7 @@ import express, { Router } from "express";
 import { Binary, ObjectId } from "mongodb";
 import { asyncRoute, httpError } from "../errors.js";
 import { requireAuth } from "../middleware/auth.js";
-import { requireProjectTeamMember } from "../projectAccess.js";
+import { requireBugAccess } from "../projectAccess.js";
 import { parseObjectId, requireDoc } from "../validate.js";
 
 export const bugScreenshotsRouter = Router({ mergeParams: true });
@@ -15,10 +15,7 @@ bugScreenshotsRouter.use(
       parseObjectId(req.params.bugId, "bugId"),
       "Bug report",
     );
-    if (
-      (bug.reportedBy || bug.createdBy)?.toString() !== req.user._id.toString()
-    )
-      await requireProjectTeamMember(db, bug.projectId, req.user._id);
+    await requireBugAccess(db, bug, req.user._id);
     req.bug = bug;
     next();
   }),
@@ -71,18 +68,16 @@ bugScreenshotsRouter.post(
     if (contentType !== req.get("Content-Type")?.split(";")[0])
       throw httpError(400, "Image type does not match its contents");
     const db = req.app.locals.db;
-    const slot = await db
-      .collection("bugReports")
-      .findOneAndUpdate(
-        {
-          _id: req.bug._id,
-          $or: [
-            { screenshotCount: { $exists: false } },
-            { screenshotCount: { $lt: 3 } },
-          ],
-        },
-        { $inc: { screenshotCount: 1 } },
-      );
+    const slot = await db.collection("bugReports").findOneAndUpdate(
+      {
+        _id: req.bug._id,
+        $or: [
+          { screenshotCount: { $exists: false } },
+          { screenshotCount: { $lt: 3 } },
+        ],
+      },
+      { $inc: { screenshotCount: 1 } },
+    );
     if (!slot) throw httpError(409, "A bug can have at most three screenshots");
     const doc = {
       _id: new ObjectId(),
@@ -125,12 +120,10 @@ bugScreenshotsRouter.delete(
   "/:id",
   asyncRoute(async (req, res) => {
     const db = req.app.locals.db;
-    const result = await db
-      .collection("bugScreenshots")
-      .deleteOne({
-        _id: parseObjectId(req.params.id, "id"),
-        bugId: req.bug._id,
-      });
+    const result = await db.collection("bugScreenshots").deleteOne({
+      _id: parseObjectId(req.params.id, "id"),
+      bugId: req.bug._id,
+    });
     if (!result.deletedCount) throw httpError(404, "Screenshot not found");
     await db
       .collection("bugReports")

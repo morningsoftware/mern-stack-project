@@ -112,7 +112,12 @@ export function ProjectScreen({
       setTask((current) => ({
         ...current,
         milestoneId: current.milestoneId || nextMilestones[0]?._id || "",
-        assigneeId: current.assigneeId || nextUsers[0]?._id || "",
+        assigneeId:
+          current.assigneeId ||
+          nextUsers.find((user) =>
+            nextMembers.some((member) => member.userId === user._id),
+          )?._id ||
+          "",
       }));
     },
     [project._id, project.teamId],
@@ -130,6 +135,9 @@ export function ProjectScreen({
     return () => controller.abort();
   }, [load]);
 
+  const assignableUsers = users.filter((user) =>
+    members.some((member) => member.userId === user._id),
+  );
   const canReview = members.some((member) => member.userId === currentUserId);
   function beginBugReport(entry) {
     const build = builds.find((item) => item._id === entry.buildId);
@@ -479,7 +487,7 @@ export function ProjectScreen({
                     }
                     required
                   >
-                    {users.map((user) => (
+                    {assignableUsers.map((user) => (
                       <option key={user._id} value={user._id}>
                         {user.displayName}
                       </option>
@@ -624,7 +632,7 @@ export function ProjectScreen({
           key={`${drawer.kind}-${drawer.id}`}
           {...drawer}
           builds={builds}
-          users={users}
+          users={assignableUsers}
           milestones={milestones}
           onClose={() => setDrawer(null)}
           onSaved={(updated) => {

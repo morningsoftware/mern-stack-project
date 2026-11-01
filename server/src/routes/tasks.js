@@ -1,3 +1,7 @@
+import {
+  requireProjectTeamMember,
+  requireTeamMember,
+} from "../projectAccess.js";
 import { Router } from "express";
 import { recordActivity } from "../activity.js";
 import { asyncRoute, httpError } from "../errors.js";
@@ -57,11 +61,7 @@ tasksRouter.post(
       : "medium";
     const assigneeId = parseObjectId(req.body?.assigneeId, "assigneeId");
     const db = req.app.locals.db;
-    const project = await requireDoc(
-      db.collection("projects"),
-      projectId,
-      "Project",
-    );
+    const project = await requireProjectTeamMember(db, projectId, req.user._id);
     const milestone = await requireDoc(
       db.collection("milestones"),
       milestoneId,
@@ -71,6 +71,7 @@ tasksRouter.post(
       throw httpError(400, "milestone does not belong to that project");
     }
     await requireDoc(db.collection("users"), assigneeId, "User");
+    await requireTeamMember(db, project.teamId, assigneeId);
     const doc = {
       projectId,
       milestoneId,
@@ -110,6 +111,11 @@ tasksRouter.patch(
     const id = parseObjectId(req.params.id, "id");
     const tasks = req.app.locals.db.collection("tasks");
     const existing = await requireDoc(tasks, id, "Task");
+    await requireProjectTeamMember(
+      req.app.locals.db,
+      existing.projectId,
+      req.user._id,
+    );
     const update = {};
     const title = optionalString(req.body?.title, "title");
     if (title !== undefined) update.title = title;
@@ -130,6 +136,12 @@ tasksRouter.patch(
         assigneeId,
         "User",
       );
+      const project = await requireDoc(
+        req.app.locals.db.collection("projects"),
+        existing.projectId,
+        "Project",
+      );
+      await requireTeamMember(req.app.locals.db, project.teamId, assigneeId);
       update.assigneeId = assigneeId;
     }
     if (req.body?.milestoneId !== undefined) {
@@ -159,8 +171,16 @@ tasksRouter.delete(
   asyncRoute(async (req, res) => {
     const id = parseObjectId(req.params.id, "id");
     const tasks = req.app.locals.db.collection("tasks");
-    await requireDoc(tasks, id, "Task");
+    const existing = await requireDoc(tasks, id, "Task");
+    await requireProjectTeamMember(
+      req.app.locals.db,
+      existing.projectId,
+      req.user._id,
+    );
     await tasks.deleteOne({ _id: id });
+    await req.app.locals.db
+      .collection("taskComments")
+      .deleteMany({ taskId: id });
     res.status(204).end();
   }),
 );

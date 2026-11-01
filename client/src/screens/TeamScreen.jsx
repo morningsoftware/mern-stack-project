@@ -4,7 +4,7 @@ import { ErrorNote, Field } from "../components/Forms.jsx";
 import { useWorkspaceData } from "../hooks/useWorkspaceData.js";
 import { MEMBER_ROLES } from "../constants.js";
 
-export function TeamScreen({ team, onOpenProject }) {
+export function TeamScreen({ team, onOpenProject, currentUserId }) {
   const { data, loading, error, pending, mutate } = useWorkspaceData([
     `/api/teams/${team._id}/members`,
     `/api/projects?teamId=${team._id}`,
@@ -26,6 +26,11 @@ export function TeamScreen({ team, onOpenProject }) {
     ),
     pending,
   );
+  const canManage =
+    team.createdBy === currentUserId ||
+    members.some(
+      (member) => member.userId === currentUserId && member.role === "owner",
+    );
   const availableUsers = users.filter(
     (user) => !members.some((member) => member.userId === user._id),
   );
@@ -80,44 +85,51 @@ export function TeamScreen({ team, onOpenProject }) {
               </li>
             ))}
           </ul>
-          <form onSubmit={addMember}>
-            <fieldset
-              className="stack"
-              disabled={loading || pending || !availableUsers.length}
-            >
-              <Field label="User">
-                <select
-                  value={selectedUserId}
-                  onChange={(event) =>
-                    setMemberForm({ ...memberForm, userId: event.target.value })
-                  }
-                >
-                  {availableUsers.map((user) => (
-                    <option key={user._id} value={user._id}>
-                      {user.displayName} ({user.username})
-                    </option>
-                  ))}
-                </select>
-              </Field>
-              <Field label="Member role">
-                <select
-                  value={memberForm.role}
-                  onChange={(event) =>
-                    setMemberForm({ ...memberForm, role: event.target.value })
-                  }
-                >
-                  {MEMBER_ROLES.map((role) => (
-                    <option key={role} value={role}>
-                      {role}
-                    </option>
-                  ))}
-                </select>
-              </Field>
-              <button type="submit">
-                {pending ? "Saving…" : "Add member"}
-              </button>
-            </fieldset>
-          </form>
+          {canManage ? (
+            <form onSubmit={addMember}>
+              <fieldset
+                className="stack"
+                disabled={loading || pending || !availableUsers.length}
+              >
+                <Field label="User">
+                  <select
+                    value={selectedUserId}
+                    onChange={(event) =>
+                      setMemberForm({
+                        ...memberForm,
+                        userId: event.target.value,
+                      })
+                    }
+                  >
+                    {availableUsers.map((user) => (
+                      <option key={user._id} value={user._id}>
+                        {user.displayName} ({user.username})
+                      </option>
+                    ))}
+                  </select>
+                </Field>
+                <Field label="Member role">
+                  <select
+                    value={memberForm.role}
+                    onChange={(event) =>
+                      setMemberForm({ ...memberForm, role: event.target.value })
+                    }
+                  >
+                    {MEMBER_ROLES.map((role) => (
+                      <option key={role} value={role}>
+                        {role}
+                      </option>
+                    ))}
+                  </select>
+                </Field>
+                <button type="submit">
+                  {pending ? "Saving…" : "Add member"}
+                </button>
+              </fieldset>
+            </form>
+          ) : (
+            <p className="meta">Team owners manage membership.</p>
+          )}
         </section>
         <section className="panel">
           <p className="eyebrow">Development</p>

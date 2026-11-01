@@ -1,3 +1,4 @@
+import { requireBugAccess } from "../projectAccess.js";
 import { Router } from "express";
 import { recordActivity } from "../activity.js";
 import { validateBuildReference } from "../buildReference.js";
@@ -132,6 +133,7 @@ bugReportsRouter.patch(
     const id = parseObjectId(req.params.id, "id");
     const bugs = req.app.locals.db.collection("bugReports");
     const existing = await requireDoc(bugs, id, "Bug report");
+    await requireBugAccess(req.app.locals.db, existing, req.user._id);
     const update = {};
     if (req.body?.buildId !== undefined)
       update.buildId = await validateBuildReference(
@@ -175,7 +177,8 @@ bugReportsRouter.delete(
   asyncRoute(async (req, res) => {
     const id = parseObjectId(req.params.id, "id");
     const bugs = req.app.locals.db.collection("bugReports");
-    await requireDoc(bugs, id, "Bug report");
+    const existing = await requireDoc(bugs, id, "Bug report");
+    await requireBugAccess(req.app.locals.db, existing, req.user._id);
     await bugs.deleteOne({ _id: id });
     await req.app.locals.db
       .collection("bugScreenshots")

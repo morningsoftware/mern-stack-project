@@ -1,3 +1,7 @@
+import {
+  requireTeamMember,
+  requireProjectTeamMember,
+} from "../projectAccess.js";
 import { Router } from "express";
 import { asyncRoute, httpError } from "../errors.js";
 import { requireAuth } from "../middleware/auth.js";
@@ -30,7 +34,7 @@ projectsRouter.get(
       .sort({ createdOn: -1 })
       .toArray();
     res.json(projects);
-  })
+  }),
 );
 
 projectsRouter.post(
@@ -38,11 +42,12 @@ projectsRouter.post(
   asyncRoute(async (req, res) => {
     const teamId = parseObjectId(req.body?.teamId, "teamId");
     const name = requireString(req.body?.name, "name");
-    const description = optionalString(req.body?.description, "description") ?? "";
+    const description =
+      optionalString(req.body?.description, "description") ?? "";
     const status = req.body?.status
       ? oneOf(req.body.status, PROJECT_STATUSES, "status")
       : "active";
-    await requireDoc(req.app.locals.db.collection("teams"), teamId, "Team");
+    await requireTeamMember(req.app.locals.db, teamId, req.user._id);
     const doc = {
       teamId,
       name,
@@ -51,17 +56,21 @@ projectsRouter.post(
       createdOn: new Date(),
       createdBy: actorId(req),
     };
-    const result = await req.app.locals.db.collection("projects").insertOne(doc);
+    const result = await req.app.locals.db
+      .collection("projects")
+      .insertOne(doc);
     res.status(201).json({ ...doc, _id: result.insertedId });
-  })
+  }),
 );
 
 projectsRouter.get(
   "/:id",
   asyncRoute(async (req, res) => {
     const id = parseObjectId(req.params.id, "id");
-    res.json(await requireDoc(req.app.locals.db.collection("projects"), id, "Project"));
-  })
+    res.json(
+      await requireDoc(req.app.locals.db.collection("projects"), id, "Project"),
+    );
+  }),
 );
 
 projectsRouter.patch(
@@ -69,12 +78,13 @@ projectsRouter.patch(
   asyncRoute(async (req, res) => {
     const id = parseObjectId(req.params.id, "id");
     const projects = req.app.locals.db.collection("projects");
-    await requireDoc(projects, id, "Project");
+    await requireProjectTeamMember(req.app.locals.db, id, req.user._id);
     const update = {};
     const name = optionalString(req.body?.name, "name");
     if (name !== undefined) update.name = name;
     if (req.body?.description !== undefined) {
-      update.description = optionalString(req.body.description, "description") ?? "";
+      update.description =
+        optionalString(req.body.description, "description") ?? "";
     }
     if (req.body?.status !== undefined) {
       update.status = oneOf(req.body.status, PROJECT_STATUSES, "status");
@@ -84,7 +94,7 @@ projectsRouter.patch(
     }
     await projects.updateOne({ _id: id }, { $set: update });
     res.json(await projects.findOne({ _id: id }));
-  })
+  }),
 );
 
 projectsRouter.delete(
@@ -92,8 +102,8 @@ projectsRouter.delete(
   asyncRoute(async (req, res) => {
     const id = parseObjectId(req.params.id, "id");
     const projects = req.app.locals.db.collection("projects");
-    await requireDoc(projects, id, "Project");
+    await requireProjectTeamMember(req.app.locals.db, id, req.user._id);
     await projects.deleteOne({ _id: id });
     res.status(204).end();
-  })
+  }),
 );

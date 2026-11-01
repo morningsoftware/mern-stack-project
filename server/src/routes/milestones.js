@@ -1,3 +1,4 @@
+import { requireProjectTeamMember } from "../projectAccess.js";
 import { Router } from "express";
 import { recordActivity } from "../activity.js";
 import { asyncRoute, httpError } from "../errors.js";
@@ -46,11 +47,7 @@ milestonesRouter.post(
       ? oneOf(req.body.status, MILESTONE_STATUSES, "status")
       : "todo";
     const dueDate = parseDate(req.body?.dueDate, "dueDate") ?? null;
-    await requireDoc(
-      req.app.locals.db.collection("projects"),
-      projectId,
-      "Project",
-    );
+    await requireProjectTeamMember(req.app.locals.db, projectId, req.user._id);
     const doc = {
       projectId,
       name,
@@ -94,6 +91,11 @@ milestonesRouter.patch(
     const id = parseObjectId(req.params.id, "id");
     const milestones = req.app.locals.db.collection("milestones");
     const existing = await requireDoc(milestones, id, "Milestone");
+    await requireProjectTeamMember(
+      req.app.locals.db,
+      existing.projectId,
+      req.user._id,
+    );
     const update = {};
     const name = optionalString(req.body?.name, "name");
     if (name !== undefined) update.name = name;
@@ -122,7 +124,12 @@ milestonesRouter.delete(
   asyncRoute(async (req, res) => {
     const id = parseObjectId(req.params.id, "id");
     const milestones = req.app.locals.db.collection("milestones");
-    await requireDoc(milestones, id, "Milestone");
+    const existing = await requireDoc(milestones, id, "Milestone");
+    await requireProjectTeamMember(
+      req.app.locals.db,
+      existing.projectId,
+      req.user._id,
+    );
     await milestones.deleteOne({ _id: id });
     res.status(204).end();
   }),

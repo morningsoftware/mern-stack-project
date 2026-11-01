@@ -87,8 +87,9 @@ not claimed scores.
 | External build links                 | User chose links over file storage         |
 | Optional build-specific feedback     | Existing general feedback stays compatible |
 
-Uploads, activity history, and notifications remain separate scope. Backend authorization for older resources and account
-verification/recovery remain separate work. Build publishing/editing requires
+Screenshots, activity history, and in-app notifications are now implemented below.
+Account verification/recovery, device push, and private-project visibility remain
+separate work. Build publishing/editing requires
 team membership; build reads use the existing authenticated project model.
 
 ## Milestone planning
@@ -191,3 +192,12 @@ deadline (stored as UTC). Team members manage sessions; signed-in playtesters ca
 read and submit feedback while open and before the server-enforced deadline. Show
 Open, Closed, and Deadline passed as text. Session feedback keeps its build and
 association after submission. General feedback remains available.
+
+## Team permissions
+
+The release audit closed membership escalation: owners manage membership and team
+settings; members write project planning data and assign work only to teammates.
+Bug reporters may still maintain their own reports without team membership. The
+web UI limits assignee choices and explains owner-only membership management.
+Existing authenticated project discovery/read behavior remains available for
+playtesting; these controls do not imply private-project visibility.

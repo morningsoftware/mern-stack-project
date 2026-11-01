@@ -245,6 +245,7 @@ function Workspace() {
         <TeamScreen
           key={team._id}
           team={team}
+          currentUserId={user._id}
           onOpenProject={(next) => navigate(team, next)}
         />
       ) : (
