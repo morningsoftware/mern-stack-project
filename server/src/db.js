@@ -10,6 +10,10 @@ export async function connectDatabase(uri) {
 }
 
 export async function ensureIndexes(db) {
+  await db.collection("taskComments").createIndex(
+    { taskId: 1, _id: -1 },
+    { name: "comments_by_task" }
+  );
   await db.collection("builds").createIndex(
     { projectId: 1, version: 1, platform: 1 },
     { unique: true, name: "unique_project_build_platform" }

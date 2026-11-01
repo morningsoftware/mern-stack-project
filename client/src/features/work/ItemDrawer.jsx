@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { BugDetailsFields } from "../playtesting/BugDetailsFields.jsx";
+import { TaskDiscussion } from "../discussions/TaskDiscussion.jsx";
 import { api } from "../../api.js";
 import { ErrorNote, Field } from "../../components/Forms.jsx";
 import {
@@ -24,6 +25,7 @@ export function ItemDrawer({
   const [record, setRecord] = useState(null);
   const [loading, setLoading] = useState(true);
   const [pending, setPending] = useState(false);
+  const [discussionBusy, setDiscussionBusy] = useState(false);
   const [error, setError] = useState("");
   const [attempt, setAttempt] = useState(0);
   const endpoint = kind === "task" ? "tasks" : "bug-reports";
@@ -109,7 +111,7 @@ export function ItemDrawer({
       aria-labelledby="drawer-title"
       onCancel={(event) => {
         event.preventDefault();
-        if (!pending) onClose();
+        if (!pending && !discussionBusy) onClose();
       }}
     >
       <header className="drawer-header">
@@ -126,7 +128,7 @@ export function ItemDrawer({
           type="button"
           className="secondary"
           onClick={onClose}
-          disabled={pending}
+          disabled={pending || discussionBusy}
         >
           Close
         </button>
@@ -138,7 +140,7 @@ export function ItemDrawer({
       )}
       {!loading && record && (
         <form onSubmit={save}>
-          <fieldset className="stack" disabled={pending}>
+          <fieldset className="stack" disabled={pending || discussionBusy}>
             <Field label="Title">
               <input
                 value={record.title}
@@ -258,6 +260,13 @@ export function ItemDrawer({
             </div>
           </fieldset>
         </form>
+      )}
+      {kind === "task" && record && !loading && (
+        <TaskDiscussion
+          disabled={pending}
+          taskId={id}
+          onBusyChange={setDiscussionBusy}
+        />
       )}
     </dialog>
   );

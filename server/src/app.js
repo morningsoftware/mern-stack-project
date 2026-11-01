@@ -8,6 +8,7 @@ import { bugReportsRouter } from "./routes/bugReports.js";
 import { milestonesRouter } from "./routes/milestones.js";
 import { playtestFeedbackRouter } from "./routes/playtestFeedback.js";
 import { projectsRouter } from "./routes/projects.js";
+import { taskCommentsRouter } from "./routes/taskComments.js";
 import { tasksRouter } from "./routes/tasks.js";
 import { teamsRouter } from "./routes/teams.js";
 import { usersRouter } from "./routes/users.js";
@@ -32,6 +33,7 @@ export function createApp(db) {
   app.use("/api/teams", teamsRouter);
   app.use("/api/projects", projectsRouter);
   app.use("/api/milestones", milestonesRouter);
+  app.use("/api/tasks/:taskId/comments", taskCommentsRouter);
   app.use("/api/tasks", tasksRouter);
   app.use("/api/builds", buildsRouter);
   app.use("/api/bug-reports", bugReportsRouter);

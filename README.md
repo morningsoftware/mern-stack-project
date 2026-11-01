@@ -120,3 +120,8 @@ it. General feedback and old bug reports stay compatible.
 See `docs/structured-playtesting.md` for fields, review permissions, compatibility,
 and deployment requirements. The server records reviewer identity/time; marking
 reviewed does not change the playtester's comment or close a related bug.
+
+Task details now include team-only, persistent discussions with older-comment
+pagination and failed-post draft retention. See [task discussions](docs/task-discussions.md)
+for endpoints and deployment requirements and [UX review](docs/ux-review.md) for
+implemented improvements and remaining design work.

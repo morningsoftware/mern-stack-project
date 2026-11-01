@@ -45,6 +45,8 @@ const user = {
   username: "alex",
 };
 let rejectStatus = false;
+let rejectComment = false;
+let discussion = [];
 let db = {
   teams: [{ _id: "t1", name: "Pixel Forge", description: "An indie studio" }],
   projects: [
@@ -94,7 +96,24 @@ global.fetch = async (path, options = {}) => {
   const [resource, id] = p.split("/");
   let status = 200,
     data;
-  if (p === "auth/me") data = { user };
+  if (/^tasks\/[^/]+\/comments$/.test(p)) {
+    if (options.method === "POST") {
+      if (rejectComment) {
+        status = 500;
+        data = { error: "Comment could not be saved" };
+      } else {
+        data = {
+          _id: "comment" + calls.length,
+          ...JSON.parse(options.body),
+          authorName: user.displayName,
+          createdOn: new Date().toISOString(),
+        };
+        discussion.push(data);
+        status = 201;
+      }
+    } else
+      data = { comments: [...discussion], hasMore: false, nextBefore: null };
+  } else if (p === "auth/me") data = { user };
   else if (p === "auth/login") data = { user, token: "fixture" };
   else if (p === "users") data = [user, { _id: "u2", displayName: "Sam Chen" }];
   else if (p === "teams/t1/members")
@@ -582,6 +601,70 @@ test("feedback triage, structured bug creation, source links, and unsent-draft p
     assert.equal(field("Bug title").value, "Issue in 0.4.0");
   } finally {
     rejectStatus = false;
+    await act(async () => root.unmount());
+  }
+});
+
+test("task discussions retain failed drafts, persist posts, and task creation is discoverable", async () => {
+  root = createRoot(document.getElementById("root"));
+  sessionStorage.setItem("mern_token", "fixture");
+  discussion = [];
+  try {
+    await act(async () => {
+      root.render(React.createElement(App));
+      await tick();
+    });
+    await click("Open");
+    await click("Open");
+    await click("New task");
+    assert.equal(document.activeElement, field("Task title"));
+    assert.equal(
+      document.querySelector("details[open] summary").textContent,
+      "Add a task",
+    );
+    await act(async () => {
+      document.querySelector(".card-title").click();
+      await tick();
+    });
+    assert(document.body.textContent.includes("No comments yet"));
+    await change(
+      "Add a comment",
+      "Check jump timing before the next playtest.",
+    );
+    rejectComment = true;
+    await act(async () => {
+      findButton("Post comment").form.dispatchEvent(
+        new window.Event("submit", { bubbles: true, cancelable: true }),
+      );
+      await tick();
+    });
+    assert.equal(
+      field("Add a comment").value,
+      "Check jump timing before the next playtest.",
+    );
+    assert.equal(discussion.length, 0);
+    rejectComment = false;
+    await act(async () => {
+      findButton("Post comment").form.dispatchEvent(
+        new window.Event("submit", { bubbles: true, cancelable: true }),
+      );
+      await tick();
+    });
+    assert.equal(field("Add a comment").value, "");
+    assert.equal(document.querySelectorAll(".discussion-list li").length, 1);
+    assert(document.body.textContent.includes("Comment posted."));
+    await click("Close");
+    await act(async () => {
+      document.querySelector(".card-title").click();
+      await tick();
+    });
+    assert(
+      document
+        .querySelector(".discussion-list")
+        .textContent.includes("Check jump timing"),
+    );
+  } finally {
+    rejectComment = false;
     await act(async () => root.unmount());
   }
 });

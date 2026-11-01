@@ -15,6 +15,7 @@ export function TaskBoard({
   onStatusChange,
   onOpen,
   currentUserId,
+  onCreate,
 }) {
   const [filters, setFilters] = useState({
     query: "",
@@ -49,14 +50,19 @@ export function TaskBoard({
             {visible.length} of {tasks.length} tasks
           </p>
         </div>
-        <label className="toggle-filter">
-          <input
-            type="checkbox"
-            checked={filters.mine}
-            onChange={(event) => update("mine", event.target.checked)}
-          />
-          My work
-        </label>
+        <div className="board-actions">
+          <button type="button" disabled={pending} onClick={onCreate}>
+            New task
+          </button>
+          <label className="toggle-filter">
+            <input
+              type="checkbox"
+              checked={filters.mine}
+              onChange={(event) => update("mine", event.target.checked)}
+            />
+            My work
+          </label>
+        </div>
       </div>
       <div className="board-filters" aria-label="Task filters">
         <Field label="Search tasks">

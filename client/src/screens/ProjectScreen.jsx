@@ -33,6 +33,8 @@ export function ProjectScreen({
   const [drawer, setDrawer] = useState(null);
   const [editingMilestone, setEditingMilestone] = useState(null);
   const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
+  const taskForm = useRef(null);
   const [milestone, setMilestone] = useState({
     name: "",
     description: "",
@@ -133,10 +135,18 @@ export function ProjectScreen({
     mutationLock.current = true;
     setPending(true);
     setError("");
+    setNotice("");
     try {
       await api(path, { method: "POST", body: JSON.stringify(body) });
       reset();
-      await load();
+      setNotice("Created successfully.");
+      try {
+        await load();
+      } catch {
+        setError(
+          "Your item was created, but the workspace could not refresh. Reload to see the latest data.",
+        );
+      }
     } catch (err) {
       setError(err.message);
     } finally {
@@ -150,6 +160,7 @@ export function ProjectScreen({
     mutationLock.current = true;
     setPending(true);
     setError("");
+    setNotice("");
     try {
       const updated = await api(path, {
         method: "PATCH",
@@ -157,7 +168,14 @@ export function ProjectScreen({
       });
       if (path === `/api/projects/${project._id}`) onProjectChange(updated);
       reset?.();
-      await load();
+      setNotice("Changes saved.");
+      try {
+        await load();
+      } catch {
+        setError(
+          "Your changes were saved, but the workspace could not refresh. Reload to see the latest data.",
+        );
+      }
     } catch (err) {
       setError(err.message);
     } finally {
@@ -196,6 +214,11 @@ export function ProjectScreen({
         </Field>
       </header>
       <ErrorNote error={error} />
+      {notice && (
+        <p role="status" className="workspace-notice">
+          {notice}
+        </p>
+      )}
       {loading && (
         <p role="status" className="loading">
           Loading project workspace…
@@ -290,6 +313,10 @@ export function ProjectScreen({
           </section>
           <section className="panel" hidden={view !== "tasks"}>
             <TaskBoard
+              onCreate={() => {
+                taskForm.current.open = true;
+                taskForm.current.querySelector("input")?.focus();
+              }}
               tasks={tasks}
               users={users}
               milestones={milestones}
@@ -300,7 +327,7 @@ export function ProjectScreen({
                 patch(`/api/tasks/${id}`, { status })
               }
             />
-            <details className="create-work">
+            <details ref={taskForm} className="create-work">
               <summary>Add a task</summary>
               <form
                 className="stack"
@@ -320,6 +347,15 @@ export function ProjectScreen({
                       setTask({ ...task, title: event.target.value })
                     }
                     required
+                  />
+                </Field>
+                <Field label="Task description">
+                  <textarea
+                    rows={3}
+                    value={task.description}
+                    onChange={(event) =>
+                      setTask({ ...task, description: event.target.value })
+                    }
                   />
                 </Field>
                 <Field label="Milestone">

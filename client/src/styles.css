@@ -1039,3 +1039,54 @@ button.milestone-title {
   flex-direction: column;
   align-items: start;
 }
+
+/* Discussions sit alongside task details without competing with edit controls. */
+.task-discussion {
+  border-top: 1px solid var(--border, #c9ccbb);
+  margin-top: 24px;
+  padding-top: 20px;
+}
+.discussion-list {
+  list-style: none;
+  padding: 0;
+  margin: 16px 0;
+}
+.discussion-list li {
+  padding: 14px 0;
+  border-bottom: 1px solid #c9ccbb;
+}
+.discussion-list header {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 8px;
+}
+.discussion-list time {
+  color: #5e6759;
+  font-size: 0.8rem;
+}
+.discussion-list p {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  margin-bottom: 0;
+}
+.board-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+.workspace-notice {
+  color: #283c31;
+  font-size: 0.9rem;
+}
+.workspace-notice:empty {
+  display: none;
+}
+.item-drawer .drawer-actions {
+  position: sticky;
+  bottom: 0;
+  background: #fcfaf4;
+  padding: 12px 0;
+  border-top: 1px solid #c9ccbb;
+}

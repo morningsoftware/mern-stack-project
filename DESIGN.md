@@ -123,3 +123,17 @@ labels, not claims that a bug is resolved. Only team members see review controls
 with enforcement in the API. Show linked bugs directly below their source report.
 Starting a report from feedback must preserve or explicitly replace an unsent
 manual report. See docs/structured-playtesting.md for contracts and permissions.
+
+## Task discussions and workflow clarity
+
+The user selected task discussions as the next feature. Put the discussion below
+the editable task fields in the existing drawer, with author, time, and plain
+text. Load the latest 30 comments and offer Load earlier comments. Keep failed
+comment drafts. Discussion is team-only, with API enforcement; it is not an
+activity log. Posting and task saving lock competing actions until completion.
+
+Keep the approved palette and typography. New task belongs in the board header
+and opens/focuses the existing creation form. Save/create confirmations use a
+polite live status region; distinguish successful writes from refresh failures.
+Keep drawer edit actions visible with a sticky row inside the form. See
+[UX review](docs/ux-review.md) for remaining usability and visual checks.
