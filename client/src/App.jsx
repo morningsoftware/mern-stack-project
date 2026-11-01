@@ -83,6 +83,7 @@ export function App() {
         <ProjectScreen
           key={project._id}
           project={project}
+          currentUserId={user._id}
           onProjectChange={setProject}
           view={view}
           onViewChange={setView}
@@ -93,7 +94,7 @@ export function App() {
           team={team}
           onOpenProject={(next) => {
             setProject(next);
-            setView("overview");
+            setView("tasks");
           }}
         />
       ) : (

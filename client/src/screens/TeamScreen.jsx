@@ -47,7 +47,7 @@ export function TeamScreen({ team, onOpenProject }) {
     <div>
       <header className="top">
         <div>
-          <p className="eyebrow">TEAM WORKSPACE</p>
+          <p className="eyebrow">Team</p>
           <h1>{team.name}</h1>
           <p>{team.description || "No description"}</p>
         </div>
@@ -60,7 +60,7 @@ export function TeamScreen({ team, onOpenProject }) {
       )}
       <div className="grid">
         <section className="panel">
-          <p className="eyebrow">THE PEOPLE BEHIND THE GAME</p>
+          <p className="eyebrow">People</p>
           <h2>Members</h2>
           <ul className="list">
             {members.map((member) => (
@@ -110,7 +110,7 @@ export function TeamScreen({ team, onOpenProject }) {
           </form>
         </section>
         <section className="panel">
-          <p className="eyebrow">YOUR GAMES IN DEVELOPMENT</p>
+          <p className="eyebrow">Development</p>
           <h2>Projects</h2>
           {!loading && !error && projects.length === 0 ? (
             <p>Create a project to plan milestones and assign tasks.</p>

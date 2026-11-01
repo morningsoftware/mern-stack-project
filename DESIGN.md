@@ -2,94 +2,89 @@
 
 ## Approved direction
 
-The frontend uses a dark studio workspace: charcoal surfaces, restrained violet
-accents, and clear typography inspired by game development tools. The user
-approved this direction and a dashboard foundation scope on October 31, 2026.
-Keep **MERN Stack Project** as the product name until the team approves branding.
+The user approved a Codecks-inspired indie-studio personality combined with a
+HacknPlan-style production workspace. This replaces the initial charcoal/violet
+dashboard direction. Keep **MERN Stack Project** until the team approves branding.
+
+The implementation uses warm paper surfaces, forest-green navigation, rust
+controls, compact work cards, and restrained serif project headings. Its main
+screen is the task board. Inspiration informs hierarchy and tone, not copied
+brand assets or proprietary artwork.
 
 ## Principles
 
-- Prioritize project work and readable information over decoration.
-- Use real API data for every count, status, and progress indicator.
-- Provide explicit loading, empty, error, disabled, and focus states.
-- Keep existing API contracts and workflows compatible with web and mobile.
+- Show actual development work before decorative metrics.
+- Use project context and plain labels instead of promotional slogans.
+- Keep counts derived from API data; never invent activity, art, or builds.
+- Use text alongside color for every state and priority.
+- Keep native controls and keyboard-accessible alternatives to gestures.
 
-## Color
+## Color and typography
 
-| Role        | Value     | Usage                                   |
-| ----------- | --------- | --------------------------------------- |
-| Background  | `#111116` | Page canvas                             |
-| Sidebar     | `#16161e` | Workspace navigation                    |
-| Surface     | `#1a1a23` | Panels and summary cards                |
-| Border      | `#363641` | Structural divisions                    |
-| Text        | `#f2f1f8` | Primary text                            |
-| Muted text  | `#b5b3c5` | Descriptions and secondary labels       |
-| Accent      | `#c4afff` | Primary buttons and selected navigation |
-| Accent text | `#21113f` | Text on accent buttons                  |
-| Error text  | `#ffced6` | Errors on dark rose backgrounds         |
+| Role                | Value     | Usage                   |
+| ------------------- | --------- | ----------------------- |
+| Canvas              | `#f3f0e7` | Warm paper background   |
+| Surface             | `#fcfaf4` | Forms and detail panels |
+| Navigation          | `#283c31` | Forest sidebar          |
+| Primary text        | `#29332b` | Ink-colored body copy   |
+| Muted text          | `#5e6759` | Secondary information   |
+| Borders             | `#c9ccbb` | Quiet divisions         |
+| Accent              | `#934125` | Rust primary actions    |
+| Selected navigation | `#e7dba9` | Warm yellow on forest   |
 
-Dark mode is the first implementation. A theme switcher is outside this PR.
-Status colors always accompany text labels; do not rely on color alone.
+Use system sans-serif for controls/body copy, Georgia for project headings and
+small overview totals, and system monospace for short record identifiers. No
+remote font downloads. Use 3–4px corner radii and minimal shadows. Avoid gradients,
+large matching KPI cards, arbitrary numbered menus, and oversized uppercase copy.
 
-## Typography
+## Layout
 
-Use the system sans-serif stack to avoid remote font downloads. Body text uses
-1.5 line height. Headings use 1.2 line height; the main heading scales from
-1.8rem to 2.6rem. Small uppercase labels are reserved for navigation context.
-Task names, feedback, and forms use normal readable text rather than pixel fonts.
+Desktop: a 234px sidebar with a flexible work area. The board uses three status
+columns: To do, In progress, Done. Under 1150px, columns stack; under 760px,
+navigation moves above content and wraps. Filters wrap and inputs retain usable
+width. Detail drawers occupy the right edge on desktop and the screen on mobile.
 
-## Layout and spacing
+Overview totals form a compact ledger rather than four decorative cards. Use
+16–24px spacing and thin separators. Artwork and logos require separate approval.
 
-Desktop: 268px sidebar and flexible content with a 1440px maximum width.
-Use 8px-based spacing, 24px panel padding, 16–24px grid gaps, and 36px desktop
-content padding. At 1100px, summary cards become two columns and overview panels
-stack. At 760px, navigation moves above content and wraps into labeled buttons.
-All grids permit narrow screens without horizontal page scrolling.
+## Features and contracts
 
-## Components and navigation
+- `features/work/TaskBoard.jsx`: search title/description, assignee, priority,
+  milestone, and My work filters. Filters combine and can be cleared. They operate
+  on the loaded project records, not the complete database.
+- Status selectors move tasks between columns through existing PATCH endpoints.
+  Drag/drop is not required; every move works with a keyboard and touch.
+- `features/work/ItemDrawer.jsx`: fetch fresh task/bug detail, edit existing API
+  fields, save, or cancel. Native modal dialog provides focus containment/Escape.
+  Return focus on close and preserve edits when a save fails.
+- `features/work/BuildLibrary.jsx`: version, platform, release notes, HTTPS link.
+  The user approved external links rather than storing uploaded game binaries.
+  Feedback can optionally reference a build in the same project.
+- React state still controls navigation. Deep links remain separate scope.
+- No new runtime UI libraries. Existing API contracts remain compatible; build
+  endpoints and optional feedback buildId are additive.
 
-- `components/AppShell.jsx`: workspace navigation, breadcrumbs, account control,
-  skip link, and focus management after navigating.
-- `components/Forms.jsx`: associated field labels and alert messages.
-- `components/ProjectOverview.jsx`: computed summary cards, progress, upcoming
-  incomplete milestones, and links to existing project tools.
-- `screens/`: authentication, team list, team details, and project workspace.
-- Project navigation: Overview, Milestones, Tasks, Bug reports, Playtest feedback.
-- Navigation remains React state based in this foundation. Refresh returns to
-  Teams; URL routing and deep links need a separate approved change.
-- Requests use the existing `api.js` helper. No new runtime UI dependencies.
+## Accessibility and errors
 
-## Interaction and accessibility
+Use visible focus outlines, a skip link, semantic landmarks, associated labels,
+status/alert messages, and at least 42px controls (36px for compact card selects).
+Native dialogs provide keyboard focus containment; browser testing is required
+because DOM fixtures do not simulate top-layer or layout behavior. Disable
+submissions during mutations. Never move a card on a failed server response.
+Respect reduced motion. WCAG AA and Lighthouse >=95 remain acceptance targets,
+not claimed scores.
 
-Use native buttons, labeled controls, semantic landmarks, a breadcrumb list,
-`aria-current` navigation, a keyboard skip link, and visible focus outlines.
-Controls have a minimum 44px height. Disable forms during their submissions and
-surface API errors through an alert. Report loading and saving through status
-messages. Cancel initial screen requests on unmount. Project status updates must
-update React state only after a successful response, never mutate props.
+## Approved decisions and remaining scope
 
-Use WCAG AA text contrast as the target. Respect reduced-motion preferences;
-this foundation does not introduce animation or motion-dependent interactions.
-Lighthouse >=95 remains a deployment acceptance target, not a claimed result.
+| Decision                             | Reason                                     |
+| ------------------------------------ | ------------------------------------------ |
+| Warm indie studio + production board | User approved B+C references               |
+| Keep product name                    | Permanent branding remains a team decision |
+| Board first, overview second         | Work is more useful than generic metrics   |
+| External build links                 | User chose links over file storage         |
+| Optional build-specific feedback     | Existing general feedback stays compatible |
 
-## Voice and tone
-
-Use direct language and familiar game development terms. Encourage the next
-concrete action in empty states. Do not advertise unsupported build submissions,
-notifications, account verification, or password recovery.
-
-## Decision log
-
-| Decision                           | Rationale                                           |
-| ---------------------------------- | --------------------------------------------------- |
-| Dark studio with violet accents    | Approved game development visual direction          |
-| Keep current product name          | Branding remains a team decision                    |
-| Foundation before full redesign    | Keep the first change reviewable                    |
-| Existing React/Vite/CSS stack      | Avoid adding dependencies or changing API contracts |
-| Real counts, including zero states | Keep the dashboard truthful and useful              |
-
-## Open questions and later scope
-
-Permanent branding, URL routing, a task board, search/filter design, richer
-editing/deletion, and a light theme require later scope decisions. Backend team
-permissions and email verification/recovery remain separate backend work.
+Uploads, comments/activity history, notifications, final branding, and URL routing
+remain separate scope. Backend authorization for older resources and account
+verification/recovery remain separate work. Build publishing/editing requires
+team membership; build reads use the existing authenticated project model.

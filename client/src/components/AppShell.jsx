@@ -1,11 +1,12 @@
 import { useEffect, useRef } from "react";
 
 export const PROJECT_VIEWS = [
-  ["overview", "Overview", "01"],
-  ["milestones", "Milestones", "02"],
-  ["tasks", "Tasks", "03"],
-  ["bugs", "Bug reports", "04"],
-  ["feedback", "Playtest feedback", "05"],
+  ["tasks", "Task board"],
+  ["overview", "Overview"],
+  ["milestones", "Milestones"],
+  ["bugs", "Bug reports"],
+  ["builds", "Builds"],
+  ["feedback", "Playtest feedback"],
 ];
 
 export function AppShell({
@@ -37,10 +38,10 @@ export function AppShell({
             M
           </span>
           <span>
-            MERN Stack Project<small>GAME DEVELOPMENT WORKSPACE</small>
+            MERN Stack Project<small>Studio workspace</small>
           </span>
         </div>
-        <p className="nav-label">WORKSPACE</p>
+        <p className="nav-label">Workspace</p>
         <nav aria-label="Workspace navigation" className="workspace-nav">
           <button
             className="nav-item"
@@ -62,18 +63,15 @@ export function AppShell({
         </nav>
         {project && (
           <>
-            <p className="nav-label">PROJECT / {project.name}</p>
+            <p className="nav-label">Project / {project.name}</p>
             <nav aria-label="Project navigation" className="workspace-nav">
-              {PROJECT_VIEWS.map(([key, label, number]) => (
+              {PROJECT_VIEWS.map(([key, label]) => (
                 <button
                   key={key}
                   className="nav-item"
                   aria-current={view === key ? "page" : undefined}
                   onClick={() => onViewChange(key)}
                 >
-                  <span className="nav-number" aria-hidden="true">
-                    {number}
-                  </span>
                   {label}
                 </button>
               ))}
@@ -112,7 +110,7 @@ export function AppShell({
               {project && <li>{project.name}</li>}
             </ol>
           </nav>
-          <span className="workspace-label">DEVELOP. TEST. ITERATE.</span>
+          <span className="workspace-label">Team workspace</span>
         </header>
         <main
           id="main-content"

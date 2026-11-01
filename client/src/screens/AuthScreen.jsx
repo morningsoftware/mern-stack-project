@@ -51,7 +51,7 @@ export function AuthScreen({ onReady }) {
 
   return (
     <main id="main-content" className="auth-wrap">
-      <p className="eyebrow">YOUR DEVELOPMENT WORKSPACE</p>
+      <p className="eyebrow">Studio sign in</p>
       <h1>MERN Stack Project</h1>
       <p>
         Sign in to manage teams, projects, tasks, bugs, and playtest feedback.

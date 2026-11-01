@@ -7,7 +7,10 @@ import { ensureIndexes } from "../src/db.js";
 process.env.JWT_SECRET = process.env.JWT_SECRET || "test-secret";
 
 export async function startApi() {
-  const mongod = await MongoMemoryServer.create();
+  // TCP is sufficient for the isolated test client; do not create a Unix socket.
+  const mongod = await MongoMemoryServer.create({
+    instance: { args: ["--nounixsocket"] },
+  });
   const client = new MongoClient(mongod.getUri());
   await client.connect();
   const db = client.db("mern");
@@ -38,7 +41,9 @@ export async function registerUser(api, overrides = {}) {
   };
   const response = await api.post("/api/auth/register").send(body);
   if (response.status !== 201) {
-    throw new Error(`register failed: ${response.status} ${JSON.stringify(response.body)}`);
+    throw new Error(
+      `register failed: ${response.status} ${JSON.stringify(response.body)}`,
+    );
   }
   return { body, token: response.body.token, user: response.body.user };
 }

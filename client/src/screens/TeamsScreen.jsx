@@ -23,11 +23,9 @@ export function TeamsScreen({ onOpenTeam }) {
     <div>
       <header className="top">
         <div>
-          <p className="eyebrow">WORKSPACE / TEAMS</p>
-          <h1>Great games start together.</h1>
-          <p className="meta">
-            Bring your team, projects, and next big idea into one workspace.
-          </p>
+          <p className="eyebrow">Workspace</p>
+          <h1>Teams</h1>
+          <p className="meta">Choose a studio or start a new team.</p>
         </div>
       </header>
       <ErrorNote error={error} />
@@ -38,7 +36,7 @@ export function TeamsScreen({ onOpenTeam }) {
       )}
       <div className="team-layout">
         <section className="panel create-panel">
-          <p className="eyebrow">BUILD SOMETHING TOGETHER</p>
+          <p className="eyebrow">New studio</p>
           <h2>Create a team</h2>
           <form onSubmit={createTeam}>
             <fieldset className="stack" disabled={loading || pending}>

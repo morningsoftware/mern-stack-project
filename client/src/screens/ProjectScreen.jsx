@@ -9,10 +9,14 @@ import {
   BUG_STATUSES,
 } from "../constants.js";
 import { ErrorNote, Field } from "../components/Forms.jsx";
+import { TaskBoard } from "../features/work/TaskBoard.jsx";
+import { ItemDrawer } from "../features/work/ItemDrawer.jsx";
+import { BuildLibrary } from "../features/work/BuildLibrary.jsx";
 import { ProjectOverview } from "../components/ProjectOverview.jsx";
 
 export function ProjectScreen({
   project,
+  currentUserId,
   onProjectChange,
   view,
   onViewChange,
@@ -25,6 +29,8 @@ export function ProjectScreen({
   const [tasks, setTasks] = useState([]);
   const [bugs, setBugs] = useState([]);
   const [feedback, setFeedback] = useState([]);
+  const [builds, setBuilds] = useState([]);
+  const [drawer, setDrawer] = useState(null);
   const [error, setError] = useState("");
   const [milestone, setMilestone] = useState({
     name: "",
@@ -46,24 +52,32 @@ export function ProjectScreen({
     severity: "medium",
     status: "open",
   });
-  const [note, setNote] = useState({ rating: "4", comments: "" });
+  const [note, setNote] = useState({ rating: "4", comments: "", buildId: "" });
 
   const load = useCallback(
     async (signal) => {
-      const [nextUsers, nextMilestones, nextTasks, nextBugs, nextFeedback] =
-        await Promise.all([
-          api("/api/users", { signal }),
-          api(`/api/milestones?projectId=${project._id}`, { signal }),
-          api(`/api/tasks?projectId=${project._id}`, { signal }),
-          api(`/api/bug-reports?projectId=${project._id}`, { signal }),
-          api(`/api/playtest-feedback?projectId=${project._id}`, { signal }),
-        ]);
+      const [
+        nextUsers,
+        nextMilestones,
+        nextTasks,
+        nextBugs,
+        nextFeedback,
+        nextBuilds,
+      ] = await Promise.all([
+        api("/api/users", { signal }),
+        api(`/api/milestones?projectId=${project._id}`, { signal }),
+        api(`/api/tasks?projectId=${project._id}`, { signal }),
+        api(`/api/bug-reports?projectId=${project._id}`, { signal }),
+        api(`/api/playtest-feedback?projectId=${project._id}`, { signal }),
+        api(`/api/builds?projectId=${project._id}`, { signal }),
+      ]);
       if (signal?.aborted) return;
       setUsers(nextUsers);
       setMilestones(nextMilestones);
       setTasks(nextTasks);
       setBugs(nextBugs);
       setFeedback(nextFeedback);
+      setBuilds(nextBuilds);
       setTask((current) => ({
         ...current,
         milestoneId: current.milestoneId || nextMilestones[0]?._id || "",
@@ -105,7 +119,7 @@ export function ProjectScreen({
     }
   }
 
-  async function patch(path, body) {
+  async function patch(path, body, reset) {
     if (mutationLock.current) return;
     mutationLock.current = true;
     setPending(true);
@@ -116,6 +130,7 @@ export function ProjectScreen({
         body: JSON.stringify(body),
       });
       if (path === `/api/projects/${project._id}`) onProjectChange(updated);
+      reset?.();
       await load();
     } catch (err) {
       setError(err.message);
@@ -129,7 +144,7 @@ export function ProjectScreen({
     <div>
       <header className="top">
         <div>
-          <p className="eyebrow">PROJECT WORKSPACE</p>
+          <p className="eyebrow">Project</p>
           <h1>{project.name}</h1>
           <p>
             {project.description || "No description"}{" "}
@@ -139,7 +154,7 @@ export function ProjectScreen({
         <Field label="Project status">
           <select
             value={project.status}
-            disabled={pending}
+            disabled={pending || loading}
             onChange={(event) =>
               patch(`/api/projects/${project._id}`, {
                 status: event.target.value,
@@ -166,6 +181,7 @@ export function ProjectScreen({
           tasks={tasks}
           bugs={bugs}
           feedback={feedback}
+          builds={builds}
           onViewChange={onViewChange}
         />
       )}
@@ -243,100 +259,87 @@ export function ProjectScreen({
             </form>
           </section>
           <section className="panel" hidden={view !== "tasks"}>
-            <h2>Tasks</h2>
-            <ul className="list">
-              {tasks.map((item) => (
-                <li key={item._id}>
-                  <span>
-                    {item.title}{" "}
-                    <span className="meta">
-                      {item.priority}, {nameFor(item.assigneeId)}
-                    </span>
-                  </span>
-                  <select
-                    aria-label={`Status for ${item.title}`}
-                    value={item.status}
+            <TaskBoard
+              tasks={tasks}
+              users={users}
+              milestones={milestones}
+              pending={pending || loading}
+              currentUserId={currentUserId}
+              onOpen={(id) => setDrawer({ kind: "task", id })}
+              onStatusChange={(id, status) =>
+                patch(`/api/tasks/${id}`, { status })
+              }
+            />
+            <details className="create-work">
+              <summary>Add a task</summary>
+              <form
+                className="stack"
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  submit(
+                    "/api/tasks",
+                    { ...task, projectId: project._id },
+                    () => setTask({ ...task, title: "", description: "" }),
+                  );
+                }}
+              >
+                <Field label="Task title">
+                  <input
+                    value={task.title}
                     onChange={(event) =>
-                      patch(`/api/tasks/${item._id}`, {
-                        status: event.target.value,
-                      })
+                      setTask({ ...task, title: event.target.value })
                     }
+                    required
+                  />
+                </Field>
+                <Field label="Milestone">
+                  <select
+                    value={task.milestoneId}
+                    onChange={(event) =>
+                      setTask({ ...task, milestoneId: event.target.value })
+                    }
+                    required
                   >
-                    {TASK_STATUSES.map((status) => (
-                      <option key={status} value={status}>
-                        {status}
+                    <option value="">Select a milestone</option>
+                    {milestones.map((item) => (
+                      <option key={item._id} value={item._id}>
+                        {item.name}
                       </option>
                     ))}
                   </select>
-                </li>
-              ))}
-            </ul>
-            {tasks.length === 0 && <p>No tasks yet.</p>}
-            <form
-              className="stack"
-              onSubmit={(event) => {
-                event.preventDefault();
-                submit("/api/tasks", { ...task, projectId: project._id }, () =>
-                  setTask({ ...task, title: "", description: "" }),
-                );
-              }}
-            >
-              <Field label="Task title">
-                <input
-                  value={task.title}
-                  onChange={(event) =>
-                    setTask({ ...task, title: event.target.value })
-                  }
-                  required
-                />
-              </Field>
-              <Field label="Milestone">
-                <select
-                  value={task.milestoneId}
-                  onChange={(event) =>
-                    setTask({ ...task, milestoneId: event.target.value })
-                  }
-                  required
-                >
-                  <option value="">Select a milestone</option>
-                  {milestones.map((item) => (
-                    <option key={item._id} value={item._id}>
-                      {item.name}
-                    </option>
-                  ))}
-                </select>
-              </Field>
-              <Field label="Assignee">
-                <select
-                  value={task.assigneeId}
-                  onChange={(event) =>
-                    setTask({ ...task, assigneeId: event.target.value })
-                  }
-                  required
-                >
-                  {users.map((user) => (
-                    <option key={user._id} value={user._id}>
-                      {user.displayName}
-                    </option>
-                  ))}
-                </select>
-              </Field>
-              <Field label="Priority">
-                <select
-                  value={task.priority}
-                  onChange={(event) =>
-                    setTask({ ...task, priority: event.target.value })
-                  }
-                >
-                  {PRIORITIES.map((priority) => (
-                    <option key={priority} value={priority}>
-                      {priority}
-                    </option>
-                  ))}
-                </select>
-              </Field>
-              <button type="submit">Add task</button>
-            </form>
+                </Field>
+                <Field label="Assignee">
+                  <select
+                    value={task.assigneeId}
+                    onChange={(event) =>
+                      setTask({ ...task, assigneeId: event.target.value })
+                    }
+                    required
+                  >
+                    {users.map((user) => (
+                      <option key={user._id} value={user._id}>
+                        {user.displayName}
+                      </option>
+                    ))}
+                  </select>
+                </Field>
+                <Field label="Priority">
+                  <select
+                    value={task.priority}
+                    onChange={(event) =>
+                      setTask({ ...task, priority: event.target.value })
+                    }
+                  >
+                    {PRIORITIES.map((priority) => (
+                      <option key={priority} value={priority}>
+                        {priority}
+                      </option>
+                    ))}
+                  </select>
+                </Field>
+                <button type="submit">Add task</button>
+              </form>
+            </details>
           </section>
           <section className="panel" hidden={view !== "bugs"}>
             <h2>Bug reports</h2>
@@ -344,7 +347,14 @@ export function ProjectScreen({
               {bugs.map((item) => (
                 <li key={item._id}>
                   <span>
-                    {item.title} <span className="meta">{item.severity}</span>
+                    <button
+                      type="button"
+                      className="item-title"
+                      onClick={() => setDrawer({ kind: "bug", id: item._id })}
+                    >
+                      {item.title}
+                    </button>{" "}
+                    <span className="badge">{item.severity}</span>
                   </span>
                   <select
                     aria-label={`Status for ${item.title}`}
@@ -416,6 +426,27 @@ export function ProjectScreen({
               <button type="submit">Report bug</button>
             </form>
           </section>
+          <section hidden={view !== "builds"}>
+            <BuildLibrary
+              builds={builds}
+              feedback={feedback}
+              pending={pending || loading}
+              onPublish={(body, reset) =>
+                submit(
+                  "/api/builds",
+                  { ...body, projectId: project._id },
+                  reset,
+                )
+              }
+              onUpdate={(id, body, reset) =>
+                patch(`/api/builds/${id}`, body, reset)
+              }
+              onFeedback={(buildId) => {
+                setNote((old) => ({ ...old, buildId }));
+                onViewChange("feedback");
+              }}
+            />
+          </section>
           <section className="panel" hidden={view !== "feedback"}>
             <h2>Playtest feedback</h2>
             <ul className="list">
@@ -423,6 +454,13 @@ export function ProjectScreen({
                 <li key={item._id}>
                   <span>
                     {nameFor(item.userId)}: {item.comments || "No comments"}
+                    {item.buildId && (
+                      <small className="meta">
+                        Build:{" "}
+                        {builds.find((build) => build._id === item.buildId)
+                          ?.version || "Unavailable build"}
+                      </small>
+                    )}
                   </span>
                   <span className="meta">Rating {item.rating} of 5</span>
                 </li>
@@ -439,11 +477,27 @@ export function ProjectScreen({
                     projectId: project._id,
                     rating: Number(note.rating),
                     comments: note.comments,
+                    ...(note.buildId ? { buildId: note.buildId } : {}),
                   },
-                  () => setNote({ rating: "4", comments: "" }),
+                  () => setNote({ rating: "4", comments: "", buildId: "" }),
                 );
               }}
             >
+              <Field label="Build tested">
+                <select
+                  value={note.buildId}
+                  onChange={(event) =>
+                    setNote({ ...note, buildId: event.target.value })
+                  }
+                >
+                  <option value="">General project feedback</option>
+                  {builds.map((build) => (
+                    <option key={build._id} value={build._id}>
+                      {build.version} · {build.platform}
+                    </option>
+                  ))}
+                </select>
+              </Field>
               <Field label="Rating">
                 <select
                   value={note.rating}
@@ -471,6 +525,29 @@ export function ProjectScreen({
           </section>
         </div>
       </fieldset>
+      {drawer && (
+        <ItemDrawer
+          key={`${drawer.kind}-${drawer.id}`}
+          {...drawer}
+          users={users}
+          milestones={milestones}
+          onClose={() => setDrawer(null)}
+          onSaved={(updated) => {
+            if (drawer.kind === "task")
+              setTasks((items) =>
+                items.map((item) =>
+                  item._id === updated._id ? updated : item,
+                ),
+              );
+            else
+              setBugs((items) =>
+                items.map((item) =>
+                  item._id === updated._id ? updated : item,
+                ),
+              );
+          }}
+        />
+      )}
       {pending && (
         <p role="status" className="save-status">
           Saving changes…

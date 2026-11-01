@@ -30,6 +30,13 @@ buildSync({
   external: ["react"],
   jsx: "automatic",
 });
+// jsdom does not implement the browser's modal focus/top-layer behavior.
+window.HTMLDialogElement.prototype.showModal = function () {
+  this.setAttribute("open", "");
+};
+window.HTMLDialogElement.prototype.close = function () {
+  this.removeAttribute("open");
+};
 const { App } = require(base + "/node_modules/.cache/review-app.cjs");
 const user = {
   _id: "u1",
@@ -66,7 +73,16 @@ let db = {
       priority: "high",
     },
   ],
-  "bug-reports": [],
+  builds: [],
+  "bug-reports": [
+    {
+      _id: "bug1",
+      title: "Platform collision",
+      description: "Falls through",
+      severity: "high",
+      status: "open",
+    },
+  ],
   "playtest-feedback": [
     { _id: "f1", userId: "u1", rating: 4, comments: "Great controls" },
   ],
@@ -80,7 +96,7 @@ global.fetch = async (path, options = {}) => {
     data;
   if (p === "auth/me") data = { user };
   else if (p === "auth/login") data = { user, token: "fixture" };
-  else if (p === "users") data = [user];
+  else if (p === "users") data = [user, { _id: "u2", displayName: "Sam Chen" }];
   else if (p === "teams/t1/members")
     data = [{ _id: "tm1", userId: "u1", role: "owner" }];
   else if (options.method === "PATCH") {
@@ -95,7 +111,8 @@ global.fetch = async (path, options = {}) => {
     data = { _id: "new" + calls.length, ...JSON.parse(options.body) };
     db[resource].push(data);
     status = 201;
-  } else data = db[resource];
+  } else
+    data = id ? db[resource].find((item) => item._id === id) : db[resource];
   return new Response(JSON.stringify(data), {
     status,
     headers: { "Content-Type": "application/json" },
@@ -116,7 +133,8 @@ async function click(text) {
   });
 }
 const field = (label) => {
-  const l = [...document.querySelectorAll("label")].find(
+  const scope = document.querySelector("dialog[open]") || document;
+  const l = [...scope.querySelectorAll("label")].find(
     (l) => l.firstChild?.textContent.trim() === label,
   );
   assert(l, "Missing field " + label);
@@ -128,7 +146,9 @@ async function change(label, value) {
     const proto =
       el.tagName === "SELECT"
         ? window.HTMLSelectElement.prototype
-        : window.HTMLInputElement.prototype;
+        : el.tagName === "TEXTAREA"
+          ? window.HTMLTextAreaElement.prototype
+          : window.HTMLInputElement.prototype;
     Object.getOwnPropertyDescriptor(proto, "value").set.call(el, value);
     el.dispatchEvent(
       new window.Event(el.tagName === "SELECT" ? "change" : "input", {
@@ -149,7 +169,9 @@ test("dashboard navigation, data updates, and failed status regression", async (
   assert(document.body.textContent.includes("Development teams"));
   await click("Open");
   await click("Open");
-  assert.equal(document.querySelectorAll(".stat-card").length, 4);
+  assert(document.body.textContent.includes("Task board"));
+  await click("Overview");
+  assert.equal(document.querySelectorAll(".project-ledger > div").length, 4);
   assert.equal(document.querySelector("progress").value, 1);
   assert.equal(document.activeElement.id, "main-content");
   await change("Project status", "completed");
@@ -163,7 +185,7 @@ test("dashboard navigation, data updates, and failed status regression", async (
       .textContent.includes("Project update rejected"),
   );
   rejectStatus = false;
-  await click("03Tasks");
+  await click("Task board");
   await change("Task title", "Design level one");
   await act(async () => {
     findButton("Add task").form.dispatchEvent(
@@ -180,7 +202,7 @@ test("dashboard navigation, data updates, and failed status regression", async (
         t.milestoneId === "m1",
     ),
   );
-  await click("01Overview");
+  await click("Overview");
   assert.equal(document.querySelector("progress").max, 2);
   await click("Sign out");
   assert.equal(sessionStorage.getItem("mern_token"), null);
@@ -197,8 +219,134 @@ test("dashboard navigation, data updates, and failed status regression", async (
   });
   await click("Open");
   await click("Open");
+  await click("Overview");
   assert(document.body.textContent.includes("Set your first milestone"));
   assert.equal(document.querySelector("progress").value, 0);
   assert.equal(document.querySelector("progress").max, 1);
+  await act(async () => root.unmount());
+});
+
+test("board filters, task and bug detail drawers, and linked build feedback", async () => {
+  db.tasks = [
+    {
+      _id: "edit-task",
+      projectId: "p1",
+      milestoneId: "m1",
+      title: "Movement controls",
+      description: "Keyboard and gamepad",
+      status: "todo",
+      assigneeId: "u1",
+      priority: "high",
+    },
+    {
+      _id: "other-task",
+      projectId: "p1",
+      milestoneId: "m1",
+      title: "Background art",
+      description: "Forest painting",
+      status: "in_progress",
+      assigneeId: "u2",
+      priority: "low",
+    },
+  ];
+  db.milestones = [
+    { _id: "m1", name: "Playable prototype", status: "in_progress" },
+  ];
+  db.builds = [];
+  sessionStorage.setItem("mern_token", "fixture");
+  root = createRoot(document.getElementById("root"));
+  await act(async () => {
+    root.render(
+      React.createElement(React.StrictMode, null, React.createElement(App)),
+    );
+    await tick();
+  });
+  await click("Open");
+  await click("Open");
+  assert.equal(document.querySelectorAll(".work-card").length, 2);
+  await change("Search tasks", "gamepad");
+  assert.equal(document.querySelectorAll(".work-card").length, 1);
+  await change("Filter by priority", "low");
+  assert.equal(document.querySelectorAll(".work-card").length, 0);
+  assert(
+    document
+      .querySelector("[role=status]")
+      .textContent.includes("No tasks match"),
+  );
+  await click("Clear filters");
+  await change("Filter by assignee", "u2");
+  assert.equal(document.querySelectorAll(".work-card").length, 1);
+  await change("Filter by milestone", "m1");
+  assert.equal(document.querySelectorAll(".work-card").length, 1);
+  await click("Clear filters");
+  await act(async () => {
+    document.querySelector(".toggle-filter input").click();
+    await tick();
+  });
+  assert.equal(document.querySelectorAll(".work-card").length, 1);
+  await click("Movement controls");
+  assert(document.querySelector("dialog[open]"));
+  assert.equal(field("Title").value, "Movement controls");
+  await change("Title", "Movement revised");
+  rejectStatus = true;
+  await act(async () => {
+    findButton("Save changes").form.dispatchEvent(
+      new window.Event("submit", { bubbles: true, cancelable: true }),
+    );
+    await tick();
+  });
+  assert(document.querySelector("dialog [role=alert]"));
+  assert.equal(db.tasks[0].title, "Movement controls");
+  rejectStatus = false;
+  await act(async () => {
+    findButton("Save changes").form.dispatchEvent(
+      new window.Event("submit", { bubbles: true, cancelable: true }),
+    );
+    await tick();
+  });
+  assert.equal(document.querySelector("dialog"), null);
+  assert.equal(db.tasks[0].title, "Movement revised");
+  await click("Movement revised");
+  await act(async () => {
+    const e = new window.Event("cancel", { cancelable: true });
+    document.querySelector("dialog").dispatchEvent(e);
+    await tick();
+  });
+  assert.equal(document.querySelector("dialog"), null);
+  await click("Bug reports");
+  await click("Platform collision");
+  await change("Severity", "low");
+  await act(async () => {
+    findButton("Save changes").form.dispatchEvent(
+      new window.Event("submit", { bubbles: true, cancelable: true }),
+    );
+    await tick();
+  });
+  assert.equal(db["bug-reports"][0].severity, "low");
+  await click("Builds");
+  await change("Build version", "0.2.0");
+  await change("Download URL", "https://example.com/game.zip");
+  await act(async () => {
+    findButton("Publish build link").form.dispatchEvent(
+      new window.Event("submit", { bubbles: true, cancelable: true }),
+    );
+    await tick();
+  });
+  assert.equal(db.builds.length, 1);
+  assert.equal(db.builds[0].projectId, "p1");
+  assert.equal(
+    document.querySelector(".button-link").getAttribute("rel"),
+    "noopener noreferrer",
+  );
+  await click("Give feedback");
+  assert.equal(field("Build tested").value, db.builds[0]._id);
+  await change("Comments", "Jump feedback on 0.2.0");
+  await act(async () => {
+    findButton("Add feedback").form.dispatchEvent(
+      new window.Event("submit", { bubbles: true, cancelable: true }),
+    );
+    await tick();
+  });
+  assert.equal(db["playtest-feedback"].at(-1).buildId, db.builds[0]._id);
   await act(async () => root.unmount());
 });

@@ -55,3 +55,35 @@ API. This does not substitute for visual browser testing or Lighthouse.
 - Check keyboard navigation, the skip link, focus, and a 390px mobile viewport.
 
 Frontend changes are reviewed in a feature branch before merge and deployment.
+
+## Studio board and build links
+
+The follow-up frontend opens projects on a task board. Search and combine filters
+for assignee, priority, milestone, and My work. Use each card's status selector to
+move work between columns. Select a task title or bug title to open its editable
+detail drawer. These features use existing task/bug endpoints.
+
+The Builds view adds HTTPS download links, version/platform labels, and release
+notes. It does not upload or host game files. Publish/edit requires team
+membership. The API never fetches the supplied download URL. New endpoints:
+
+| Method | Path                        | Description                                       |
+| ------ | --------------------------- | ------------------------------------------------- |
+| GET    | `/api/builds?projectId=...` | List a project's builds                           |
+| POST   | `/api/builds`               | Publish version/platform/downloadUrl/releaseNotes |
+| GET    | `/api/builds/:id`           | Retrieve one build                                |
+| PATCH  | `/api/builds/:id`           | Edit a build's metadata/link                      |
+
+`projectId + version + platform` is unique. API startup and database/setup.js add
+the builds collection indexes without changing existing documents. Feedback
+POST/PATCH accepts an optional buildId; the API verifies that the referenced build
+belongs to the feedback's project. Omitting it preserves general feedback.
+
+Deploy this frontend together with the updated server: the project workspace
+loads `/api/builds`. An older server will not provide that route. No existing
+production database or deployment is changed by checking out this branch.
+
+Verification: `npm test --prefix client`, `npm test --prefix server`, and
+`npm run build --prefix client`. The MongoDB test fixture uses loopback TCP with
+no Unix socket. Browser visual, focus-trapping, and Lighthouse checks are still
+required before release.
