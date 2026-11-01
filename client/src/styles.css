@@ -846,3 +846,138 @@ button.card-title:hover {
     scroll-behavior: auto !important;
   }
 }
+
+/* Planning follows calendar dates rather than implying unsupported start dates. */
+.plan-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 18px 0 24px;
+}
+.plan-filters button[aria-pressed="true"] {
+  color: #fffaf1;
+  background: #344f3c;
+  border-color: #344f3c;
+}
+.milestone-timeline {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.date-group {
+  display: grid;
+  grid-template-columns: 150px minmax(0, 1fr);
+  gap: 20px;
+  padding: 0 0 28px;
+}
+.timeline-date {
+  font-family: Georgia, serif;
+  font-size: 1rem;
+  font-weight: 400;
+  padding-top: 18px;
+  color: #46563e;
+}
+.date-milestones {
+  border-left: 2px solid #bbc4aa;
+  padding-left: 20px;
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
+.milestone-entry {
+  position: relative;
+  background: #fffdf6;
+  border: 1px solid var(--border);
+  padding: 18px;
+  border-radius: 3px;
+  min-width: 0;
+}
+.milestone-entry::before {
+  content: "";
+  position: absolute;
+  width: 9px;
+  height: 9px;
+  top: 24px;
+  left: -26px;
+  background: #586e47;
+  border: 2px solid var(--surface);
+  border-radius: 50%;
+}
+.milestone-overdue {
+  border-left: 3px solid #a25235;
+}
+button.milestone-title {
+  font-weight: 650;
+  font-size: 1rem;
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+.deadline-flag {
+  color: #695315;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+.overdue-flag {
+  color: #8c3824;
+}
+.milestone-progress {
+  max-width: 540px;
+  margin: 16px 0;
+}
+.milestone-progress label {
+  display: block;
+  margin-bottom: 8px;
+  color: var(--muted);
+}
+.milestone-controls {
+  display: flex;
+  align-items: end;
+  flex-wrap: wrap;
+  gap: 20px;
+}
+.linked-tasks {
+  border-top: 1px solid var(--border);
+  margin-top: 18px;
+  padding-top: 12px;
+}
+.linked-tasks summary {
+  color: #6e3e27;
+  cursor: pointer;
+  min-height: 36px;
+  padding-top: 5px;
+  font-size: 0.85rem;
+}
+.linked-tasks ul {
+  list-style: none;
+  padding: 0;
+}
+.linked-tasks li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  border-top: 1px solid #e4e6d7;
+  padding: 8px 0;
+}
+@media (max-width: 760px) {
+  .date-group {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 5px;
+  }
+  .timeline-date {
+    padding-top: 0;
+  }
+  .date-milestones {
+    padding-left: 14px;
+  }
+  .milestone-entry {
+    padding: 14px;
+  }
+  .milestone-entry::before {
+    left: -20px;
+  }
+  .milestone-entry .section-heading {
+    flex-wrap: wrap;
+  }
+}

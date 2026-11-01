@@ -1,4 +1,4 @@
-# MERN Stack Project (Group 9)
+# Checkpoint — MERN Stack Project (Group 9)
 
 ## Quick Start
 
@@ -87,3 +87,22 @@ Verification: `npm test --prefix client`, `npm test --prefix server`, and
 `npm run build --prefix client`. The MongoDB test fixture uses loopback TCP with
 no Unix socket. Browser visual, focus-trapping, and Lighthouse checks are still
 required before release.
+
+## Checkpoint milestone planning
+
+Open a project and select Milestones to see its date-ordered roadmap. Filter
+open/overdue/completed goals, inspect linked tasks, or open a linked task's drawer.
+Select a milestone title or Edit milestone to change its name, description, due
+date, or status. Clear the date to make it unscheduled. Add a milestone expands
+the creation form, which now includes a description.
+
+Dates are calendar days: due today is not overdue, completed milestones never
+show overdue warnings, and stored UTC-midnight dates retain the selected day.
+Task progress reflects linked records and does not automatically change milestone
+status. Existing GET/POST/PATCH milestone endpoints are reused. No new backend
+migration is required beyond the build-library changes documented above.
+
+`npm test --prefix client` covers roadmap filters, record creation/editing, failure
+recovery, date clearing, empty progress, day boundaries, and existing workflows.
+The local sample preview is temporary; live database persistence and native modal
+focus behavior still require deployment/browser verification.

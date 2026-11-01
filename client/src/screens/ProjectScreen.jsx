@@ -2,13 +2,14 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { api } from "../api.js";
 import {
   PROJECT_STATUSES,
-  MILESTONE_STATUSES,
   TASK_STATUSES,
   PRIORITIES,
   BUG_SEVERITIES,
   BUG_STATUSES,
 } from "../constants.js";
 import { ErrorNote, Field } from "../components/Forms.jsx";
+import { MilestonePlan } from "../features/planning/MilestonePlan.jsx";
+import { MilestoneEditor } from "../features/planning/MilestoneEditor.jsx";
 import { TaskBoard } from "../features/work/TaskBoard.jsx";
 import { ItemDrawer } from "../features/work/ItemDrawer.jsx";
 import { BuildLibrary } from "../features/work/BuildLibrary.jsx";
@@ -31,6 +32,7 @@ export function ProjectScreen({
   const [feedback, setFeedback] = useState([]);
   const [builds, setBuilds] = useState([]);
   const [drawer, setDrawer] = useState(null);
+  const [editingMilestone, setEditingMilestone] = useState(null);
   const [error, setError] = useState("");
   const [milestone, setMilestone] = useState({
     name: "",
@@ -192,71 +194,75 @@ export function ProjectScreen({
       >
         <div className="grid workspace-grid">
           <section className="panel" hidden={view !== "milestones"}>
-            <h2>Milestones</h2>
-            <ul className="list">
-              {milestones.map((item) => (
-                <li key={item._id}>
-                  <span>{item.name}</span>
-                  <select
-                    aria-label={`Status for ${item.name}`}
-                    value={item.status}
+            <MilestonePlan
+              milestones={milestones}
+              tasks={tasks}
+              pending={pending || loading}
+              onEdit={setEditingMilestone}
+              onTaskOpen={(id) => setDrawer({ kind: "task", id })}
+              onStatusChange={(id, status) =>
+                patch(`/api/milestones/${id}`, { status })
+              }
+            />
+            <details className="create-work">
+              <summary>Add a milestone</summary>
+              <form
+                className="stack"
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  submit(
+                    "/api/milestones",
+                    {
+                      ...milestone,
+                      projectId: project._id,
+                      dueDate: milestone.dueDate || null,
+                    },
+                    () =>
+                      setMilestone({
+                        name: "",
+                        description: "",
+                        dueDate: "",
+                        status: "todo",
+                      }),
+                  );
+                }}
+              >
+                <Field label="Milestone name">
+                  <input
+                    value={milestone.name}
                     onChange={(event) =>
-                      patch(`/api/milestones/${item._id}`, {
-                        status: event.target.value,
+                      setMilestone({ ...milestone, name: event.target.value })
+                    }
+                    required
+                  />
+                </Field>
+                <Field label="Milestone description">
+                  <textarea
+                    rows={3}
+                    value={milestone.description}
+                    onChange={(event) =>
+                      setMilestone({
+                        ...milestone,
+                        description: event.target.value,
                       })
                     }
-                  >
-                    {MILESTONE_STATUSES.map((status) => (
-                      <option key={status} value={status}>
-                        {status}
-                      </option>
-                    ))}
-                  </select>
-                </li>
-              ))}
-            </ul>
-            {milestones.length === 0 && <p>No milestones yet.</p>}
-            <form
-              className="stack"
-              onSubmit={(event) => {
-                event.preventDefault();
-                submit(
-                  "/api/milestones",
-                  {
-                    ...milestone,
-                    projectId: project._id,
-                    dueDate: milestone.dueDate || null,
-                  },
-                  () =>
-                    setMilestone({
-                      name: "",
-                      description: "",
-                      dueDate: "",
-                      status: "todo",
-                    }),
-                );
-              }}
-            >
-              <Field label="Milestone name">
-                <input
-                  value={milestone.name}
-                  onChange={(event) =>
-                    setMilestone({ ...milestone, name: event.target.value })
-                  }
-                  required
-                />
-              </Field>
-              <Field label="Due date">
-                <input
-                  type="date"
-                  value={milestone.dueDate}
-                  onChange={(event) =>
-                    setMilestone({ ...milestone, dueDate: event.target.value })
-                  }
-                />
-              </Field>
-              <button type="submit">Add milestone</button>
-            </form>
+                  />
+                </Field>
+                <Field label="Due date">
+                  <input
+                    type="date"
+                    value={milestone.dueDate}
+                    onChange={(event) =>
+                      setMilestone({
+                        ...milestone,
+                        dueDate: event.target.value,
+                      })
+                    }
+                  />
+                </Field>
+                <button type="submit">Add milestone</button>
+              </form>
+            </details>
           </section>
           <section className="panel" hidden={view !== "tasks"}>
             <TaskBoard
@@ -525,6 +531,18 @@ export function ProjectScreen({
           </section>
         </div>
       </fieldset>
+      {editingMilestone && (
+        <MilestoneEditor
+          key={editingMilestone}
+          id={editingMilestone}
+          onClose={() => setEditingMilestone(null)}
+          onSaved={(updated) =>
+            setMilestones((items) =>
+              items.map((item) => (item._id === updated._id ? updated : item)),
+            )
+          }
+        />
+      )}
       {drawer && (
         <ItemDrawer
           key={`${drawer.kind}-${drawer.id}`}

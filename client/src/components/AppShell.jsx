@@ -35,10 +35,10 @@ export function AppShell({
       <aside className="sidebar">
         <div className="brand">
           <span className="brand-mark" aria-hidden="true">
-            M
+            C
           </span>
           <span>
-            MERN Stack Project<small>Studio workspace</small>
+            Checkpoint<small>Studio workspace</small>
           </span>
         </div>
         <p className="nav-label">Workspace</p>

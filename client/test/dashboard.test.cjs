@@ -350,3 +350,112 @@ test("board filters, task and bug detail drawers, and linked build feedback", as
   assert.equal(db["playtest-feedback"].at(-1).buildId, db.builds[0]._id);
   await act(async () => root.unmount());
 });
+
+test("Checkpoint milestone roadmap, editing, failed save, date clearing, and creation", async () => {
+  db.milestones = [
+    {
+      _id: "plan-1",
+      name: "Old prototype",
+      description: "Initial scope",
+      dueDate: "2000-01-01T00:00:00Z",
+      status: "todo",
+    },
+    {
+      _id: "plan-2",
+      name: "Finished release",
+      dueDate: "2000-01-01T00:00:00Z",
+      status: "completed",
+    },
+  ];
+  db.tasks = [
+    {
+      _id: "linked-1",
+      title: "Linked work",
+      milestoneId: "plan-1",
+      status: "done",
+      assigneeId: "u1",
+      priority: "high",
+    },
+  ];
+  sessionStorage.setItem("mern_token", "fixture");
+  root = createRoot(document.getElementById("root"));
+  try {
+    await act(async () => {
+      root.render(
+        React.createElement(React.StrictMode, null, React.createElement(App)),
+      );
+      await tick();
+    });
+    assert(document.querySelector(".brand").textContent.includes("Checkpoint"));
+    await click("Open");
+    await click("Open");
+    await click("Milestones");
+    assert.equal(document.querySelectorAll(".milestone-entry").length, 2);
+    assert.equal(document.querySelectorAll(".overdue-flag").length, 1);
+    assert(
+      [...document.querySelectorAll(".milestone-entry")]
+        .find((entry) => entry.textContent.includes("Old prototype"))
+        .textContent.includes("1 of 1 linked tasks done"),
+    );
+    await click("Overdue");
+    assert.equal(document.querySelectorAll(".milestone-entry").length, 1);
+    await click("Old prototype");
+    assert.equal(field("Due date").value, "2000-01-01");
+    await change("Milestone name", "Revised prototype");
+    await change("Description", "Revised scope");
+    await change("Due date", "2099-05-12");
+    rejectStatus = true;
+    await act(async () => {
+      findButton("Save milestone").form.dispatchEvent(
+        new window.Event("submit", { bubbles: true, cancelable: true }),
+      );
+      await tick();
+    });
+    assert(document.querySelector("dialog [role=alert]"));
+    assert.equal(db.milestones[0].name, "Old prototype");
+    assert.equal(field("Milestone name").value, "Revised prototype");
+    rejectStatus = false;
+    await act(async () => {
+      findButton("Save milestone").form.dispatchEvent(
+        new window.Event("submit", { bubbles: true, cancelable: true }),
+      );
+      await tick();
+    });
+    assert.equal(document.querySelector("dialog"), null);
+    assert.equal(db.milestones[0].dueDate, "2099-05-12");
+    assert.equal(db.milestones[0].description, "Revised scope");
+    assert.equal(document.querySelectorAll(".milestone-entry").length, 0);
+    await click("All milestones");
+    await click("Revised prototype");
+    await change("Due date", "");
+    await act(async () => {
+      findButton("Save milestone").form.dispatchEvent(
+        new window.Event("submit", { bubbles: true, cancelable: true }),
+      );
+      await tick();
+    });
+    assert.equal(db.milestones[0].dueDate, null);
+    assert(document.body.textContent.includes("Unscheduled"));
+    await change("Milestone name", "Beta release");
+    await change("Milestone description", "First public playtest");
+    await act(async () => {
+      findButton("Add milestone").form.dispatchEvent(
+        new window.Event("submit", { bubbles: true, cancelable: true }),
+      );
+      await tick();
+    });
+    assert(
+      db.milestones.some(
+        (item) =>
+          item.name === "Beta release" &&
+          item.description === "First public playtest" &&
+          item.projectId === "p1",
+      ),
+    );
+    await click("Completed");
+    assert.equal(document.querySelectorAll(".milestone-entry").length, 1);
+  } finally {
+    rejectStatus = false;
+    await act(async () => root.unmount());
+  }
+});

@@ -4,7 +4,9 @@
 
 The user approved a Codecks-inspired indie-studio personality combined with a
 HacknPlan-style production workspace. This replaces the initial charcoal/violet
-dashboard direction. Keep **MERN Stack Project** until the team approves branding.
+dashboard direction. The user approved **Checkpoint** as the product name.
+Use Checkpoint in the page title, sign-in heading, and workspace brand; repository
+and package identifiers remain unchanged.
 
 The implementation uses warm paper surfaces, forest-green navigation, rust
 controls, compact work cards, and restrained serif project headings. Its main
@@ -79,12 +81,30 @@ not claimed scores.
 | Decision                             | Reason                                     |
 | ------------------------------------ | ------------------------------------------ |
 | Warm indie studio + production board | User approved B+C references               |
-| Keep product name                    | Permanent branding remains a team decision |
+| Checkpoint branding                  | User approved the game-development name    |
 | Board first, overview second         | Work is more useful than generic metrics   |
 | External build links                 | User chose links over file storage         |
 | Optional build-specific feedback     | Existing general feedback stays compatible |
 
-Uploads, comments/activity history, notifications, final branding, and URL routing
+Uploads, comments/activity history, notifications, and URL routing
 remain separate scope. Backend authorization for older resources and account
 verification/recovery remain separate work. Build publishing/editing requires
 team membership; build reads use the existing authenticated project model.
+
+## Milestone planning
+
+The user approved dated milestone planning as the next feature set. Use a
+calendar-date roadmap, not a Gantt chart: the API has due dates but no start dates
+or dependencies. Group milestones chronologically; put undated goals last.
+
+- Filters: All milestones, Open, Overdue, Completed.
+- A date is overdue only when its selected calendar day precedes the viewer's
+  current local day AND status is not completed. Due today is not overdue.
+- Display stored due dates in UTC to preserve the day selected in date inputs.
+  Update the local-day comparison once a minute while the workspace is open.
+- Linked-task completion counts done tasks belonging to the milestone. Milestone
+  status remains an independent explicit choice; no automatic completion.
+- Use labeled text plus color for deadlines and native progress elements.
+- Open a fresh record in the milestone editor before saving. Preserve form edits
+  on errors and allow clearing a due date to return the milestone to Unscheduled.
+- Use the existing milestone API; no schema or permission changes in this feature.
