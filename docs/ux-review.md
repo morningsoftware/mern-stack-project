@@ -20,16 +20,17 @@ real task content will improve its character more than additional decoration.
 
 ## Recommended next passes
 
-1. **Creation flow:** task creation requires a milestone. Offer a direct route to
-   creating the first milestone rather than leaving a required empty selector.
+1. **Creation flow (implemented):** an empty task board now explains its milestone
+   prerequisite and opens/focuses the first-milestone form.
 2. **People selection:** old task endpoints accept any existing user. Coordinate
    team-only assignment and authorization with the API developer before narrowing
    the UI; filtering the client alone would not enforce membership.
-3. **Navigation:** add project/view URLs so refresh and browser Back preserve
-   location and teammates can share work links. This is a separate routing change.
-4. **Forms:** add consistent unsaved-edit protection across all drawers, project
-   navigation, and sign-out. Current failed saves retain drafts; closing a drawer
-   still discards its unsaved fields and comment text.
+3. **Navigation (implemented):** project/view hash links restore on refresh, support
+   Back/Forward, and can be copied from the workspace bar. Individual drawer links
+   remain future work.
+4. **Draft protection (implemented):** a shared guard covers workspace navigation,
+   sign-out, and browser unload; drawer closing/replacement also asks. Drafts remain
+   in memory and are not an autosave feature.
 5. **Mobile:** design the separate mobile application around My work, Report bug,
    and Review feedback. The responsive web dashboard remains the full workspace.
 6. **Visual acceptance:** inspect 390px, 768px, and 1440px widths in a real browser;

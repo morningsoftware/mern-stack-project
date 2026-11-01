@@ -1090,3 +1090,14 @@ button.milestone-title {
   padding: 12px 0;
   border-top: 1px solid #c9ccbb;
 }
+
+.share-project {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
+}
+.share-project [role="status"]:empty {
+  display: none;
+}

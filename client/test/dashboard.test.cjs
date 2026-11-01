@@ -1,5 +1,5 @@
 const assert = require("node:assert/strict");
-const { test } = require("node:test");
+const { test, beforeEach } = require("node:test");
 const { JSDOM } = require("jsdom");
 const base = require("node:path").resolve(__dirname, "..");
 const { buildSync } = require(base + "/node_modules/esbuild");
@@ -38,6 +38,10 @@ window.HTMLDialogElement.prototype.close = function () {
   this.removeAttribute("open");
 };
 const { App } = require(base + "/node_modules/.cache/review-app.cjs");
+beforeEach(() => {
+  window.history.replaceState({ checkpointIndex: 0 }, "", "#/teams");
+  window.confirm = () => true;
+});
 const user = {
   _id: "u1",
   displayName: "Alex Rivera",
@@ -132,6 +136,10 @@ global.fetch = async (path, options = {}) => {
     status = 201;
   } else
     data = id ? db[resource].find((item) => item._id === id) : db[resource];
+  if (data === undefined) {
+    status = 404;
+    data = { error: "Not found" };
+  }
   return new Response(JSON.stringify(data), {
     status,
     headers: { "Content-Type": "application/json" },
@@ -665,6 +673,196 @@ test("task discussions retain failed drafts, persist posts, and task creation is
     );
   } finally {
     rejectComment = false;
+    await act(async () => root.unmount());
+  }
+});
+
+test("workspace links restore project views and reject mismatched and unknown links", async () => {
+  window.history.replaceState(
+    { checkpointIndex: 0 },
+    "",
+    "#/teams/t1/projects/p1/feedback",
+  );
+  sessionStorage.setItem("mern_token", "fixture");
+  root = createRoot(document.getElementById("root"));
+  try {
+    await act(async () => {
+      root.render(React.createElement(App));
+      await tick();
+      await tick();
+    });
+    assert.equal(
+      document.querySelector('[aria-current="page"]').textContent,
+      "Playtest feedback",
+    );
+    assert(document.querySelector("section:not([hidden]) .feedback-reports"));
+    let copied;
+    Object.defineProperty(window.navigator, "clipboard", {
+      configurable: true,
+      value: {
+        writeText: async (text) => {
+          copied = text;
+        },
+      },
+    });
+    await click("Copy project link");
+    assert(copied.endsWith("#/teams/t1/projects/p1/feedback"));
+    await click("Task board");
+    assert.equal(window.location.hash, "#/teams/t1/projects/p1/tasks");
+    await act(async () => {
+      document.querySelector(".skip-link").click();
+      await tick();
+    });
+    assert.equal(window.location.hash, "#/teams/t1/projects/p1/tasks");
+    assert.equal(document.activeElement.id, "main-content");
+    await act(async () => {
+      window.history.back();
+      await new Promise((resolve) => setTimeout(resolve, 30));
+    });
+    assert.equal(window.location.hash, "#/teams/t1/projects/p1/feedback");
+    assert.equal(
+      document.querySelector('[aria-current="page"]').textContent,
+      "Playtest feedback",
+    );
+    await act(async () => {
+      window.history.forward();
+      await new Promise((resolve) => setTimeout(resolve, 30));
+    });
+    assert.equal(
+      document.querySelector('[aria-current="page"]').textContent,
+      "Task board",
+    );
+    await act(async () => root.unmount());
+    window.history.replaceState(
+      { checkpointIndex: 0 },
+      "",
+      "#/teams/t1/projects/p1/missing",
+    );
+    root = createRoot(document.getElementById("root"));
+    await act(async () => {
+      root.render(React.createElement(App));
+      await tick();
+    });
+    assert(
+      document
+        .querySelector('[role="alert"]')
+        .textContent.includes("does not exist"),
+    );
+    await click("Back to teams");
+    assert(document.body.textContent.includes("Development teams"));
+    await act(async () => root.unmount());
+    window.history.replaceState(
+      { checkpointIndex: 0 },
+      "",
+      "#/teams/other-team/projects/p1/tasks",
+    );
+    root = createRoot(document.getElementById("root"));
+    db.teams.push({ _id: "other-team", name: "Other studio" });
+    await act(async () => {
+      root.render(React.createElement(App));
+      await tick();
+      await tick();
+    });
+    assert(
+      document
+        .querySelector('[role="alert"]')
+        .textContent.includes("does not belong"),
+    );
+  } finally {
+    db.teams = db.teams.filter((item) => item._id !== "other-team");
+    await act(async () => root.unmount());
+  }
+});
+
+test("first milestone guidance, drawer protection, and project navigation preserve unsent work", async () => {
+  db.milestones = [];
+  db.tasks = [
+    {
+      _id: "guard-task",
+      title: "Test guards",
+      description: "",
+      status: "todo",
+      priority: "medium",
+      assigneeId: "u1",
+      milestoneId: "m1",
+    },
+  ];
+  sessionStorage.setItem("mern_token", "fixture");
+  root = createRoot(document.getElementById("root"));
+  let prompts = 0;
+  window.confirm = () => {
+    prompts++;
+    return false;
+  };
+  try {
+    await act(async () => {
+      root.render(React.createElement(App));
+      await tick();
+    });
+    await click("Open");
+    await click("Open");
+    await click("Create first milestone");
+    assert.equal(window.location.hash, "#/teams/t1/projects/p1/milestones");
+    assert(
+      document.activeElement === field("Milestone name"),
+      "Milestone creation should receive focus",
+    );
+    await change("Milestone name", "Unsent goal");
+    await click("Task board");
+    assert.equal(prompts, 0);
+    await act(async () => {
+      document
+        .querySelector('nav[aria-label="Workspace navigation"] button')
+        .click();
+      await tick();
+    });
+    assert.equal(prompts, 1);
+    assert.equal(window.location.hash, "#/teams/t1/projects/p1/tasks");
+    await act(async () => {
+      window.history.go(1 - window.history.state.checkpointIndex);
+      await new Promise((resolve) => setTimeout(resolve, 60));
+    });
+    assert.equal(window.location.hash, "#/teams/t1/projects/p1/tasks");
+    assert(document.body.textContent.includes("Starfall"));
+    const event = new window.Event("beforeunload", { cancelable: true });
+    window.dispatchEvent(event);
+    assert.equal(event.defaultPrevented, true);
+    await click("Test guards");
+    await change("Title", "Draft task title");
+    await click("Close");
+    assert(document.querySelector("dialog[open]"));
+    assert.equal(field("Title").value, "Draft task title");
+    await act(async () => {
+      document
+        .querySelector("dialog")
+        .dispatchEvent(new window.Event("cancel", { cancelable: true }));
+      await tick();
+    });
+    assert(document.querySelector("dialog[open]"));
+    window.confirm = () => true;
+    await click("Close");
+    await click("Test guards");
+    await change("Add a comment", "Unsent comment");
+    window.confirm = () => false;
+    await click("Save changes");
+    assert.equal(field("Add a comment").value, "Unsent comment");
+    await click("Close");
+    assert(document.querySelector("dialog[open]"));
+    window.confirm = () => true;
+    await click("Close");
+    await click("Milestones");
+    assert.equal(field("Milestone name").value, "Unsent goal");
+    window.confirm = () => false;
+    await click("Sign out");
+    assert(sessionStorage.getItem("mern_token"));
+    window.confirm = () => true;
+    await click("Sign out");
+    assert.equal(sessionStorage.getItem("mern_token"), null);
+    const clean = new window.Event("beforeunload", { cancelable: true });
+    window.dispatchEvent(clean);
+    assert.equal(clean.defaultPrevented, false);
+  } finally {
+    window.confirm = () => true;
     await act(async () => root.unmount());
   }
 });

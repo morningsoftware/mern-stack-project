@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useUnsavedChanges } from "../navigation/UnsavedChanges.jsx";
 import { api } from "../api.js";
 import { PROJECT_STATUSES, TASK_STATUSES, PRIORITIES } from "../constants.js";
 import { ErrorNote, Field } from "../components/Forms.jsx";
@@ -35,6 +36,8 @@ export function ProjectScreen({
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const taskForm = useRef(null);
+  const milestoneForm = useRef(null);
+  const [taskTouched, setTaskTouched] = useState(false);
   const [milestone, setMilestone] = useState({
     name: "",
     description: "",
@@ -52,6 +55,22 @@ export function ProjectScreen({
   const [bug, setBug] = useState(emptyBugDraft);
   const [note, setNote] = useState({ rating: "4", comments: "", buildId: "" });
 
+  const emptyReport = emptyBugDraft();
+  const dirty =
+    taskTouched ||
+    milestone.name !== "" ||
+    milestone.description !== "" ||
+    milestone.dueDate !== "" ||
+    Object.keys(emptyReport).some((key) => bug[key] !== emptyReport[key]) ||
+    note.comments !== "" ||
+    note.rating !== "4" ||
+    note.buildId !== "";
+  useUnsavedChanges(dirty, pending);
+  function startMilestone() {
+    onViewChange("milestones");
+    milestoneForm.current.open = true;
+    milestoneForm.current.querySelector("input")?.focus();
+  }
   const load = useCallback(
     async (signal) => {
       const [
@@ -251,7 +270,7 @@ export function ProjectScreen({
                 patch(`/api/milestones/${id}`, { status })
               }
             />
-            <details className="create-work">
+            <details ref={milestoneForm} className="create-work">
               <summary>Add a milestone</summary>
               <form
                 className="stack"
@@ -312,8 +331,24 @@ export function ProjectScreen({
             </details>
           </section>
           <section className="panel" hidden={view !== "tasks"}>
+            {!loading && milestones.length === 0 && (
+              <div className="source-notice">
+                <h3>Start with a milestone</h3>
+                <p>
+                  Tasks belong to milestones. Add your first goal, then break it
+                  into assigned work.
+                </p>
+                <button type="button" onClick={startMilestone}>
+                  Create first milestone
+                </button>
+              </div>
+            )}
             <TaskBoard
               onCreate={() => {
+                if (!milestones.length) {
+                  startMilestone();
+                  return;
+                }
                 taskForm.current.open = true;
                 taskForm.current.querySelector("input")?.focus();
               }}
@@ -330,13 +365,17 @@ export function ProjectScreen({
             <details ref={taskForm} className="create-work">
               <summary>Add a task</summary>
               <form
+                onChange={() => setTaskTouched(true)}
                 className="stack"
                 onSubmit={(event) => {
                   event.preventDefault();
                   submit(
                     "/api/tasks",
                     { ...task, projectId: project._id },
-                    () => setTask({ ...task, title: "", description: "" }),
+                    () => {
+                      setTask({ ...task, title: "", description: "" });
+                      setTaskTouched(false);
+                    },
                   );
                 }}
               >

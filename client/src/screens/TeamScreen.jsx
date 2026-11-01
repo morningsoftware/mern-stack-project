@@ -1,3 +1,4 @@
+import { useUnsavedChanges } from "../navigation/UnsavedChanges.jsx";
 import { useState } from "react";
 import { ErrorNote, Field } from "../components/Forms.jsx";
 import { useWorkspaceData } from "../hooks/useWorkspaceData.js";
@@ -16,6 +17,15 @@ export function TeamScreen({ team, onOpenProject }) {
   });
   const [projectForm, setProjectForm] = useState({ name: "", description: "" });
 
+  useUnsavedChanges(
+    Boolean(
+      projectForm.name ||
+      projectForm.description ||
+      memberForm.userId ||
+      memberForm.role !== "developer",
+    ),
+    pending,
+  );
   const availableUsers = users.filter(
     (user) => !members.some((member) => member.userId === user._id),
   );

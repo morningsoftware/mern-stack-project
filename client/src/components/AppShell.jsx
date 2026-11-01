@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 export const PROJECT_VIEWS = [
   ["tasks", "Task board"],
@@ -21,15 +21,28 @@ export function AppShell({
   children,
 }) {
   const main = useRef(null);
+  const [linkNotice, setLinkNotice] = useState("");
   const previousLocation = useRef(null);
   const location = `${team?._id || "teams"}/${project?._id || ""}/${view}`;
   useEffect(() => {
-    if (previousLocation.current !== null) main.current?.focus();
+    const active = document.activeElement;
+    const hasVisibleFocus =
+      main.current?.contains(active) && !active.closest("[hidden]");
+    if (previousLocation.current !== null && !hasVisibleFocus)
+      main.current?.focus();
     previousLocation.current = location;
+    setLinkNotice("");
   }, [location]);
   return (
     <div className="app-shell">
-      <a className="skip-link" href="#main-content">
+      <a
+        className="skip-link"
+        href="#main-content"
+        onClick={(event) => {
+          event.preventDefault();
+          main.current?.focus();
+        }}
+      >
         Skip to content
       </a>
       <aside className="sidebar">
@@ -110,7 +123,33 @@ export function AppShell({
               {project && <li>{project.name}</li>}
             </ol>
           </nav>
-          <span className="workspace-label">Team workspace</span>
+          {project ? (
+            <div className="share-project">
+              <button
+                type="button"
+                className="text-button"
+                onClick={async () => {
+                  try {
+                    await navigator.clipboard.writeText(window.location.href);
+                    setLinkNotice("Project link copied.");
+                  } catch {
+                    setLinkNotice(
+                      "Copy the address from your browser to share this view.",
+                    );
+                  }
+                }}
+              >
+                Copy project link
+              </button>
+              {linkNotice && (
+                <span role="status" className="meta">
+                  {linkNotice}
+                </span>
+              )}
+            </div>
+          ) : (
+            <span className="workspace-label">Team workspace</span>
+          )}
         </header>
         <main
           id="main-content"

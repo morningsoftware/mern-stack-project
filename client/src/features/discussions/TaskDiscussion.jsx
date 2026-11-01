@@ -1,8 +1,14 @@
 import { useEffect, useRef, useState } from "react";
+import { useUnsavedChanges } from "../../navigation/UnsavedChanges.jsx";
 import { api } from "../../api.js";
 import { ErrorNote, Field } from "../../components/Forms.jsx";
 
-export function TaskDiscussion({ taskId, onBusyChange, disabled = false }) {
+export function TaskDiscussion({
+  taskId,
+  onBusyChange,
+  disabled = false,
+  onDraftChange,
+}) {
   const [comments, setComments] = useState([]);
   const [body, setBody] = useState("");
   const [loading, setLoading] = useState(true);
@@ -12,6 +18,10 @@ export function TaskDiscussion({ taskId, onBusyChange, disabled = false }) {
   const [page, setPage] = useState(null);
   const [attempt, setAttempt] = useState(0);
   const lock = useRef(false);
+  useUnsavedChanges(Boolean(body), pending);
+  useEffect(() => {
+    onDraftChange?.(Boolean(body));
+  }, [body, onDraftChange]);
   useEffect(() => {
     const controller = new AbortController();
     setLoading(true);

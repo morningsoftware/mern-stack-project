@@ -1,3 +1,4 @@
+import { useUnsavedChanges } from "../navigation/UnsavedChanges.jsx";
 import { useState } from "react";
 import { ErrorNote, Field } from "../components/Forms.jsx";
 import { useWorkspaceData } from "../hooks/useWorkspaceData.js";
@@ -10,6 +11,7 @@ export function TeamsScreen({ onOpenTeam }) {
     "/api/teams",
   ]);
   const teams = data?.[0] || [];
+  useUnsavedChanges(Boolean(name || description), pending);
 
   async function createTeam(event) {
     event.preventDefault();

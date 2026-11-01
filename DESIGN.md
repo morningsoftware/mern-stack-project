@@ -62,7 +62,8 @@ Overview totals form a compact ledger rather than four decorative cards. Use
 - `features/work/BuildLibrary.jsx`: version, platform, release notes, HTTPS link.
   The user approved external links rather than storing uploaded game binaries.
   Feedback can optionally reference a build in the same project.
-- React state still controls navigation. Deep links remain separate scope.
+- Hash URLs identify the team, project, and selected view. React state hydrates
+  from authenticated API records; drawer deep links remain separate scope.
 - No new runtime UI libraries. Existing API contracts remain compatible; build
   endpoints and optional feedback buildId are additive.
 
@@ -86,8 +87,7 @@ not claimed scores.
 | External build links                 | User chose links over file storage         |
 | Optional build-specific feedback     | Existing general feedback stays compatible |
 
-Uploads, comments/activity history, notifications, and URL routing
-remain separate scope. Backend authorization for older resources and account
+Uploads, activity history, and notifications remain separate scope. Backend authorization for older resources and account
 verification/recovery remain separate work. Build publishing/editing requires
 team membership; build reads use the existing authenticated project model.
 
@@ -137,3 +137,19 @@ and opens/focuses the existing creation form. Save/create confirmations use a
 polite live status region; distinguish successful writes from refresh failures.
 Keep drawer edit actions visible with a sticky row inside the form. See
 [UX review](docs/ux-review.md) for remaining usability and visual checks.
+
+## Shareable navigation and unsaved work
+
+The user authorized the suggested next usability features: project/view links,
+first-milestone guidance, and protection against discarding work. Use hash-based
+URLs to preserve existing hosting behavior without a routing dependency. Keep
+Copy project link in the workspace bar. Retain drafts when switching project tabs;
+ask before leaving their workspace or closing edited drawers. Browser-native
+confirmation uses explicit discard language, and beforeunload handles external
+navigation/refresh subject to browser behavior. No draft content belongs in URLs.
+
+Preserve intentional focus when an action opens a form; routine navigation still
+focuses main content. The skip link focuses main without changing the route.
+When there are no milestones, explain the prerequisite and open the milestone
+form from a clear action. Never silently create a milestone to satisfy a task.
+See [navigation behavior](docs/workspace-navigation.md) for supported links and limits.

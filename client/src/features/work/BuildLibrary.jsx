@@ -1,4 +1,8 @@
-import { useState } from "react";
+import {
+  useUnsavedChanges,
+  confirmDiscard,
+} from "../../navigation/UnsavedChanges.jsx";
+import { useRef, useState } from "react";
 import { Field } from "../../components/Forms.jsx";
 
 export const BUILD_PLATFORMS = ["windows", "macos", "linux", "web", "other"];
@@ -18,8 +22,12 @@ export function BuildLibrary({
   };
   const [form, setForm] = useState(empty);
   const [editing, setEditing] = useState(null);
+  const baseline = useRef(JSON.stringify(empty));
+  const dirty = JSON.stringify(form) !== baseline.current;
+  useUnsavedChanges(dirty, pending);
   const update = (key, value) => setForm((old) => ({ ...old, [key]: value }));
   const reset = () => {
+    baseline.current = JSON.stringify(empty);
     setForm(empty);
     setEditing(null);
   };
@@ -84,6 +92,13 @@ export function BuildLibrary({
                   className="text-button"
                   disabled={pending}
                   onClick={() => {
+                    if (!confirmDiscard(dirty)) return;
+                    baseline.current = JSON.stringify({
+                      version: build.version,
+                      platform: build.platform,
+                      downloadUrl: build.downloadUrl,
+                      releaseNotes: build.releaseNotes || "",
+                    });
                     setEditing(build._id);
                     setForm({
                       version: build.version,
@@ -159,7 +174,13 @@ export function BuildLibrary({
                     : "Publish build link"}
               </button>
               {editing && (
-                <button type="button" className="secondary" onClick={reset}>
+                <button
+                  type="button"
+                  className="secondary"
+                  onClick={() => {
+                    if (confirmDiscard(dirty)) reset();
+                  }}
+                >
                   Cancel edit
                 </button>
               )}

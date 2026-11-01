@@ -1,6 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import { BugDetailsFields } from "../playtesting/BugDetailsFields.jsx";
 import { TaskDiscussion } from "../discussions/TaskDiscussion.jsx";
+import {
+  useUnsavedChanges,
+  confirmDiscard,
+} from "../../navigation/UnsavedChanges.jsx";
 import { api } from "../../api.js";
 import { ErrorNote, Field } from "../../components/Forms.jsx";
 import {
@@ -26,9 +30,17 @@ export function ItemDrawer({
   const [loading, setLoading] = useState(true);
   const [pending, setPending] = useState(false);
   const [discussionBusy, setDiscussionBusy] = useState(false);
+  const [discussionDirty, setDiscussionDirty] = useState(false);
+  const baseline = useRef(null);
   const [error, setError] = useState("");
   const [attempt, setAttempt] = useState(0);
   const endpoint = kind === "task" ? "tasks" : "bug-reports";
+  const dirty = record && JSON.stringify(record) !== baseline.current;
+  useUnsavedChanges(Boolean(dirty), pending);
+  function close() {
+    if (!pending && !discussionBusy && confirmDiscard(dirty || discussionDirty))
+      onClose();
+  }
   useEffect(() => {
     const previous = document.activeElement;
     const node = dialog.current;
@@ -48,7 +60,10 @@ export function ItemDrawer({
     setError("");
     api(`/api/${endpoint}/${id}`, { signal: controller.signal })
       .then((data) => {
-        if (!controller.signal.aborted) setRecord(data);
+        if (!controller.signal.aborted) {
+          baseline.current = JSON.stringify(data);
+          setRecord(data);
+        }
       })
       .catch((err) => {
         if (!controller.signal.aborted) setError(err.message);
@@ -61,7 +76,15 @@ export function ItemDrawer({
   const update = (key, value) => setRecord((old) => ({ ...old, [key]: value }));
   async function save(event) {
     event.preventDefault();
-    if (lock.current) return;
+    if (lock.current || discussionBusy) return;
+    if (
+      discussionDirty &&
+      !confirmDiscard(
+        true,
+        "Discard your unsent comment and save this task? Choose Cancel to keep writing.",
+      )
+    )
+      return;
     lock.current = true;
     setPending(true);
     setError("");
@@ -96,6 +119,7 @@ export function ItemDrawer({
         body: JSON.stringify(body),
       });
       onSaved(updated);
+      baseline.current = JSON.stringify(record);
       onClose();
     } catch (err) {
       setError(err.message);
@@ -111,7 +135,7 @@ export function ItemDrawer({
       aria-labelledby="drawer-title"
       onCancel={(event) => {
         event.preventDefault();
-        if (!pending && !discussionBusy) onClose();
+        close();
       }}
     >
       <header className="drawer-header">
@@ -127,7 +151,7 @@ export function ItemDrawer({
         <button
           type="button"
           className="secondary"
-          onClick={onClose}
+          onClick={close}
           disabled={pending || discussionBusy}
         >
           Close
@@ -254,7 +278,7 @@ export function ItemDrawer({
               <button type="submit">
                 {pending ? "Saving…" : "Save changes"}
               </button>
-              <button type="button" className="secondary" onClick={onClose}>
+              <button type="button" className="secondary" onClick={close}>
                 Cancel
               </button>
             </div>
@@ -266,6 +290,7 @@ export function ItemDrawer({
           disabled={pending}
           taskId={id}
           onBusyChange={setDiscussionBusy}
+          onDraftChange={setDiscussionDirty}
         />
       )}
     </dialog>

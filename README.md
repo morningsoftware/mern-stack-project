@@ -125,3 +125,7 @@ Task details now include team-only, persistent discussions with older-comment
 pagination and failed-post draft retention. See [task discussions](docs/task-discussions.md)
 for endpoints and deployment requirements and [UX review](docs/ux-review.md) for
 implemented improvements and remaining design work.
+
+Shareable project/view links, first-milestone guidance, and unsaved-work protection
+are documented in [workspace navigation](docs/workspace-navigation.md). Drafts stay
+in memory; this is not automatic saving or a separate mobile application.

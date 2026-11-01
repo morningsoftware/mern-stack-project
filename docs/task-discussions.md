@@ -2,8 +2,7 @@
 
 Task details include a team discussion with plain text comments, author names,
 and timestamps. Comments persist independently of task edits. Failed posts keep
-the draft; successful posts clear it and announce confirmation. Closing a drawer
-discards an unsent comment. No notification, live synchronization, edit, or delete
+the draft; successful posts clear it and announce confirmation. Closing a drawer with an unsent comment now asks before discarding it. No notification, live synchronization, edit, or delete
 behavior is included in this first version; reopen the drawer to fetch updates.
 
 ## API

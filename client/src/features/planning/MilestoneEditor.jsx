@@ -1,4 +1,8 @@
 import { useEffect, useRef, useState } from "react";
+import {
+  useUnsavedChanges,
+  confirmDiscard,
+} from "../../navigation/UnsavedChanges.jsx";
 import { api } from "../../api.js";
 import { ErrorNote, Field } from "../../components/Forms.jsx";
 import { MILESTONE_STATUSES } from "../../constants.js";
@@ -13,6 +17,12 @@ export function MilestoneEditor({ id, onClose, onSaved }) {
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
   const [attempt, setAttempt] = useState(0);
+  const baseline = useRef(null);
+  const dirty = form && JSON.stringify(form) !== baseline.current;
+  useUnsavedChanges(Boolean(dirty), pending);
+  function close() {
+    if (!pending && confirmDiscard(dirty)) onClose();
+  }
   useEffect(() => {
     const previous = document.activeElement;
     const node = dialog.current;
@@ -32,13 +42,16 @@ export function MilestoneEditor({ id, onClose, onSaved }) {
     setError("");
     api(`/api/milestones/${id}`, { signal: controller.signal })
       .then((record) => {
-        if (!controller.signal.aborted)
-          setForm({
+        if (!controller.signal.aborted) {
+          const initial = {
             name: record.name,
             description: record.description || "",
             dueDate: dueDateKey(record.dueDate) || "",
             status: record.status,
-          });
+          };
+          baseline.current = JSON.stringify(initial);
+          setForm(initial);
+        }
       })
       .catch((err) => {
         if (!controller.signal.aborted) setError(err.message);
@@ -84,7 +97,7 @@ export function MilestoneEditor({ id, onClose, onSaved }) {
       aria-labelledby="milestone-editor-title"
       onCancel={(event) => {
         event.preventDefault();
-        if (!pending) onClose();
+        close();
       }}
     >
       <header className="drawer-header">
@@ -98,7 +111,7 @@ export function MilestoneEditor({ id, onClose, onSaved }) {
           className="secondary"
           type="button"
           disabled={pending}
-          onClick={onClose}
+          onClick={close}
         >
           Close
         </button>
@@ -154,7 +167,7 @@ export function MilestoneEditor({ id, onClose, onSaved }) {
               <button type="submit">
                 {pending ? "Saving…" : "Save milestone"}
               </button>
-              <button type="button" className="secondary" onClick={onClose}>
+              <button type="button" className="secondary" onClick={close}>
                 Cancel
               </button>
             </div>
