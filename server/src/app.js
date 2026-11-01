@@ -3,6 +3,7 @@ import { fileURLToPath } from "url";
 import express from "express";
 import cors from "cors";
 import { authRouter } from "./routes/auth.js";
+import { buildsRouter } from "./routes/builds.js";
 import { bugReportsRouter } from "./routes/bugReports.js";
 import { milestonesRouter } from "./routes/milestones.js";
 import { playtestFeedbackRouter } from "./routes/playtestFeedback.js";
@@ -13,7 +14,7 @@ import { usersRouter } from "./routes/users.js";
 
 const clientDist = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
-  "../../client/dist"
+  "../../client/dist",
 );
 
 export function createApp(db) {
@@ -32,6 +33,7 @@ export function createApp(db) {
   app.use("/api/projects", projectsRouter);
   app.use("/api/milestones", milestonesRouter);
   app.use("/api/tasks", tasksRouter);
+  app.use("/api/builds", buildsRouter);
   app.use("/api/bug-reports", bugReportsRouter);
   app.use("/api/playtest-feedback", playtestFeedbackRouter);
 

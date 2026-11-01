@@ -10,6 +10,14 @@ export async function connectDatabase(uri) {
 }
 
 export async function ensureIndexes(db) {
+  await db.collection("builds").createIndex(
+    { projectId: 1, version: 1, platform: 1 },
+    { unique: true, name: "unique_project_build_platform" }
+  );
+  await db.collection("builds").createIndex(
+    { projectId: 1, createdOn: -1 },
+    { name: "builds_by_project_date" }
+  );
   await db.collection("users").createIndex(
     { username: 1 },
     { unique: true, name: "unique_username" }

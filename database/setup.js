@@ -13,7 +13,8 @@ const COLLECTIONS = [
     "milestones",
     "tasks",
     "bugReports",
-    "playtestFeedback"
+    "playtestFeedback",
+    "builds"
 ];
 
 async function setupDatabase() {
@@ -59,6 +60,15 @@ console.log("Username:", new URL(process.env.MONGODB_URI).username);
                 console.log(`Collection already exists: ${collectionName}`);
             }
         }
+
+        await db.collection("builds").createIndex(
+            { projectId: 1, version: 1, platform: 1 },
+            { unique: true, name: "unique_project_build_platform" }
+        );
+        await db.collection("builds").createIndex(
+            { projectId: 1, createdOn: -1 },
+            { name: "builds_by_project_date" }
+        );
 
         // USERS
         // Prevent duplicate usernames and email addresses.
