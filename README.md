@@ -106,3 +106,17 @@ migration is required beyond the build-library changes documented above.
 recovery, date clearing, empty progress, day boundaries, and existing workflows.
 The local sample preview is temporary; live database persistence and native modal
 focus behavior still require deployment/browser verification.
+
+## Structured playtesting
+
+The feedback view filters by build, rating band, and review state. Team members
+can review/reopen reports. Log bug from feedback copies its source/build/comment
+into a new unsent report; add reproduction steps, expected/actual results, and
+environment before submitting. Existing unsent drafts require an explicit choice
+before replacement. Bugs can be filtered by build, and their detail drawers edit
+these structured fields. Feedback remains linked to any bug reports created from
+it. General feedback and old bug reports stay compatible.
+
+See `docs/structured-playtesting.md` for fields, review permissions, compatibility,
+and deployment requirements. The server records reviewer identity/time; marking
+reviewed does not change the playtester's comment or close a related bug.

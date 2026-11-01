@@ -1,15 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { api } from "../api.js";
-import {
-  PROJECT_STATUSES,
-  TASK_STATUSES,
-  PRIORITIES,
-  BUG_SEVERITIES,
-  BUG_STATUSES,
-} from "../constants.js";
+import { PROJECT_STATUSES, TASK_STATUSES, PRIORITIES } from "../constants.js";
 import { ErrorNote, Field } from "../components/Forms.jsx";
 import { MilestonePlan } from "../features/planning/MilestonePlan.jsx";
 import { MilestoneEditor } from "../features/planning/MilestoneEditor.jsx";
+import { BugReports } from "../features/playtesting/BugReports.jsx";
+import { FeedbackTriage } from "../features/playtesting/FeedbackTriage.jsx";
+import { emptyBugDraft } from "../features/playtesting/BugDetailsFields.jsx";
 import { TaskBoard } from "../features/work/TaskBoard.jsx";
 import { ItemDrawer } from "../features/work/ItemDrawer.jsx";
 import { BuildLibrary } from "../features/work/BuildLibrary.jsx";
@@ -31,6 +28,8 @@ export function ProjectScreen({
   const [bugs, setBugs] = useState([]);
   const [feedback, setFeedback] = useState([]);
   const [builds, setBuilds] = useState([]);
+  const [members, setMembers] = useState([]);
+  const [queuedFeedback, setQueuedFeedback] = useState(null);
   const [drawer, setDrawer] = useState(null);
   const [editingMilestone, setEditingMilestone] = useState(null);
   const [error, setError] = useState("");
@@ -48,12 +47,7 @@ export function ProjectScreen({
     status: "todo",
     priority: "medium",
   });
-  const [bug, setBug] = useState({
-    title: "",
-    description: "",
-    severity: "medium",
-    status: "open",
-  });
+  const [bug, setBug] = useState(emptyBugDraft);
   const [note, setNote] = useState({ rating: "4", comments: "", buildId: "" });
 
   const load = useCallback(
@@ -65,6 +59,7 @@ export function ProjectScreen({
         nextBugs,
         nextFeedback,
         nextBuilds,
+        nextMembers,
       ] = await Promise.all([
         api("/api/users", { signal }),
         api(`/api/milestones?projectId=${project._id}`, { signal }),
@@ -72,6 +67,7 @@ export function ProjectScreen({
         api(`/api/bug-reports?projectId=${project._id}`, { signal }),
         api(`/api/playtest-feedback?projectId=${project._id}`, { signal }),
         api(`/api/builds?projectId=${project._id}`, { signal }),
+        api(`/api/teams/${project.teamId}/members`, { signal }),
       ]);
       if (signal?.aborted) return;
       setUsers(nextUsers);
@@ -80,13 +76,14 @@ export function ProjectScreen({
       setBugs(nextBugs);
       setFeedback(nextFeedback);
       setBuilds(nextBuilds);
+      setMembers(nextMembers);
       setTask((current) => ({
         ...current,
         milestoneId: current.milestoneId || nextMilestones[0]?._id || "",
         assigneeId: current.assigneeId || nextUsers[0]?._id || "",
       }));
     },
-    [project._id],
+    [project._id, project.teamId],
   );
 
   useEffect(() => {
@@ -101,8 +98,35 @@ export function ProjectScreen({
     return () => controller.abort();
   }, [load]);
 
-  const nameFor = (id) =>
-    users.find((user) => user._id === id)?.displayName || "Unknown user";
+  const canReview = members.some((member) => member.userId === currentUserId);
+  function beginBugReport(entry) {
+    const build = builds.find((item) => item._id === entry.buildId);
+    setBug({
+      ...emptyBugDraft(),
+      title: build ? `Issue in ${build.version}` : "Playtest issue",
+      description: entry.comments || "",
+      buildId: entry.buildId || "",
+      sourceFeedbackId: entry._id,
+    });
+    setQueuedFeedback(null);
+  }
+  function reportFeedback(entry) {
+    onViewChange("bugs");
+    if (
+      bug.title ||
+      bug.description ||
+      bug.reproductionSteps ||
+      bug.expectedResult ||
+      bug.actualResult ||
+      bug.environment ||
+      bug.buildId ||
+      bug.sourceFeedbackId ||
+      bug.severity !== "medium" ||
+      bug.status !== "open"
+    )
+      setQueuedFeedback(entry);
+    else beginBugReport(entry);
+  }
 
   async function submit(path, body, reset) {
     if (mutationLock.current) return;
@@ -348,89 +372,47 @@ export function ProjectScreen({
             </details>
           </section>
           <section className="panel" hidden={view !== "bugs"}>
-            <h2>Bug reports</h2>
-            <ul className="list">
-              {bugs.map((item) => (
-                <li key={item._id}>
-                  <span>
-                    <button
-                      type="button"
-                      className="item-title"
-                      onClick={() => setDrawer({ kind: "bug", id: item._id })}
-                    >
-                      {item.title}
-                    </button>{" "}
-                    <span className="badge">{item.severity}</span>
-                  </span>
-                  <select
-                    aria-label={`Status for ${item.title}`}
-                    value={item.status}
-                    onChange={(event) =>
-                      patch(`/api/bug-reports/${item._id}`, {
-                        status: event.target.value,
-                      })
-                    }
+            {queuedFeedback && (
+              <div className="source-notice" role="alert">
+                <p>
+                  You have an unsent bug report. Keep it or replace it with a
+                  report from the selected feedback.
+                </p>
+                <div className="build-actions">
+                  <button
+                    type="button"
+                    onClick={() => beginBugReport(queuedFeedback)}
                   >
-                    {BUG_STATUSES.map((status) => (
-                      <option key={status} value={status}>
-                        {status}
-                      </option>
-                    ))}
-                  </select>
-                </li>
-              ))}
-            </ul>
-            {bugs.length === 0 && <p>No bug reports yet.</p>}
-            <form
-              className="stack"
-              onSubmit={(event) => {
-                event.preventDefault();
+                    Replace draft
+                  </button>
+                  <button
+                    type="button"
+                    className="secondary"
+                    onClick={() => setQueuedFeedback(null)}
+                  >
+                    Keep current draft
+                  </button>
+                </div>
+              </div>
+            )}
+            <BugReports
+              bugs={bugs}
+              builds={builds}
+              pending={pending || loading}
+              draft={bug}
+              onDraftChange={setBug}
+              onSubmit={() =>
                 submit(
                   "/api/bug-reports",
                   { ...bug, projectId: project._id },
-                  () =>
-                    setBug({
-                      title: "",
-                      description: "",
-                      severity: "medium",
-                      status: "open",
-                    }),
-                );
-              }}
-            >
-              <Field label="Bug title">
-                <input
-                  value={bug.title}
-                  onChange={(event) =>
-                    setBug({ ...bug, title: event.target.value })
-                  }
-                  required
-                />
-              </Field>
-              <Field label="Description">
-                <textarea
-                  value={bug.description}
-                  onChange={(event) =>
-                    setBug({ ...bug, description: event.target.value })
-                  }
-                />
-              </Field>
-              <Field label="Severity">
-                <select
-                  value={bug.severity}
-                  onChange={(event) =>
-                    setBug({ ...bug, severity: event.target.value })
-                  }
-                >
-                  {BUG_SEVERITIES.map((severity) => (
-                    <option key={severity} value={severity}>
-                      {severity}
-                    </option>
-                  ))}
-                </select>
-              </Field>
-              <button type="submit">Report bug</button>
-            </form>
+                  () => setBug(emptyBugDraft()),
+                )
+              }
+              onOpen={(id) => setDrawer({ kind: "bug", id })}
+              onStatusChange={(id, status) =>
+                patch(`/api/bug-reports/${id}`, { status })
+              }
+            />
           </section>
           <section hidden={view !== "builds"}>
             <BuildLibrary
@@ -454,29 +436,21 @@ export function ProjectScreen({
             />
           </section>
           <section className="panel" hidden={view !== "feedback"}>
-            <h2>Playtest feedback</h2>
-            <ul className="list">
-              {feedback.map((item) => (
-                <li key={item._id}>
-                  <span>
-                    {nameFor(item.userId)}: {item.comments || "No comments"}
-                    {item.buildId && (
-                      <small className="meta">
-                        Build:{" "}
-                        {builds.find((build) => build._id === item.buildId)
-                          ?.version || "Unavailable build"}
-                      </small>
-                    )}
-                  </span>
-                  <span className="meta">Rating {item.rating} of 5</span>
-                </li>
-              ))}
-            </ul>
-            {feedback.length === 0 && <p>No feedback yet.</p>}
-            <form
-              className="stack"
-              onSubmit={(event) => {
-                event.preventDefault();
+            <FeedbackTriage
+              feedback={feedback}
+              builds={builds}
+              users={users}
+              bugs={bugs}
+              canReview={canReview}
+              pending={pending || loading}
+              onReview={(id, reviewStatus) =>
+                patch(`/api/playtest-feedback/${id}`, { reviewStatus })
+              }
+              onReportBug={reportFeedback}
+              onOpenBug={(id) => setDrawer({ kind: "bug", id })}
+              note={note}
+              onNoteChange={setNote}
+              onSubmit={() =>
                 submit(
                   "/api/playtest-feedback",
                   {
@@ -486,48 +460,9 @@ export function ProjectScreen({
                     ...(note.buildId ? { buildId: note.buildId } : {}),
                   },
                   () => setNote({ rating: "4", comments: "", buildId: "" }),
-                );
-              }}
-            >
-              <Field label="Build tested">
-                <select
-                  value={note.buildId}
-                  onChange={(event) =>
-                    setNote({ ...note, buildId: event.target.value })
-                  }
-                >
-                  <option value="">General project feedback</option>
-                  {builds.map((build) => (
-                    <option key={build._id} value={build._id}>
-                      {build.version} · {build.platform}
-                    </option>
-                  ))}
-                </select>
-              </Field>
-              <Field label="Rating">
-                <select
-                  value={note.rating}
-                  onChange={(event) =>
-                    setNote({ ...note, rating: event.target.value })
-                  }
-                >
-                  {[1, 2, 3, 4, 5].map((rating) => (
-                    <option key={rating} value={rating}>
-                      {rating}
-                    </option>
-                  ))}
-                </select>
-              </Field>
-              <Field label="Comments">
-                <textarea
-                  value={note.comments}
-                  onChange={(event) =>
-                    setNote({ ...note, comments: event.target.value })
-                  }
-                />
-              </Field>
-              <button type="submit">Add feedback</button>
-            </form>
+                )
+              }
+            />
           </section>
         </div>
       </fieldset>
@@ -547,6 +482,7 @@ export function ProjectScreen({
         <ItemDrawer
           key={`${drawer.kind}-${drawer.id}`}
           {...drawer}
+          builds={builds}
           users={users}
           milestones={milestones}
           onClose={() => setDrawer(null)}

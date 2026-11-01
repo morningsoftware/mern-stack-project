@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { validateBuildReference } from "../buildReference.js";
 import { asyncRoute, httpError } from "../errors.js";
 import { requireAuth } from "../middleware/auth.js";
 import { BUG_SEVERITIES, BUG_STATUSES } from "../schema.js";
@@ -24,6 +25,8 @@ bugReportsRouter.get(
     const filter = {};
     const projectId = optionalObjectId(req.query.projectId, "projectId");
     if (projectId) filter.projectId = projectId;
+    const buildId = optionalObjectId(req.query.buildId, "buildId");
+    if (buildId) filter.buildId = buildId;
     if (req.query.status !== undefined) {
       filter.status = oneOf(req.query.status, BUG_STATUSES, "status");
     }
@@ -33,7 +36,7 @@ bugReportsRouter.get(
       .sort({ createdOn: -1 })
       .toArray();
     res.json(bugs);
-  })
+  }),
 );
 
 bugReportsRouter.post(
@@ -41,36 +44,78 @@ bugReportsRouter.post(
   asyncRoute(async (req, res) => {
     const projectId = parseObjectId(req.body?.projectId, "projectId");
     const title = requireString(req.body?.title, "title");
-    const description = optionalString(req.body?.description, "description") ?? "";
+    const description =
+      optionalString(req.body?.description, "description") ?? "";
     const severity = req.body?.severity
       ? oneOf(req.body.severity, BUG_SEVERITIES, "severity")
       : "medium";
     const status = req.body?.status
       ? oneOf(req.body.status, BUG_STATUSES, "status")
       : "open";
-    await requireDoc(req.app.locals.db.collection("projects"), projectId, "Project");
+    await requireDoc(
+      req.app.locals.db.collection("projects"),
+      projectId,
+      "Project",
+    );
+    const buildId = await validateBuildReference(
+      req.app.locals.db,
+      req.body?.buildId,
+      projectId,
+    );
+    const sourceFeedbackId = optionalObjectId(
+      req.body?.sourceFeedbackId,
+      "sourceFeedbackId",
+    );
+    if (sourceFeedbackId) {
+      const source = await requireDoc(
+        req.app.locals.db.collection("playtestFeedback"),
+        sourceFeedbackId,
+        "Feedback",
+      );
+      if (source.projectId.toString() !== projectId.toString())
+        throw httpError(400, "feedback does not belong to that project");
+    }
+    const details = {};
+    for (const field of [
+      "reproductionSteps",
+      "expectedResult",
+      "actualResult",
+      "environment",
+    ])
+      details[field] = optionalString(req.body?.[field], field) ?? "";
     const createdBy = actorId(req);
     const doc = {
       projectId,
       title,
       description,
+      ...details,
+      ...(buildId ? { buildId } : {}),
+      ...(sourceFeedbackId ? { sourceFeedbackId } : {}),
       severity,
       status,
       reportedBy: createdBy,
       createdOn: new Date(),
       createdBy,
     };
-    const result = await req.app.locals.db.collection("bugReports").insertOne(doc);
+    const result = await req.app.locals.db
+      .collection("bugReports")
+      .insertOne(doc);
     res.status(201).json({ ...doc, _id: result.insertedId });
-  })
+  }),
 );
 
 bugReportsRouter.get(
   "/:id",
   asyncRoute(async (req, res) => {
     const id = parseObjectId(req.params.id, "id");
-    res.json(await requireDoc(req.app.locals.db.collection("bugReports"), id, "Bug report"));
-  })
+    res.json(
+      await requireDoc(
+        req.app.locals.db.collection("bugReports"),
+        id,
+        "Bug report",
+      ),
+    );
+  }),
 );
 
 bugReportsRouter.patch(
@@ -78,12 +123,28 @@ bugReportsRouter.patch(
   asyncRoute(async (req, res) => {
     const id = parseObjectId(req.params.id, "id");
     const bugs = req.app.locals.db.collection("bugReports");
-    await requireDoc(bugs, id, "Bug report");
+    const existing = await requireDoc(bugs, id, "Bug report");
     const update = {};
+    if (req.body?.buildId !== undefined)
+      update.buildId = await validateBuildReference(
+        req.app.locals.db,
+        req.body.buildId,
+        existing.projectId,
+      );
+    for (const field of [
+      "reproductionSteps",
+      "expectedResult",
+      "actualResult",
+      "environment",
+    ]) {
+      if (req.body?.[field] !== undefined)
+        update[field] = optionalString(req.body[field], field) ?? "";
+    }
     const title = optionalString(req.body?.title, "title");
     if (title !== undefined) update.title = title;
     if (req.body?.description !== undefined) {
-      update.description = optionalString(req.body.description, "description") ?? "";
+      update.description =
+        optionalString(req.body.description, "description") ?? "";
     }
     if (req.body?.severity !== undefined) {
       update.severity = oneOf(req.body.severity, BUG_SEVERITIES, "severity");
@@ -96,7 +157,7 @@ bugReportsRouter.patch(
     }
     await bugs.updateOne({ _id: id }, { $set: update });
     res.json(await bugs.findOne({ _id: id }));
-  })
+  }),
 );
 
 bugReportsRouter.delete(
@@ -107,5 +168,5 @@ bugReportsRouter.delete(
     await requireDoc(bugs, id, "Bug report");
     await bugs.deleteOne({ _id: id });
     res.status(204).end();
-  })
+  }),
 );

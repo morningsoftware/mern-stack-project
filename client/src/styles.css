@@ -981,3 +981,61 @@ button.milestone-title {
     flex-wrap: wrap;
   }
 }
+
+.report-tags {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+.bug-list {
+  margin-top: 20px;
+}
+.new-bug-report,
+.submit-feedback {
+  border-top: 2px solid #a8b496;
+  padding-top: 22px;
+  margin-top: 28px;
+}
+.new-bug-report .stack,
+.submit-feedback .stack {
+  max-width: 740px;
+}
+.source-notice {
+  border: 1px solid #bcaa73;
+  background: #f4e9cb;
+  padding: 14px;
+  margin: 14px 0;
+}
+.source-notice p {
+  font-size: 0.875rem;
+}
+.feedback-reports {
+  display: grid;
+  gap: 16px;
+}
+.feedback-report {
+  border: 1px solid var(--border);
+  border-left: 3px solid #87996f;
+  background: #fffdf6;
+  padding: 18px;
+  min-width: 0;
+}
+.feedback-report header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
+  font-size: 0.85rem;
+}
+.feedback-report header strong {
+  margin-right: auto;
+}
+.linked-report-bugs {
+  border-top: 1px solid #d8deca;
+  padding-top: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: start;
+}

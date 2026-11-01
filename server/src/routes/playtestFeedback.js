@@ -1,7 +1,10 @@
 import { Router } from "express";
+import { validateBuildReference } from "../buildReference.js";
+import { requireProjectTeamMember } from "../projectAccess.js";
 import { asyncRoute, httpError } from "../errors.js";
 import { requireAuth } from "../middleware/auth.js";
 import {
+  oneOf,
   optionalObjectId,
   optionalString,
   parseObjectId,
@@ -11,15 +14,6 @@ import {
 
 export const playtestFeedbackRouter = Router();
 playtestFeedbackRouter.use(requireAuth);
-
-async function validateBuild(db, value, projectId) {
-  const buildId = optionalObjectId(value, "buildId");
-  if (!buildId) return null;
-  const build = await requireDoc(db.collection("builds"), buildId, "Build");
-  if (build.projectId.toString() !== projectId.toString())
-    throw httpError(400, "build does not belong to that project");
-  return buildId;
-}
 
 function actorId(req) {
   return parseObjectId(req.user._id.toString(), "user");
@@ -51,7 +45,7 @@ playtestFeedbackRouter.post(
       projectId,
       "Project",
     );
-    const buildId = await validateBuild(
+    const buildId = await validateBuildReference(
       req.app.locals.db,
       req.body?.buildId,
       projectId,
@@ -63,6 +57,7 @@ playtestFeedbackRouter.post(
       userId,
       rating,
       comments,
+      reviewStatus: "new",
       createdOn: new Date(),
       createdBy: userId,
     };
@@ -93,12 +88,33 @@ playtestFeedbackRouter.patch(
     const id = parseObjectId(req.params.id, "id");
     const feedback = req.app.locals.db.collection("playtestFeedback");
     const existing = await requireDoc(feedback, id, "Playtest feedback");
-    if (existing.userId.toString() !== req.user._id.toString()) {
-      throw httpError(403, "You can only update your own feedback");
+    const isAuthor = existing.userId.toString() === req.user._id.toString();
+    const hasReview = req.body?.reviewStatus !== undefined;
+    const hasContent = ["rating", "comments", "buildId"].some(
+      (field) => req.body?.[field] !== undefined,
+    );
+    if (!isAuthor && (!hasReview || hasContent)) {
+      throw httpError(403, "You can only update your own feedback content");
     }
     const update = {};
+    if (hasReview) {
+      await requireProjectTeamMember(
+        req.app.locals.db,
+        existing.projectId,
+        actorId(req),
+      );
+      update.reviewStatus = oneOf(
+        req.body.reviewStatus,
+        ["new", "reviewed"],
+        "reviewStatus",
+      );
+      update.reviewedBy =
+        update.reviewStatus === "reviewed" ? actorId(req) : null;
+      update.reviewedOn =
+        update.reviewStatus === "reviewed" ? new Date() : null;
+    }
     if (req.body?.buildId !== undefined)
-      update.buildId = await validateBuild(
+      update.buildId = await validateBuildReference(
         req.app.locals.db,
         req.body.buildId,
         existing.projectId,

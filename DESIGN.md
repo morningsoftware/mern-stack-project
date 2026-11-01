@@ -108,3 +108,18 @@ or dependencies. Group milestones chronologically; put undated goals last.
 - Open a fresh record in the milestone editor before saving. Preserve form edits
   on errors and allow clearing a due date to return the milestone to Unscheduled.
 - Use the existing milestone API; no schema or permission changes in this feature.
+
+## Structured playtesting
+
+The user approved structured playtesting as the next feature set. Keep the warm
+studio visual system and existing drawer pattern. Bug forms include a build,
+environment, reproduction steps, expected behavior, and observed behavior. Do not
+invent these details from a playtester's comment: copy the comment into the
+report description and let the reporter fill in the remaining fields.
+
+Feedback triage uses explicit rating/build/review filters rather than inferred
+sentiment or an AI-generated summary. Awaiting review and Reviewed are workflow
+labels, not claims that a bug is resolved. Only team members see review controls,
+with enforcement in the API. Show linked bugs directly below their source report.
+Starting a report from feedback must preserve or explicitly replace an unsent
+manual report. See docs/structured-playtesting.md for contracts and permissions.

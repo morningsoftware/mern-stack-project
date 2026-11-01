@@ -459,3 +459,129 @@ test("Checkpoint milestone roadmap, editing, failed save, date clearing, and cre
     await act(async () => root.unmount());
   }
 });
+
+test("feedback triage, structured bug creation, source links, and unsent-draft protection", async () => {
+  db.builds = [
+    {
+      _id: "qa-build",
+      version: "0.4.0",
+      platform: "web",
+      downloadUrl: "https://example.com/game",
+    },
+    {
+      _id: "qa-other",
+      version: "0.5.0",
+      platform: "windows",
+      downloadUrl: "https://example.com/other",
+    },
+  ];
+  db["playtest-feedback"] = [
+    {
+      _id: "qa-low",
+      projectId: "p1",
+      userId: "u2",
+      buildId: "qa-build",
+      rating: 2,
+      comments: "The character sticks on the ledge.",
+    },
+    {
+      _id: "qa-high",
+      projectId: "p1",
+      userId: "u1",
+      buildId: "qa-other",
+      rating: 5,
+      comments: "Good controls",
+      reviewStatus: "reviewed",
+    },
+  ];
+  db["bug-reports"] = [];
+  sessionStorage.setItem("mern_token", "fixture");
+  root = createRoot(document.getElementById("root"));
+  try {
+    await act(async () => {
+      root.render(
+        React.createElement(React.StrictMode, null, React.createElement(App)),
+      );
+      await tick();
+    });
+    await click("Open");
+    await click("Open");
+    await click("Playtest feedback");
+    assert.equal(document.querySelectorAll(".feedback-report").length, 2);
+    await change("Filter feedback by rating", "low");
+    assert.equal(document.querySelectorAll(".feedback-report").length, 1);
+    await change("Filter feedback by build", "qa-other");
+    assert.equal(document.querySelectorAll(".feedback-report").length, 0);
+    await click("Clear feedback filters");
+    await change("Review state", "new");
+    rejectStatus = true;
+    await click("Mark reviewed");
+    assert.equal(db["playtest-feedback"][0].reviewStatus, undefined);
+    assert(
+      document
+        .querySelector("[role=alert]")
+        .textContent.includes("Project update rejected"),
+    );
+    rejectStatus = false;
+    await click("Mark reviewed");
+    assert.equal(db["playtest-feedback"][0].reviewStatus, "reviewed");
+    assert.equal(document.querySelectorAll(".feedback-report").length, 0);
+    await change("Review state", "reviewed");
+    assert.equal(document.querySelectorAll(".feedback-report").length, 2);
+    await click("Log bug from feedback");
+    assert.equal(field("Bug title").value, "Issue in 0.4.0");
+    assert.equal(field("Bug build").value, "qa-build");
+    assert.equal(
+      field("Description").value,
+      "The character sticks on the ledge.",
+    );
+    await change("Environment", "Windows 11, keyboard");
+    await change("Steps to reproduce", "Start level, jump onto ledge");
+    await change("Expected result", "Land on the ledge");
+    await change("Actual result", "Stuck in the ledge");
+    await act(async () => {
+      findButton("Report bug").form.dispatchEvent(
+        new window.Event("submit", { bubbles: true, cancelable: true }),
+      );
+      await tick();
+    });
+    const created = db["bug-reports"][0];
+    assert.equal(created.buildId, "qa-build");
+    assert.equal(created.sourceFeedbackId, "qa-low");
+    assert.equal(created.reproductionSteps, "Start level, jump onto ledge");
+    await click("Playtest feedback");
+    assert(
+      document
+        .querySelector(".linked-report-bugs")
+        .textContent.includes("Issue in 0.4.0"),
+    );
+    await act(async () => {
+      document.querySelector(".linked-report-bugs button").click();
+      await tick();
+    });
+    assert.equal(field("Actual result").value, "Stuck in the ledge");
+    await change("Actual result", "Only on the left edge");
+    await act(async () => {
+      findButton("Save changes").form.dispatchEvent(
+        new window.Event("submit", { bubbles: true, cancelable: true }),
+      );
+      await tick();
+    });
+    assert.equal(db["bug-reports"][0].actualResult, "Only on the left edge");
+    await click("Bug reports");
+    await change("Bug title", "Unsent manual report");
+    await click("Playtest feedback");
+    await click("Log another bug");
+    assert.equal(field("Bug title").value, "Unsent manual report");
+    assert(document.body.textContent.includes("You have an unsent bug report"));
+    await click("Keep current draft");
+    assert.equal(field("Bug title").value, "Unsent manual report");
+    await click("Playtest feedback");
+    await click("Log another bug");
+    await click("Replace draft");
+    assert.equal(field("Bug title").value, "Issue in 0.4.0");
+  } finally {
+    rejectStatus = false;
+    await act(async () => root.unmount());
+  }
+});

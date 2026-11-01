@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { BugDetailsFields } from "../playtesting/BugDetailsFields.jsx";
 import { api } from "../../api.js";
 import { ErrorNote, Field } from "../../components/Forms.jsx";
 import {
@@ -8,7 +9,15 @@ import {
   BUG_SEVERITIES,
 } from "../../constants.js";
 
-export function ItemDrawer({ kind, id, users, milestones, onClose, onSaved }) {
+export function ItemDrawer({
+  kind,
+  id,
+  users,
+  milestones,
+  builds = [],
+  onClose,
+  onSaved,
+}) {
   const dialog = useRef(null);
   const title = useRef(null);
   const lock = useRef(false);
@@ -64,7 +73,14 @@ export function ItemDrawer({ kind, id, users, milestones, onClose, onSaved }) {
             assigneeId: record.assigneeId,
             milestoneId: record.milestoneId,
           }
-        : { severity: record.severity }),
+        : {
+            severity: record.severity,
+            buildId: record.buildId || null,
+            reproductionSteps: record.reproductionSteps || "",
+            expectedResult: record.expectedResult || "",
+            actualResult: record.actualResult || "",
+            environment: record.environment || "",
+          }),
     };
     if (!body.title) {
       setError("Enter a title before saving.");
@@ -209,18 +225,28 @@ export function ItemDrawer({ kind, id, users, milestones, onClose, onSaved }) {
                 </Field>
               </>
             ) : (
-              <Field label="Severity">
-                <select
-                  value={record.severity}
-                  onChange={(event) => update("severity", event.target.value)}
-                >
-                  {BUG_SEVERITIES.map((value) => (
-                    <option key={value} value={value}>
-                      {value}
-                    </option>
-                  ))}
-                </select>
-              </Field>
+              <>
+                <Field label="Severity">
+                  <select
+                    value={record.severity}
+                    onChange={(event) => update("severity", event.target.value)}
+                  >
+                    {BUG_SEVERITIES.map((value) => (
+                      <option key={value} value={value}>
+                        {value}
+                      </option>
+                    ))}
+                  </select>
+                </Field>
+                <BugDetailsFields
+                  value={record}
+                  builds={builds}
+                  onChange={update}
+                />
+                {record.sourceFeedbackId && (
+                  <p className="meta">Linked to playtest feedback.</p>
+                )}
+              </>
             )}
             <div className="drawer-actions">
               <button type="submit">

@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { requireProjectTeamMember } from "../projectAccess.js";
 import { asyncRoute, httpError } from "../errors.js";
 import { requireAuth } from "../middleware/auth.js";
 import {
@@ -29,20 +30,6 @@ function downloadUrl(value) {
   return url.href;
 }
 
-async function requireTeamMember(db, projectId, userId) {
-  const project = await requireDoc(
-    db.collection("projects"),
-    projectId,
-    "Project",
-  );
-  const team = await requireDoc(db.collection("teams"), project.teamId, "Team");
-  const member = await db
-    .collection("teamMembers")
-    .findOne({ teamId: project.teamId, userId });
-  if (team.createdBy?.toString() !== userId.toString() && !member)
-    throw httpError(403, "Only team members can publish or edit builds");
-}
-
 buildsRouter.get(
   "/",
   asyncRoute(async (req, res) => {
@@ -68,7 +55,7 @@ buildsRouter.post(
     const db = req.app.locals.db;
     const projectId = parseObjectId(req.body?.projectId, "projectId");
     const createdBy = parseObjectId(req.user._id.toString(), "user");
-    await requireTeamMember(db, projectId, createdBy);
+    await requireProjectTeamMember(db, projectId, createdBy);
     const version = requireString(req.body?.version, "version");
     if (version.length > 80)
       throw httpError(400, "version must be 80 characters or fewer");
@@ -104,7 +91,7 @@ buildsRouter.patch(
     const id = parseObjectId(req.params.id, "id");
     const builds = db.collection("builds");
     const existing = await requireDoc(builds, id, "Build");
-    await requireTeamMember(
+    await requireProjectTeamMember(
       db,
       existing.projectId,
       parseObjectId(req.user._id.toString(), "user"),
