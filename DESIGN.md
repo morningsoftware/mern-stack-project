@@ -1,144 +1,95 @@
 # Design Specification
 
-This document is the authoritative design specification for the project. It
-defines the visual language and interaction patterns for everything
-user-facing. [`AGENTS.md`](./AGENTS.md) requires contributors to read this file
-before any UI, styling, or user-facing copy work, and to update it whenever a
-design decision is made.
+## Approved direction
 
-## How to Use This Document
+The frontend uses a dark studio workspace: charcoal surfaces, restrained violet
+accents, and clear typography inspired by game development tools. The user
+approved this direction and a dashboard foundation scope on October 31, 2026.
+Keep **MERN Stack Project** as the product name until the team approves branding.
 
-- Every defined value here as a rule, not a suggestion.
-- Reference the section name in review comments when requesting a change.
-- Add new sections as the design language grows; keep the table of contents in
-  sync.
-- Record decisions with their rationale.
+## Principles
 
-## Contents
-
-1. [Design Principles](#design-principles)
-2. [Color](#color)
-3. [Typography](#typography)
-4. [Spacing & Layout](#spacing--layout)
-5. [Components](#components)
-6. [Iconography](#iconography)
-7. [Motion](#motion)
-8. [Accessibility](#accessibility)
-9. [Voice & Tone](#voice--tone)
-10. [Decision Log](#decision-log)
-11. [Open Questions](#open-questions)
-
-## Design Principles
-
-_To be defined._
-
-Guiding values that resolve ambiguous design decisions. Example format:
-
-- **Clarity over decoration.** Prefer legible, obvious interfaces to visual
-  flourishes.
-- **Consistency beats novelty.** Reuse existing patterns before creating new
-  ones.
+- Prioritize project work and readable information over decoration.
+- Use real API data for every count, status, and progress indicator.
+- Provide explicit loading, empty, error, disabled, and focus states.
+- Keep existing API contracts and workflows compatible with web and mobile.
 
 ## Color
 
-_To be defined._
+| Role        | Value     | Usage                                   |
+| ----------- | --------- | --------------------------------------- |
+| Background  | `#111116` | Page canvas                             |
+| Sidebar     | `#16161e` | Workspace navigation                    |
+| Surface     | `#1a1a23` | Panels and summary cards                |
+| Border      | `#363641` | Structural divisions                    |
+| Text        | `#f2f1f8` | Primary text                            |
+| Muted text  | `#b5b3c5` | Descriptions and secondary labels       |
+| Accent      | `#c4afff` | Primary buttons and selected navigation |
+| Accent text | `#21113f` | Text on accent buttons                  |
+| Error text  | `#ffced6` | Errors on dark rose backgrounds         |
 
-Document the palette, semantic roles, and usage rules. Example format:
-
-| Token             | Value     | Role                                |
-| ----------------- | --------- | ----------------------------------- |
-| `--color-primary` | `#______` | Primary actions, active states      |
-| `--color-bg`      | `#______` | Page background                     |
-| `--color-text`    | `#______` | Default body text                   |
-| `--color-danger`  | `#______` | Errors and destructive actions      |
-
-Rules to define:
-
-- Light/dark mode support and how colors map between them.
-- Contrast requirements (see [Accessibility](#accessibility)).
-- Which colors are off-limits for text, backgrounds, or states.
+Dark mode is the first implementation. A theme switcher is outside this PR.
+Status colors always accompany text labels; do not rely on color alone.
 
 ## Typography
 
-_To be defined._
+Use the system sans-serif stack to avoid remote font downloads. Body text uses
+1.5 line height. Headings use 1.2 line height; the main heading scales from
+1.8rem to 2.6rem. Small uppercase labels are reserved for navigation context.
+Task names, feedback, and forms use normal readable text rather than pixel fonts.
 
-Document font families, sizes, weights, line heights, and usage. Example
-format:
+## Layout and spacing
 
-| Token             | Family | Size   | Weight | Line height | Use            |
-| ----------------- | ------ | ------ | ------ | ----------- | -------------- |
-| `--font-heading`  | `____` | `__px` | `___`  | `___`       | Page headings  |
-| `--font-body`     | `____` | `__px` | `___`  | `___`       | Body copy      |
+Desktop: 268px sidebar and flexible content with a 1440px maximum width.
+Use 8px-based spacing, 24px panel padding, 16–24px grid gaps, and 36px desktop
+content padding. At 1100px, summary cards become two columns and overview panels
+stack. At 760px, navigation moves above content and wraps into labeled buttons.
+All grids permit narrow screens without horizontal page scrolling.
 
-Rules to define:
+## Components and navigation
 
-- Type scale and responsive adjustments.
-- Fallback fonts and loading strategy.
-- Maximum line length for readability.
+- `components/AppShell.jsx`: workspace navigation, breadcrumbs, account control,
+  skip link, and focus management after navigating.
+- `components/Forms.jsx`: associated field labels and alert messages.
+- `components/ProjectOverview.jsx`: computed summary cards, progress, upcoming
+  incomplete milestones, and links to existing project tools.
+- `screens/`: authentication, team list, team details, and project workspace.
+- Project navigation: Overview, Milestones, Tasks, Bug reports, Playtest feedback.
+- Navigation remains React state based in this foundation. Refresh returns to
+  Teams; URL routing and deep links need a separate approved change.
+- Requests use the existing `api.js` helper. No new runtime UI dependencies.
 
-## Spacing & Layout
+## Interaction and accessibility
 
-_To be defined._
+Use native buttons, labeled controls, semantic landmarks, a breadcrumb list,
+`aria-current` navigation, a keyboard skip link, and visible focus outlines.
+Controls have a minimum 44px height. Disable forms during their submissions and
+surface API errors through an alert. Report loading and saving through status
+messages. Cancel initial screen requests on unmount. Project status updates must
+update React state only after a successful response, never mutate props.
 
-Document the spacing scale, grid, breakpoints, and container rules. Example
-format:
+Use WCAG AA text contrast as the target. Respect reduced-motion preferences;
+this foundation does not introduce animation or motion-dependent interactions.
+Lighthouse >=95 remains a deployment acceptance target, not a claimed result.
 
-| Token          | Value  | Use                          |
-| -------------- | ------ | ---------------------------- |
-| `--space-xs`   | `_px`  | Tight spacing inside inputs  |
-| `--space-md`   | `_px`  | Default component spacing    |
+## Voice and tone
 
-Rules to define:
+Use direct language and familiar game development terms. Encourage the next
+concrete action in empty states. Do not advertise unsupported build submissions,
+notifications, account verification, or password recovery.
 
-- Base spacing unit and allowed multiples.
-- Breakpoints and mobile-first behavior.
-- Maximum content width and alignment.
+## Decision log
 
-## Components
+| Decision                           | Rationale                                           |
+| ---------------------------------- | --------------------------------------------------- |
+| Dark studio with violet accents    | Approved game development visual direction          |
+| Keep current product name          | Branding remains a team decision                    |
+| Foundation before full redesign    | Keep the first change reviewable                    |
+| Existing React/Vite/CSS stack      | Avoid adding dependencies or changing API contracts |
+| Real counts, including zero states | Keep the dashboard truthful and useful              |
 
-_To be defined._
+## Open questions and later scope
 
-For each shared component (buttons, inputs, cards, modals, navigation, etc.),
-document:
-
-- Purpose and when to use it (and when not to).
-- Variants, sizes, and states (default, hover, focus, active, disabled,
-  loading, error).
-- Anatomy and spacing.
-- Accessibility requirements.
-- Code location, once implemented.
-
-## Iconography
-
-_To be defined._
-
-- Icon library or source.
-- Stroke/fill style, sizing, and alignment rules.
-- When icons may stand alone vs. require a text label.
-- Accessible labeling requirements.
-
-## Motion
-
-_To be defined._
-
-- Allowed durations and easing curves.
-- What should and should not animate.
-- Reduced-motion behavior.
-
-## Accessibility
-
-_To be defined._
-
-- Meet WCAG 2.1 AA contrast for text and interactive elements.
-- Every interactive element is keyboard reachable with a visible focus state.
-- Use semantic HTML before ARIA; label all non-text controls.
-- Never convey meaning through color alone.
-- Respect `prefers-reduced-motion`.
-
-## Voice & Tone
-
-_To be defined._
-
-- Product personality and tone for UI copy.
-- Terminology and capitalization rules.
-- Error, empty-state, and success message patterns.
+Permanent branding, URL routing, a task board, search/filter design, richer
+editing/deletion, and a light theme require later scope decisions. Backend team
+permissions and email verification/recovery remain separate backend work.
