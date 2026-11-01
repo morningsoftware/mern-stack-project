@@ -88,6 +88,9 @@ export function BugReports({
       )}
       <section className="new-bug-report" aria-labelledby="new-bug-title">
         <h3 id="new-bug-title">Report a bug</h3>
+        <p className="meta">
+          After submitting, open the report to attach screenshots.
+        </p>
         {draft.sourceFeedbackId && (
           <div className="source-notice">
             <p>

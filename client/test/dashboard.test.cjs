@@ -50,6 +50,8 @@ const user = {
 };
 let rejectStatus = false;
 let rejectComment = false;
+let rejectScreenshot = false;
+let screenshots = [];
 let discussion = [];
 let db = {
   teams: [{ _id: "t1", name: "Pixel Forge", description: "An indie studio" }],
@@ -100,7 +102,32 @@ global.fetch = async (path, options = {}) => {
   const [resource, id] = p.split("/");
   let status = 200,
     data;
-  if (/^tasks\/[^/]+\/comments$/.test(p)) {
+  if (/^bug-reports\/[^/]+\/screenshots(?:\/[^/]+)?$/.test(p)) {
+    const imageId = p.split("/")[3];
+    if (options.method === "POST") {
+      if (rejectScreenshot) {
+        status = 500;
+        data = { error: "Upload failed" };
+      } else {
+        data = {
+          _id: "image" + calls.length,
+          contentType: "image/png",
+          size: 20,
+          createdOn: new Date().toISOString(),
+        };
+        screenshots.push(data);
+        status = 201;
+      }
+    } else if (options.method === "DELETE") {
+      screenshots = screenshots.filter((image) => image._id !== imageId);
+      return new Response(null, { status: 204 });
+    } else if (imageId)
+      return new Response(new Uint8Array([137, 80, 78, 71]), {
+        status: 200,
+        headers: { "Content-Type": "image/png" },
+      });
+    else data = [...screenshots];
+  } else if (/^tasks\/[^/]+\/comments$/.test(p)) {
     if (options.method === "POST") {
       if (rejectComment) {
         status = 500;
@@ -947,6 +974,73 @@ test("My work isolates assignments, optional completed tasks, personal reports, 
     assert.equal(scope.querySelector("select").value, "todo");
   } finally {
     rejectStatus = false;
+    await act(async () => root.unmount());
+  }
+});
+
+test("bug screenshots validate selection, retain failed uploads, preview and remove images", async () => {
+  screenshots = [];
+  db["bug-reports"] = [
+    {
+      _id: "image-bug",
+      title: "Visual glitch",
+      status: "open",
+      severity: "medium",
+    },
+  ];
+  sessionStorage.setItem("mern_token", "fixture");
+  root = createRoot(document.getElementById("root"));
+  const selectFile = async (file) => {
+    await act(async () => {
+      const input = field("Bug screenshot");
+      Object.defineProperty(input, "files", {
+        configurable: true,
+        value: [file],
+      });
+      input.dispatchEvent(new window.Event("change", { bubbles: true }));
+      await tick();
+    });
+  };
+  try {
+    await act(async () => {
+      root.render(React.createElement(App));
+      await tick();
+    });
+    await click("Open");
+    await click("Open");
+    await click("Bug reports");
+    await click("Visual glitch");
+    await selectFile(
+      new window.File(["<svg/>"], "test.svg", { type: "image/svg+xml" }),
+    );
+    assert(findButton("Attach screenshot").disabled);
+    assert(document.querySelector("dialog").textContent.includes("up to 2 MB"));
+    await selectFile(
+      new window.File(["image data"], "test.png", { type: "image/png" }),
+    );
+    rejectScreenshot = true;
+    await act(async () => {
+      findButton("Attach screenshot").form.dispatchEvent(
+        new window.Event("submit", { bubbles: true, cancelable: true }),
+      );
+      await tick();
+    });
+    assert(!findButton("Attach screenshot").disabled);
+    assert.equal(screenshots.length, 0);
+    rejectScreenshot = false;
+    await act(async () => {
+      findButton("Attach screenshot").form.dispatchEvent(
+        new window.Event("submit", { bubbles: true, cancelable: true }),
+      );
+      await tick();
+      await tick();
+    });
+    assert.equal(screenshots.length, 1);
+    assert(document.querySelector(".screenshot-list img"));
+    await click("Remove screenshot");
+    assert.equal(screenshots.length, 0);
+  } finally {
+    rejectScreenshot = false;
     await act(async () => root.unmount());
   }
 });

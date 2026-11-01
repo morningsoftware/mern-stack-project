@@ -4,6 +4,7 @@ import express from "express";
 import cors from "cors";
 import { authRouter } from "./routes/auth.js";
 import { buildsRouter } from "./routes/builds.js";
+import { bugScreenshotsRouter } from "./routes/bugScreenshots.js";
 import { bugReportsRouter } from "./routes/bugReports.js";
 import { milestonesRouter } from "./routes/milestones.js";
 import { playtestFeedbackRouter } from "./routes/playtestFeedback.js";
@@ -36,6 +37,7 @@ export function createApp(db) {
   app.use("/api/tasks/:taskId/comments", taskCommentsRouter);
   app.use("/api/tasks", tasksRouter);
   app.use("/api/builds", buildsRouter);
+  app.use("/api/bug-reports/:bugId/screenshots", bugScreenshotsRouter);
   app.use("/api/bug-reports", bugReportsRouter);
   app.use("/api/playtest-feedback", playtestFeedbackRouter);
 

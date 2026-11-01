@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { BugDetailsFields } from "../playtesting/BugDetailsFields.jsx";
+import { BugScreenshots } from "../playtesting/BugScreenshots.jsx";
 import { TaskDiscussion } from "../discussions/TaskDiscussion.jsx";
 import {
   useUnsavedChanges,
@@ -81,7 +82,7 @@ export function ItemDrawer({
       discussionDirty &&
       !confirmDiscard(
         true,
-        "Discard your unsent comment and save this task? Choose Cancel to keep writing.",
+        "Discard your unsent attachment or comment and save these changes? Choose Cancel to keep writing.",
       )
     )
       return;
@@ -284,6 +285,14 @@ export function ItemDrawer({
             </div>
           </fieldset>
         </form>
+      )}
+      {kind === "bug" && record && !loading && (
+        <BugScreenshots
+          bugId={id}
+          disabled={pending}
+          onBusyChange={setDiscussionBusy}
+          onDraftChange={setDiscussionDirty}
+        />
       )}
       {kind === "task" && record && !loading && (
         <TaskDiscussion

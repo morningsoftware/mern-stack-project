@@ -167,6 +167,9 @@ bugReportsRouter.delete(
     const bugs = req.app.locals.db.collection("bugReports");
     await requireDoc(bugs, id, "Bug report");
     await bugs.deleteOne({ _id: id });
+    await req.app.locals.db
+      .collection("bugScreenshots")
+      .deleteMany({ bugId: id });
     res.status(204).end();
   }),
 );

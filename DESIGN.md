@@ -160,3 +160,11 @@ My work is a project-scoped view of current-user assignments, open milestones
 linked to their unfinished tasks, and unresolved bugs they reported. It does not
 imply bugs have assignees. Completed tasks are opt-in. Prioritize high-priority
 work and use the same detail drawers and status controls as the board.
+
+## Bug screenshots
+
+The user authorized screenshots. Attach them to an existing bug through its
+drawer: up to three PNG/JPEG/WebP images of at most 2 MiB each, stored in MongoDB
+without a paid external service. Reporter/team access is enforced server-side.
+Use authenticated blob previews and explicit removal, not public image URLs.
+Unsaved selections participate in the existing discard protection.
