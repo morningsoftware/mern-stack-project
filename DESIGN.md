@@ -153,3 +153,10 @@ focuses main content. The skip link focuses main without changing the route.
 When there are no milestones, explain the prerequisite and open the milestone
 form from a clear action. Never silently create a milestone to satisfy a task.
 See [navigation behavior](docs/workspace-navigation.md) for supported links and limits.
+
+## Personal project work
+
+My work is a project-scoped view of current-user assignments, open milestones
+linked to their unfinished tasks, and unresolved bugs they reported. It does not
+imply bugs have assignees. Completed tasks are opt-in. Prioritize high-priority
+work and use the same detail drawers and status controls as the board.

@@ -307,7 +307,7 @@ test("board filters, task and bug detail drawers, and linked build feedback", as
   assert.equal(document.querySelectorAll(".work-card").length, 1);
   await click("Clear filters");
   await act(async () => {
-    document.querySelector(".toggle-filter input").click();
+    document.querySelector(".work-board .toggle-filter input").click();
     await tick();
   });
   assert.equal(document.querySelectorAll(".work-card").length, 1);
@@ -863,6 +863,90 @@ test("first milestone guidance, drawer protection, and project navigation preser
     assert.equal(clean.defaultPrevented, false);
   } finally {
     window.confirm = () => true;
+    await act(async () => root.unmount());
+  }
+});
+
+test("My work isolates assignments, optional completed tasks, personal reports, and failed status changes", async () => {
+  db.tasks = [
+    {
+      _id: "mine",
+      title: "My unfinished task",
+      assigneeId: "u1",
+      priority: "high",
+      status: "todo",
+      milestoneId: "m1",
+    },
+    {
+      _id: "done",
+      title: "My completed task",
+      assigneeId: "u1",
+      priority: "low",
+      status: "done",
+    },
+    {
+      _id: "theirs",
+      title: "Someone else's task",
+      assigneeId: "u2",
+      priority: "high",
+      status: "todo",
+    },
+  ];
+  db.milestones = [
+    { _id: "m1", name: "Personal goal", status: "todo", dueDate: "2099-01-01" },
+  ];
+  db["bug-reports"] = [
+    {
+      _id: "mine-bug",
+      title: "My reported bug",
+      reportedBy: "u1",
+      status: "open",
+      severity: "high",
+    },
+    {
+      _id: "other-bug",
+      title: "Other reported bug",
+      reportedBy: "u2",
+      status: "open",
+      severity: "high",
+    },
+  ];
+  sessionStorage.setItem("mern_token", "fixture");
+  root = createRoot(document.getElementById("root"));
+  try {
+    await act(async () => {
+      root.render(React.createElement(App));
+      await tick();
+    });
+    await click("Open");
+    await click("Open");
+    await click("My work");
+    const scope = document.querySelector(".my-work");
+    assert(scope.textContent.includes("My unfinished task"));
+    assert(!scope.textContent.includes("Someone else's task"));
+    assert(!scope.textContent.includes("My completed task"));
+    assert(scope.textContent.includes("Personal goal"));
+    assert(scope.textContent.includes("My reported bug"));
+    assert(!scope.textContent.includes("Other reported bug"));
+    await act(async () => {
+      scope.querySelector('input[type="checkbox"]').click();
+      await tick();
+    });
+    assert(scope.textContent.includes("My completed task"));
+    rejectStatus = true;
+    await act(async () => {
+      const el = scope.querySelector("select");
+      Object.getOwnPropertyDescriptor(
+        window.HTMLSelectElement.prototype,
+        "value",
+      ).set.call(el, "done");
+      el.dispatchEvent(new window.Event("change", { bubbles: true }));
+      await tick();
+    });
+    assert.equal(db.tasks[0].status, "todo");
+    assert.equal(scope.querySelector("select").value, "todo");
+  } finally {
+    rejectStatus = false;
     await act(async () => root.unmount());
   }
 });

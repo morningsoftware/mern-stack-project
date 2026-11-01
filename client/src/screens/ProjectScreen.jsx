@@ -8,6 +8,7 @@ import { MilestoneEditor } from "../features/planning/MilestoneEditor.jsx";
 import { BugReports } from "../features/playtesting/BugReports.jsx";
 import { FeedbackTriage } from "../features/playtesting/FeedbackTriage.jsx";
 import { emptyBugDraft } from "../features/playtesting/BugDetailsFields.jsx";
+import { MyWork } from "../features/work/MyWork.jsx";
 import { TaskBoard } from "../features/work/TaskBoard.jsx";
 import { ItemDrawer } from "../features/work/ItemDrawer.jsx";
 import { BuildLibrary } from "../features/work/BuildLibrary.jsx";
@@ -259,6 +260,21 @@ export function ProjectScreen({
         aria-busy={pending}
       >
         <div className="grid workspace-grid">
+          <section hidden={view !== "my-work"}>
+            <MyWork
+              tasks={tasks}
+              milestones={milestones}
+              bugs={bugs}
+              currentUserId={currentUserId}
+              pending={pending || loading}
+              onOpenTask={(id) => setDrawer({ kind: "task", id })}
+              onOpenBug={(id) => setDrawer({ kind: "bug", id })}
+              onStatusChange={(id, status) =>
+                patch(`/api/tasks/${id}`, { status })
+              }
+              onMilestones={() => onViewChange("milestones")}
+            />
+          </section>
           <section className="panel" hidden={view !== "milestones"}>
             <MilestonePlan
               milestones={milestones}

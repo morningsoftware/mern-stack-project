@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 
 export const PROJECT_VIEWS = [
   ["tasks", "Task board"],
+  ["my-work", "My work"],
   ["overview", "Overview"],
   ["milestones", "Milestones"],
   ["bugs", "Bug reports"],

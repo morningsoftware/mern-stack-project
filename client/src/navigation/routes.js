@@ -1,5 +1,6 @@
 export const VIEWS = [
   "tasks",
+  "my-work",
   "overview",
   "milestones",
   "bugs",
