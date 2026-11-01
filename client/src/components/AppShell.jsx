@@ -9,6 +9,7 @@ export const PROJECT_VIEWS = [
   ["builds", "Builds"],
   ["feedback", "Playtest feedback"],
   ["activity", "Activity"],
+  ["notifications", "Notifications"],
 ];
 
 export function AppShell({

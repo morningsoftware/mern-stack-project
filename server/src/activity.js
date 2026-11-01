@@ -1,3 +1,4 @@
+import { notifyForActivity } from "./notifications.js";
 import { ObjectId } from "mongodb";
 const tracked = [
   "title",
@@ -48,6 +49,14 @@ export async function recordActivity(
   };
   try {
     await req.app.locals.db.collection("projectActivity").insertOne(event);
+    try {
+      await notifyForActivity(req.app.locals.db, event, doc, previous);
+    } catch {
+      res.set("X-Checkpoint-Notifications", "unavailable");
+      console.warn(
+        "Notification recording unavailable; primary write succeeded",
+      );
+    }
   } catch {
     res.set("X-Checkpoint-Activity", "unavailable");
     console.warn("Activity recording unavailable; primary write succeeded");

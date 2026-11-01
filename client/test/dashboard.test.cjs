@@ -54,6 +54,8 @@ let rejectScreenshot = false;
 let screenshots = [];
 let activityEvents = [];
 let rejectActivity = false;
+let notificationItems = [];
+let rejectNotification = false;
 let discussion = [];
 let db = {
   teams: [{ _id: "t1", name: "Pixel Forge", description: "An indie studio" }],
@@ -104,7 +106,30 @@ global.fetch = async (path, options = {}) => {
   const [resource, id] = p.split("/");
   let status = 200,
     data;
-  if (resource === "activity") {
+  if (resource === "notifications") {
+    if (options.method === "PATCH") {
+      if (rejectNotification) {
+        status = 500;
+        data = { error: "Notification update failed" };
+      } else {
+        data = notificationItems.find((item) => item._id === id);
+        data.readOn = JSON.parse(options.body).read
+          ? new Date().toISOString()
+          : null;
+      }
+    } else {
+      const unread =
+        new URL(path, "http://localhost").searchParams.get("unread") === "true";
+      data = {
+        notifications: notificationItems
+          .filter((item) => !unread || !item.readOn)
+          .map((item) => ({ ...item })),
+        unreadCount: notificationItems.filter((item) => !item.readOn).length,
+        hasMore: false,
+        nextBefore: null,
+      };
+    }
+  } else if (resource === "activity") {
     if (rejectActivity) {
       status = 500;
       data = { error: "Activity unavailable" };
@@ -702,7 +727,10 @@ test("task discussions retain failed drafts, persist posts, and task creation is
       await tick();
     });
     assert.equal(field("Add a comment").value, "");
-    assert.equal(document.querySelectorAll("dialog .discussion-list li").length, 1);
+    assert.equal(
+      document.querySelectorAll("dialog .discussion-list li").length,
+      1,
+    );
     assert(document.body.textContent.includes("Comment posted."));
     await click("Close");
     await act(async () => {
@@ -1105,6 +1133,75 @@ test("activity shows server-recorded changes, older pages, and recoverable error
     assert.equal(document.querySelectorAll(".activity-list li").length, 2);
   } finally {
     rejectActivity = false;
+    await act(async () => root.unmount());
+  }
+});
+
+test("notifications persist read state, keep failed changes, filter unread, and open related work", async () => {
+  notificationItems = [
+    {
+      _id: "n1",
+      resource: "task",
+      resourceId: "notify-task",
+      message: "Assigned to you: Movement",
+      createdOn: new Date().toISOString(),
+      readOn: null,
+    },
+  ];
+  db.tasks = [
+    {
+      _id: "notify-task",
+      title: "Movement notification task",
+      status: "todo",
+      priority: "medium",
+      assigneeId: "u1",
+      milestoneId: "m1",
+    },
+  ];
+  sessionStorage.setItem("mern_token", "fixture");
+  root = createRoot(document.getElementById("root"));
+  try {
+    await act(async () => {
+      root.render(React.createElement(App));
+      await tick();
+    });
+    await click("Open");
+    await click("Open");
+    await click("Notifications");
+    assert(
+      document.querySelector(".notifications").textContent.includes("1 unread"),
+    );
+    rejectNotification = true;
+    await click("Mark read");
+    assert.equal(notificationItems[0].readOn, null);
+    assert(
+      document
+        .querySelector(".notifications")
+        .textContent.includes("Notification update failed"),
+    );
+    rejectNotification = false;
+    await click("Mark read");
+    assert(notificationItems[0].readOn);
+    assert(
+      document.querySelector(".notifications").textContent.includes("0 unread"),
+    );
+    await act(async () => {
+      document.querySelector('.notifications input[type="checkbox"]').click();
+      await tick();
+    });
+    assert(
+      document
+        .querySelector(".notifications")
+        .textContent.includes("No unread notifications"),
+    );
+    await act(async () => {
+      document.querySelector('.notifications input[type="checkbox"]').click();
+      await tick();
+    });
+    await click("Open related work");
+    assert.equal(field("Title").value, "Movement notification task");
+  } finally {
+    rejectNotification = false;
     await act(async () => root.unmount());
   }
 });

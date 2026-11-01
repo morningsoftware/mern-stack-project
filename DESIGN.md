@@ -176,3 +176,10 @@ field transitions for task/milestone/build/bug/feedback creates and updates. Nev
 infer historical changes or include comment bodies, credentials, or image bytes.
 Use a chronological ledger with explicit refresh and older-page controls. This
 operational history is not a tamper-proof compliance audit log.
+
+## In-app notifications
+
+The project inbox shows assignments and new feedback from other people, not
+self-generated alerts. Read/unread state is persistent and recipient-private.
+Use explicit refresh, an unread filter, and links to related work. This release
+does not send email or device push notifications or imply real-time delivery.

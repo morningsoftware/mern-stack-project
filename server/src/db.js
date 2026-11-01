@@ -11,6 +11,18 @@ export async function connectDatabase(uri) {
 
 export async function ensureIndexes(db) {
   await db
+    .collection("notifications")
+    .createIndex(
+      { userId: 1, projectId: 1, _id: -1 },
+      { name: "notifications_by_recipient" },
+    );
+  await db
+    .collection("notifications")
+    .createIndex(
+      { eventId: 1, userId: 1 },
+      { unique: true, name: "unique_event_recipient" },
+    );
+  await db
     .collection("projectActivity")
     .createIndex({ projectId: 1, _id: -1 }, { name: "activity_by_project" });
   await db

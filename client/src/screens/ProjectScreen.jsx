@@ -8,6 +8,7 @@ import { MilestoneEditor } from "../features/planning/MilestoneEditor.jsx";
 import { BugReports } from "../features/playtesting/BugReports.jsx";
 import { FeedbackTriage } from "../features/playtesting/FeedbackTriage.jsx";
 import { emptyBugDraft } from "../features/playtesting/BugDetailsFields.jsx";
+import { Notifications } from "../features/activity/Notifications.jsx";
 import { ActivityFeed } from "../features/activity/ActivityFeed.jsx";
 import { MyWork } from "../features/work/MyWork.jsx";
 import { TaskBoard } from "../features/work/TaskBoard.jsx";
@@ -261,6 +262,14 @@ export function ProjectScreen({
         aria-busy={pending}
       >
         <div className="grid workspace-grid">
+          <section hidden={view !== "notifications"}>
+            <Notifications
+              projectId={project._id}
+              active={view === "notifications"}
+              onViewChange={onViewChange}
+              onOpenTask={(id) => setDrawer({ kind: "task", id })}
+            />
+          </section>
           <section hidden={view !== "activity"}>
             <ActivityFeed
               projectId={project._id}
