@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { recordActivity } from "../activity.js";
 import { validateBuildReference } from "../buildReference.js";
 import { requireProjectTeamMember } from "../projectAccess.js";
 import { asyncRoute, httpError } from "../errors.js";
@@ -64,6 +65,13 @@ playtestFeedbackRouter.post(
     const result = await req.app.locals.db
       .collection("playtestFeedback")
       .insertOne(doc);
+    await recordActivity(
+      req,
+      res,
+      "feedback",
+      { ...doc, _id: result.insertedId },
+      "created",
+    );
     res.status(201).json({ ...doc, _id: result.insertedId });
   }),
 );
@@ -128,7 +136,9 @@ playtestFeedbackRouter.patch(
       throw httpError(400, "No updatable fields were provided");
     }
     await feedback.updateOne({ _id: id }, { $set: update });
-    res.json(await feedback.findOne({ _id: id }));
+    const updated = await feedback.findOne({ _id: id });
+    await recordActivity(req, res, "feedback", updated, "updated", existing);
+    res.json(updated);
   }),
 );
 

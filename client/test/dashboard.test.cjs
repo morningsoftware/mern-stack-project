@@ -52,6 +52,8 @@ let rejectStatus = false;
 let rejectComment = false;
 let rejectScreenshot = false;
 let screenshots = [];
+let activityEvents = [];
+let rejectActivity = false;
 let discussion = [];
 let db = {
   teams: [{ _id: "t1", name: "Pixel Forge", description: "An indie studio" }],
@@ -102,7 +104,21 @@ global.fetch = async (path, options = {}) => {
   const [resource, id] = p.split("/");
   let status = 200,
     data;
-  if (/^bug-reports\/[^/]+\/screenshots(?:\/[^/]+)?$/.test(p)) {
+  if (resource === "activity") {
+    if (rejectActivity) {
+      status = 500;
+      data = { error: "Activity unavailable" };
+    } else {
+      const before = new URL(path, "http://localhost").searchParams.get(
+        "before",
+      );
+      data = {
+        events: before ? activityEvents.slice(1) : activityEvents.slice(0, 1),
+        hasMore: !before && activityEvents.length > 1,
+        nextBefore: !before ? activityEvents[0]?._id : null,
+      };
+    }
+  } else if (/^bug-reports\/[^/]+\/screenshots(?:\/[^/]+)?$/.test(p)) {
     const imageId = p.split("/")[3];
     if (options.method === "POST") {
       if (rejectScreenshot) {
@@ -686,7 +702,7 @@ test("task discussions retain failed drafts, persist posts, and task creation is
       await tick();
     });
     assert.equal(field("Add a comment").value, "");
-    assert.equal(document.querySelectorAll(".discussion-list li").length, 1);
+    assert.equal(document.querySelectorAll("dialog .discussion-list li").length, 1);
     assert(document.body.textContent.includes("Comment posted."));
     await click("Close");
     await act(async () => {
@@ -695,7 +711,7 @@ test("task discussions retain failed drafts, persist posts, and task creation is
     });
     assert(
       document
-        .querySelector(".discussion-list")
+        .querySelector("dialog .discussion-list")
         .textContent.includes("Check jump timing"),
     );
   } finally {
@@ -1041,6 +1057,54 @@ test("bug screenshots validate selection, retain failed uploads, preview and rem
     assert.equal(screenshots.length, 0);
   } finally {
     rejectScreenshot = false;
+    await act(async () => root.unmount());
+  }
+});
+
+test("activity shows server-recorded changes, older pages, and recoverable errors", async () => {
+  activityEvents = [
+    {
+      _id: "e2",
+      actorName: "Alex",
+      resource: "task",
+      label: "Movement",
+      action: "updated",
+      createdOn: new Date().toISOString(),
+      changes: { status: { from: "todo", to: "done" } },
+    },
+    {
+      _id: "e1",
+      actorName: "Alex",
+      resource: "build",
+      label: "0.1",
+      action: "created",
+      createdOn: new Date().toISOString(),
+      changes: {},
+    },
+  ];
+  sessionStorage.setItem("mern_token", "fixture");
+  root = createRoot(document.getElementById("root"));
+  try {
+    await act(async () => {
+      root.render(React.createElement(App));
+      await tick();
+    });
+    await click("Open");
+    await click("Open");
+    rejectActivity = true;
+    await click("Activity");
+    assert(document.body.textContent.includes("Activity unavailable"));
+    rejectActivity = false;
+    await click("Refresh activity");
+    assert(
+      document
+        .querySelector(".activity-list")
+        .textContent.includes("todo → done"),
+    );
+    await click("Load earlier activity");
+    assert.equal(document.querySelectorAll(".activity-list li").length, 2);
+  } finally {
+    rejectActivity = false;
     await act(async () => root.unmount());
   }
 });

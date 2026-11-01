@@ -11,6 +11,9 @@ export async function connectDatabase(uri) {
 
 export async function ensureIndexes(db) {
   await db
+    .collection("projectActivity")
+    .createIndex({ projectId: 1, _id: -1 }, { name: "activity_by_project" });
+  await db
     .collection("bugScreenshots")
     .createIndex({ bugId: 1, _id: 1 }, { name: "screenshots_by_bug" });
   await db

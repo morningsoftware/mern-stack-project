@@ -6,6 +6,7 @@ export const VIEWS = [
   "bugs",
   "builds",
   "feedback",
+  "activity",
 ];
 export function parseRoute(hash) {
   if (!hash || hash === "#" || hash === "#/teams")

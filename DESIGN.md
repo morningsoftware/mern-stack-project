@@ -168,3 +168,11 @@ drawer: up to three PNG/JPEG/WebP images of at most 2 MiB each, stored in MongoD
 without a paid external service. Reporter/team access is enforced server-side.
 Use authenticated blob previews and explicit removal, not public image URLs.
 Unsaved selections participate in the existing discard protection.
+
+## Activity history
+
+A team-only, paginated project feed records server-generated actors and selected
+field transitions for task/milestone/build/bug/feedback creates and updates. Never
+infer historical changes or include comment bodies, credentials, or image bytes.
+Use a chronological ledger with explicit refresh and older-page controls. This
+operational history is not a tamper-proof compliance audit log.

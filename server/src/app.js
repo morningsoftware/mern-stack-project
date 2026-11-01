@@ -3,6 +3,7 @@ import { fileURLToPath } from "url";
 import express from "express";
 import cors from "cors";
 import { authRouter } from "./routes/auth.js";
+import { activityRouter } from "./routes/activity.js";
 import { buildsRouter } from "./routes/builds.js";
 import { bugScreenshotsRouter } from "./routes/bugScreenshots.js";
 import { bugReportsRouter } from "./routes/bugReports.js";
@@ -36,6 +37,7 @@ export function createApp(db) {
   app.use("/api/milestones", milestonesRouter);
   app.use("/api/tasks/:taskId/comments", taskCommentsRouter);
   app.use("/api/tasks", tasksRouter);
+  app.use("/api/activity", activityRouter);
   app.use("/api/builds", buildsRouter);
   app.use("/api/bug-reports/:bugId/screenshots", bugScreenshotsRouter);
   app.use("/api/bug-reports", bugReportsRouter);

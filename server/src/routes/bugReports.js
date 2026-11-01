@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { recordActivity } from "../activity.js";
 import { validateBuildReference } from "../buildReference.js";
 import { asyncRoute, httpError } from "../errors.js";
 import { requireAuth } from "../middleware/auth.js";
@@ -100,6 +101,13 @@ bugReportsRouter.post(
     const result = await req.app.locals.db
       .collection("bugReports")
       .insertOne(doc);
+    await recordActivity(
+      req,
+      res,
+      "bug",
+      { ...doc, _id: result.insertedId },
+      "created",
+    );
     res.status(201).json({ ...doc, _id: result.insertedId });
   }),
 );
@@ -156,7 +164,9 @@ bugReportsRouter.patch(
       throw httpError(400, "No updatable fields were provided");
     }
     await bugs.updateOne({ _id: id }, { $set: update });
-    res.json(await bugs.findOne({ _id: id }));
+    const updated = await bugs.findOne({ _id: id });
+    await recordActivity(req, res, "bug", updated, "updated", existing);
+    res.json(updated);
   }),
 );
 

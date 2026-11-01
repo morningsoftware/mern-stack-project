@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { recordActivity } from "../activity.js";
 import { asyncRoute, httpError } from "../errors.js";
 import { requireAuth } from "../middleware/auth.js";
 import { TASK_PRIORITIES, TASK_STATUSES } from "../schema.js";
@@ -37,7 +38,7 @@ tasksRouter.get(
       .sort({ createdOn: -1 })
       .toArray();
     res.json(tasks);
-  })
+  }),
 );
 
 tasksRouter.post(
@@ -46,7 +47,8 @@ tasksRouter.post(
     const projectId = parseObjectId(req.body?.projectId, "projectId");
     const milestoneId = parseObjectId(req.body?.milestoneId, "milestoneId");
     const title = requireString(req.body?.title, "title");
-    const description = optionalString(req.body?.description, "description") ?? "";
+    const description =
+      optionalString(req.body?.description, "description") ?? "";
     const status = req.body?.status
       ? oneOf(req.body.status, TASK_STATUSES, "status")
       : "todo";
@@ -55,8 +57,16 @@ tasksRouter.post(
       : "medium";
     const assigneeId = parseObjectId(req.body?.assigneeId, "assigneeId");
     const db = req.app.locals.db;
-    const project = await requireDoc(db.collection("projects"), projectId, "Project");
-    const milestone = await requireDoc(db.collection("milestones"), milestoneId, "Milestone");
+    const project = await requireDoc(
+      db.collection("projects"),
+      projectId,
+      "Project",
+    );
+    const milestone = await requireDoc(
+      db.collection("milestones"),
+      milestoneId,
+      "Milestone",
+    );
     if (milestone.projectId.toString() !== project._id.toString()) {
       throw httpError(400, "milestone does not belong to that project");
     }
@@ -73,16 +83,25 @@ tasksRouter.post(
       createdBy: actorId(req),
     };
     const result = await db.collection("tasks").insertOne(doc);
+    await recordActivity(
+      req,
+      res,
+      "task",
+      { ...doc, _id: result.insertedId },
+      "created",
+    );
     res.status(201).json({ ...doc, _id: result.insertedId });
-  })
+  }),
 );
 
 tasksRouter.get(
   "/:id",
   asyncRoute(async (req, res) => {
     const id = parseObjectId(req.params.id, "id");
-    res.json(await requireDoc(req.app.locals.db.collection("tasks"), id, "Task"));
-  })
+    res.json(
+      await requireDoc(req.app.locals.db.collection("tasks"), id, "Task"),
+    );
+  }),
 );
 
 tasksRouter.patch(
@@ -95,7 +114,8 @@ tasksRouter.patch(
     const title = optionalString(req.body?.title, "title");
     if (title !== undefined) update.title = title;
     if (req.body?.description !== undefined) {
-      update.description = optionalString(req.body.description, "description") ?? "";
+      update.description =
+        optionalString(req.body.description, "description") ?? "";
     }
     if (req.body?.status !== undefined) {
       update.status = oneOf(req.body.status, TASK_STATUSES, "status");
@@ -105,7 +125,11 @@ tasksRouter.patch(
     }
     if (req.body?.assigneeId !== undefined) {
       const assigneeId = parseObjectId(req.body.assigneeId, "assigneeId");
-      await requireDoc(req.app.locals.db.collection("users"), assigneeId, "User");
+      await requireDoc(
+        req.app.locals.db.collection("users"),
+        assigneeId,
+        "User",
+      );
       update.assigneeId = assigneeId;
     }
     if (req.body?.milestoneId !== undefined) {
@@ -113,7 +137,7 @@ tasksRouter.patch(
       const milestone = await requireDoc(
         req.app.locals.db.collection("milestones"),
         milestoneId,
-        "Milestone"
+        "Milestone",
       );
       if (milestone.projectId.toString() !== existing.projectId.toString()) {
         throw httpError(400, "milestone does not belong to that project");
@@ -124,8 +148,10 @@ tasksRouter.patch(
       throw httpError(400, "No updatable fields were provided");
     }
     await tasks.updateOne({ _id: id }, { $set: update });
-    res.json(await tasks.findOne({ _id: id }));
-  })
+    const updated = await tasks.findOne({ _id: id });
+    await recordActivity(req, res, "task", updated, "updated", existing);
+    res.json(updated);
+  }),
 );
 
 tasksRouter.delete(
@@ -136,5 +162,5 @@ tasksRouter.delete(
     await requireDoc(tasks, id, "Task");
     await tasks.deleteOne({ _id: id });
     res.status(204).end();
-  })
+  }),
 );

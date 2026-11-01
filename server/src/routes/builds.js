@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { recordActivity } from "../activity.js";
 import { requireProjectTeamMember } from "../projectAccess.js";
 import { asyncRoute, httpError } from "../errors.js";
 import { requireAuth } from "../middleware/auth.js";
@@ -70,6 +71,13 @@ buildsRouter.post(
       createdBy,
     };
     const result = await db.collection("builds").insertOne(doc);
+    await recordActivity(
+      req,
+      res,
+      "build",
+      { ...doc, _id: result.insertedId },
+      "created",
+    );
     res.status(201).json({ ...doc, _id: result.insertedId });
   }),
 );
@@ -113,6 +121,8 @@ buildsRouter.patch(
       throw httpError(400, "No updatable fields were provided");
     update.updatedOn = new Date();
     await builds.updateOne({ _id: id }, { $set: update });
-    res.json(await builds.findOne({ _id: id }));
+    const updated = await builds.findOne({ _id: id });
+    await recordActivity(req, res, "build", updated, "updated", existing);
+    res.json(updated);
   }),
 );

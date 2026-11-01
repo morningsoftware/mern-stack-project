@@ -8,6 +8,7 @@ export const PROJECT_VIEWS = [
   ["bugs", "Bug reports"],
   ["builds", "Builds"],
   ["feedback", "Playtest feedback"],
+  ["activity", "Activity"],
 ];
 
 export function AppShell({
