@@ -4,7 +4,8 @@ Project URLs now identify the team, project, and selected view:
 
 `https://mern.morning.codes/#/teams/TEAM_ID/projects/PROJECT_ID/tasks`
 
-The six project views are tasks, overview, milestones, bugs, builds, and feedback.
+Project views include tasks, my-work, overview, milestones, bugs, builds, feedback,
+sessions, activity, and notifications.
 Team pages use `#/teams/TEAM_ID`; the team list uses `#/teams`. Opening a project
 without a view defaults to tasks. Copy project link copies the current view's URL;
 if clipboard access is unavailable, the UI offers browser-address copying instead.

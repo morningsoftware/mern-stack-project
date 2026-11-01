@@ -129,3 +129,35 @@ implemented improvements and remaining design work.
 Shareable project/view links, first-milestone guidance, and unsaved-work protection
 are documented in [workspace navigation](docs/workspace-navigation.md). Drafts stay
 in memory; this is not automatic saving or a separate mobile application.
+
+## Feature release and readiness
+
+The project now includes My work, protected bug screenshots, project activity,
+private in-app notifications, and build-specific playtest sessions. Read
+[the rubric audit](docs/project-readiness.md) for verified evidence and remaining
+assignment requirements. These optional features do not replace email
+verification, recovery, the separate mobile app, SwaggerHub, or presentation work.
+
+After installing client/server dependencies, run a fully isolated real API demo:
+
+```sh
+npm run build --prefix client
+npm run demo --prefix server
+```
+
+Open http://127.0.0.1:4002. Sample users are `demo`, `sam`, and `tester`, each with
+password `checkpoint-demo`. This is temporary local sample data, not production
+credentials. The demo never reads `.env` and never connects to the team's database.
+Restarting resets its sample data. The example build URL is intentionally not a
+hosted game. Use the real domain for the graded presentation.
+
+Run `node server/scripts/endpoint-evidence.js` to rerun the API integration suite
+and regenerate [endpoint evidence](docs/endpoint-test-evidence.json). A missing
+successful route response fails that command. No Lighthouse score or browser
+visual check is implied by these tests.
+
+While the isolated demo is running, `node client/scripts/demo-smoke.cjs` exercises
+the DOM UI against its actual HTTP API/MongoDB without mocked API responses. It
+uses only loopback and demo accounts. This is not a rendered-browser/Lighthouse test.
+See [screenshots](docs/bug-screenshots.md), [activity/inbox](docs/activity-notifications.md),
+and [playtest sessions](docs/playtest-sessions.md) for API and deployment details.

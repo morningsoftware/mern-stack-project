@@ -22,9 +22,9 @@ real task content will improve its character more than additional decoration.
 
 1. **Creation flow (implemented):** an empty task board now explains its milestone
    prerequisite and opens/focuses the first-milestone form.
-2. **People selection:** old task endpoints accept any existing user. Coordinate
-   team-only assignment and authorization with the API developer before narrowing
-   the UI; filtering the client alone would not enforce membership.
+2. **People selection (implemented):** task writes/assignments now enforce team
+   membership, owner-only membership management prevents self-enrollment, and the
+   frontend limits assignee choices to teammates.
 3. **Navigation (implemented):** project/view hash links restore on refresh, support
    Back/Forward, and can be copied from the workspace bar. Individual drawer links
    remain future work.

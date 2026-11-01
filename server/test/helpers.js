@@ -1,3 +1,5 @@
+import express from "express";
+import { appendFileSync } from "node:fs";
 import { MongoMemoryServer } from "mongodb-memory-server";
 import { MongoClient } from "mongodb";
 import request from "supertest";
@@ -16,9 +18,23 @@ export async function startApi() {
   const db = client.db("mern");
   await ensureIndexes(db);
   const app = createApp(db);
+  const observed = express();
+  if (process.env.CHECKPOINT_ROUTE_LOG)
+    observed.use((req, res, next) => {
+      const path = req.path.replace(/\/[a-f0-9]{24}(?=\/|$)/gi, "/:id");
+      res.once("finish", () =>
+        appendFileSync(
+          process.env.CHECKPOINT_ROUTE_LOG,
+          JSON.stringify({ method: req.method, path, status: res.statusCode }) +
+            "\n",
+        ),
+      );
+      next();
+    });
+  observed.use(app);
   return {
     db,
-    api: request(app),
+    api: request(observed),
     async stop() {
       await client.close();
       await mongod.stop();

@@ -14,7 +14,12 @@ const COLLECTIONS = [
     "tasks",
     "bugReports",
     "playtestFeedback",
-    "builds"
+    "builds",
+    "taskComments",
+    "bugScreenshots",
+    "projectActivity",
+    "notifications",
+    "playtestSessions"
 ];
 
 async function setupDatabase() {
@@ -69,6 +74,14 @@ console.log("Username:", new URL(process.env.MONGODB_URI).username);
             { projectId: 1, createdOn: -1 },
             { name: "builds_by_project_date" }
         );
+
+        await db.collection("taskComments").createIndex({ taskId: 1, _id: -1 }, { name: "comments_by_task" });
+        await db.collection("bugScreenshots").createIndex({ bugId: 1, _id: 1 }, { name: "screenshots_by_bug" });
+        await db.collection("projectActivity").createIndex({ projectId: 1, _id: -1 }, { name: "activity_by_project" });
+        await db.collection("notifications").createIndex({ userId: 1, projectId: 1, _id: -1 }, { name: "notifications_by_recipient" });
+        await db.collection("notifications").createIndex({ eventId: 1, userId: 1 }, { unique: true, name: "unique_event_recipient" });
+        await db.collection("playtestSessions").createIndex({ projectId: 1, deadline: 1 }, { name: "sessions_by_project_deadline" });
+        await db.collection("playtestFeedback").createIndex({ sessionId: 1 }, { name: "feedback_by_session" });
 
         // USERS
         // Prevent duplicate usernames and email addresses.

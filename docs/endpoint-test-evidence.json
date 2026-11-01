@@ -1,0 +1,620 @@
+{
+  "generatedAt": "2026-11-01T23:39:00.316Z",
+  "kind": "Observed isolated API integration requests, not unit or branch coverage",
+  "routeCount": 58,
+  "successfulRouteCount": 58,
+  "routes": [
+    {
+      "method": "GET",
+      "path": "/api/health",
+      "routeSource": "server/src/app.js",
+      "successfulResponses": 1,
+      "statuses": [
+        200
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/auth/register",
+      "routeSource": "server/src/routes/auth.js",
+      "successfulResponses": 33,
+      "statuses": [
+        201,
+        400,
+        409
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/auth/login",
+      "routeSource": "server/src/routes/auth.js",
+      "successfulResponses": 2,
+      "statuses": [
+        200,
+        401
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/auth/me",
+      "routeSource": "server/src/routes/auth.js",
+      "successfulResponses": 1,
+      "statuses": [
+        200,
+        401
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/users",
+      "routeSource": "server/src/routes/users.js",
+      "successfulResponses": 1,
+      "statuses": [
+        200,
+        401
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/users/:id",
+      "routeSource": "server/src/routes/users.js",
+      "successfulResponses": 1,
+      "statuses": [
+        200,
+        404
+      ]
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/users/:id",
+      "routeSource": "server/src/routes/users.js",
+      "successfulResponses": 1,
+      "statuses": [
+        200,
+        400,
+        403
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/teams",
+      "routeSource": "server/src/routes/teams.js",
+      "successfulResponses": 1,
+      "statuses": [
+        200,
+        401
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/teams",
+      "routeSource": "server/src/routes/teams.js",
+      "successfulResponses": 16,
+      "statuses": [
+        201,
+        400
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/teams/:id",
+      "routeSource": "server/src/routes/teams.js",
+      "successfulResponses": 1,
+      "statuses": [
+        200,
+        404
+      ]
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/teams/:id",
+      "routeSource": "server/src/routes/teams.js",
+      "successfulResponses": 1,
+      "statuses": [
+        200
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/teams/:id",
+      "routeSource": "server/src/routes/teams.js",
+      "successfulResponses": 1,
+      "statuses": [
+        204,
+        403
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/teams/:id/members",
+      "routeSource": "server/src/routes/teams.js",
+      "successfulResponses": 1,
+      "statuses": [
+        200,
+        404
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/teams/:id/members",
+      "routeSource": "server/src/routes/teams.js",
+      "successfulResponses": 3,
+      "statuses": [
+        201,
+        400,
+        403,
+        409
+      ]
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/teams/:id/members/:id",
+      "routeSource": "server/src/routes/teams.js",
+      "successfulResponses": 1,
+      "statuses": [
+        200,
+        403
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/teams/:id/members/:id",
+      "routeSource": "server/src/routes/teams.js",
+      "successfulResponses": 1,
+      "statuses": [
+        204,
+        403,
+        404
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/projects",
+      "routeSource": "server/src/routes/projects.js",
+      "successfulResponses": 1,
+      "statuses": [
+        200
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/projects",
+      "routeSource": "server/src/routes/projects.js",
+      "successfulResponses": 17,
+      "statuses": [
+        201,
+        401,
+        403,
+        404
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/projects/:id",
+      "routeSource": "server/src/routes/projects.js",
+      "successfulResponses": 1,
+      "statuses": [
+        200,
+        404
+      ]
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/projects/:id",
+      "routeSource": "server/src/routes/projects.js",
+      "successfulResponses": 1,
+      "statuses": [
+        200,
+        400,
+        403
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/projects/:id",
+      "routeSource": "server/src/routes/projects.js",
+      "successfulResponses": 1,
+      "statuses": [
+        204,
+        403
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/milestones",
+      "routeSource": "server/src/routes/milestones.js",
+      "successfulResponses": 1,
+      "statuses": [
+        200
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/milestones",
+      "routeSource": "server/src/routes/milestones.js",
+      "successfulResponses": 6,
+      "statuses": [
+        201,
+        401,
+        403
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/milestones/:id",
+      "routeSource": "server/src/routes/milestones.js",
+      "successfulResponses": 1,
+      "statuses": [
+        200,
+        404
+      ]
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/milestones/:id",
+      "routeSource": "server/src/routes/milestones.js",
+      "successfulResponses": 2,
+      "statuses": [
+        200,
+        403
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/milestones/:id",
+      "routeSource": "server/src/routes/milestones.js",
+      "successfulResponses": 1,
+      "statuses": [
+        204,
+        403
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/tasks/:id/comments",
+      "routeSource": "server/src/routes/taskComments.js",
+      "successfulResponses": 4,
+      "statuses": [
+        200,
+        400,
+        401,
+        403,
+        404
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/tasks/:id/comments",
+      "routeSource": "server/src/routes/taskComments.js",
+      "successfulResponses": 1,
+      "statuses": [
+        201,
+        400,
+        401,
+        403
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/tasks",
+      "routeSource": "server/src/routes/tasks.js",
+      "successfulResponses": 1,
+      "statuses": [
+        200
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/tasks",
+      "routeSource": "server/src/routes/tasks.js",
+      "successfulResponses": 6,
+      "statuses": [
+        201,
+        401,
+        403
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/tasks/:id",
+      "routeSource": "server/src/routes/tasks.js",
+      "successfulResponses": 1,
+      "statuses": [
+        200,
+        404
+      ]
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/tasks/:id",
+      "routeSource": "server/src/routes/tasks.js",
+      "successfulResponses": 5,
+      "statuses": [
+        200,
+        400,
+        403
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/tasks/:id",
+      "routeSource": "server/src/routes/tasks.js",
+      "successfulResponses": 1,
+      "statuses": [
+        204,
+        403
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/playtest-sessions",
+      "routeSource": "server/src/routes/playtestSessions.js",
+      "successfulResponses": 1,
+      "statuses": [
+        200
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/playtest-sessions",
+      "routeSource": "server/src/routes/playtestSessions.js",
+      "successfulResponses": 1,
+      "statuses": [
+        201,
+        400,
+        401,
+        403
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/playtest-sessions/:id",
+      "routeSource": "server/src/routes/playtestSessions.js",
+      "successfulResponses": 1,
+      "statuses": [
+        200
+      ]
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/playtest-sessions/:id",
+      "routeSource": "server/src/routes/playtestSessions.js",
+      "successfulResponses": 2,
+      "statuses": [
+        200,
+        400,
+        403
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/notifications",
+      "routeSource": "server/src/routes/notifications.js",
+      "successfulResponses": 6,
+      "statuses": [
+        200,
+        400,
+        401,
+        403
+      ]
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/notifications/:id",
+      "routeSource": "server/src/routes/notifications.js",
+      "successfulResponses": 2,
+      "statuses": [
+        200,
+        400,
+        404
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/activity",
+      "routeSource": "server/src/routes/activity.js",
+      "successfulResponses": 3,
+      "statuses": [
+        200,
+        400,
+        401,
+        403
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/builds",
+      "routeSource": "server/src/routes/builds.js",
+      "successfulResponses": 1,
+      "statuses": [
+        200,
+        400,
+        401
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/builds",
+      "routeSource": "server/src/routes/builds.js",
+      "successfulResponses": 9,
+      "statuses": [
+        201,
+        400,
+        401,
+        403,
+        409
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/builds/:id",
+      "routeSource": "server/src/routes/builds.js",
+      "successfulResponses": 1,
+      "statuses": [
+        200,
+        401,
+        404
+      ]
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/builds/:id",
+      "routeSource": "server/src/routes/builds.js",
+      "successfulResponses": 1,
+      "statuses": [
+        200,
+        400,
+        401,
+        403
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/bug-reports/:id/screenshots",
+      "routeSource": "server/src/routes/bugScreenshots.js",
+      "successfulResponses": 1,
+      "statuses": [
+        200,
+        401,
+        403
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/bug-reports/:id/screenshots",
+      "routeSource": "server/src/routes/bugScreenshots.js",
+      "successfulResponses": 5,
+      "statuses": [
+        201,
+        400,
+        401,
+        403,
+        409,
+        413
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/bug-reports/:id/screenshots/:id",
+      "routeSource": "server/src/routes/bugScreenshots.js",
+      "successfulResponses": 1,
+      "statuses": [
+        200,
+        404
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/bug-reports/:id/screenshots/:id",
+      "routeSource": "server/src/routes/bugScreenshots.js",
+      "successfulResponses": 2,
+      "statuses": [
+        204,
+        403
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/bug-reports",
+      "routeSource": "server/src/routes/bugReports.js",
+      "successfulResponses": 3,
+      "statuses": [
+        200
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/bug-reports",
+      "routeSource": "server/src/routes/bugReports.js",
+      "successfulResponses": 9,
+      "statuses": [
+        201,
+        400,
+        401,
+        404
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/bug-reports/:id",
+      "routeSource": "server/src/routes/bugReports.js",
+      "successfulResponses": 2,
+      "statuses": [
+        200,
+        404
+      ]
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/bug-reports/:id",
+      "routeSource": "server/src/routes/bugReports.js",
+      "successfulResponses": 3,
+      "statuses": [
+        200,
+        400,
+        403
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/bug-reports/:id",
+      "routeSource": "server/src/routes/bugReports.js",
+      "successfulResponses": 1,
+      "statuses": [
+        204,
+        403
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/playtest-feedback",
+      "routeSource": "server/src/routes/playtestFeedback.js",
+      "successfulResponses": 1,
+      "statuses": [
+        200
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/playtest-feedback",
+      "routeSource": "server/src/routes/playtestFeedback.js",
+      "successfulResponses": 10,
+      "statuses": [
+        201,
+        400,
+        404,
+        409
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/playtest-feedback/:id",
+      "routeSource": "server/src/routes/playtestFeedback.js",
+      "successfulResponses": 1,
+      "statuses": [
+        200,
+        404
+      ]
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/playtest-feedback/:id",
+      "routeSource": "server/src/routes/playtestFeedback.js",
+      "successfulResponses": 6,
+      "statuses": [
+        200,
+        400,
+        403
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/playtest-feedback/:id",
+      "routeSource": "server/src/routes/playtestFeedback.js",
+      "successfulResponses": 1,
+      "statuses": [
+        204
+      ]
+    }
+  ]
+}
