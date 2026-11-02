@@ -1,9 +1,10 @@
 import assert from "node:assert/strict";
 import { after, before, test } from "node:test";
+import type { RegisteredUser, TestContext } from "./helpers.js";
 import { auth, registerUser, startApi } from "./helpers.js";
 
-let ctx;
-let alex;
+let ctx: TestContext;
+let alex: RegisteredUser;
 
 before(async () => {
   ctx = await startApi();
@@ -69,5 +70,5 @@ test("GET, PATCH, and DELETE /api/teams/:id", async () => {
 test("GET /api/teams lists created teams", async () => {
   const response = await ctx.api.get("/api/teams").set(auth(alex.token));
   assert.equal(response.status, 200);
-  assert.ok(response.body.some((team) => team.name === "Pixel Forge"));
+  assert.ok(response.body.some((team: any) => team.name === "Pixel Forge"));
 });

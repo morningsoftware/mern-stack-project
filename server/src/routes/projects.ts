@@ -1,6 +1,9 @@
 import { Router } from "express";
+import { ObjectId } from "mongodb";
+import type { Filter } from "mongodb";
 import { asyncRoute, httpError } from "../errors.js";
-import { requireAuth } from "../middleware/auth.js";
+import { actorId, requireAuth } from "../middleware/auth.js";
+import type { ProjectDocument, TeamDocument } from "../schema.js";
 import { PROJECT_STATUSES } from "../schema.js";
 import {
   oneOf,
@@ -14,18 +17,14 @@ import {
 export const projectsRouter = Router();
 projectsRouter.use(requireAuth);
 
-function actorId(req) {
-  return parseObjectId(req.user._id.toString(), "user");
-}
-
 projectsRouter.get(
   "/",
   asyncRoute(async (req, res) => {
-    const filter = {};
+    const filter: Filter<ProjectDocument> = {};
     const teamId = optionalObjectId(req.query.teamId, "teamId");
     if (teamId) filter.teamId = teamId;
     const projects = await req.app.locals.db
-      .collection("projects")
+      .collection<ProjectDocument>("projects")
       .find(filter)
       .sort({ createdOn: -1 })
       .toArray();
@@ -42,8 +41,13 @@ projectsRouter.post(
     const status = req.body?.status
       ? oneOf(req.body.status, PROJECT_STATUSES, "status")
       : "active";
-    await requireDoc(req.app.locals.db.collection("teams"), teamId, "Team");
-    const doc = {
+    await requireDoc(
+      req.app.locals.db.collection<TeamDocument>("teams"),
+      teamId,
+      "Team"
+    );
+    const doc: ProjectDocument = {
+      _id: new ObjectId(),
       teamId,
       name,
       description,
@@ -51,8 +55,10 @@ projectsRouter.post(
       createdOn: new Date(),
       createdBy: actorId(req),
     };
-    const result = await req.app.locals.db.collection("projects").insertOne(doc);
-    res.status(201).json({ ...doc, _id: result.insertedId });
+    await req.app.locals.db
+      .collection<ProjectDocument>("projects")
+      .insertOne(doc);
+    res.status(201).json(doc);
   })
 );
 
@@ -60,7 +66,13 @@ projectsRouter.get(
   "/:id",
   asyncRoute(async (req, res) => {
     const id = parseObjectId(req.params.id, "id");
-    res.json(await requireDoc(req.app.locals.db.collection("projects"), id, "Project"));
+    res.json(
+      await requireDoc(
+        req.app.locals.db.collection<ProjectDocument>("projects"),
+        id,
+        "Project"
+      )
+    );
   })
 );
 
@@ -68,9 +80,9 @@ projectsRouter.patch(
   "/:id",
   asyncRoute(async (req, res) => {
     const id = parseObjectId(req.params.id, "id");
-    const projects = req.app.locals.db.collection("projects");
+    const projects = req.app.locals.db.collection<ProjectDocument>("projects");
     await requireDoc(projects, id, "Project");
-    const update = {};
+    const update: Partial<ProjectDocument> = {};
     const name = optionalString(req.body?.name, "name");
     if (name !== undefined) update.name = name;
     if (req.body?.description !== undefined) {
@@ -91,7 +103,7 @@ projectsRouter.delete(
   "/:id",
   asyncRoute(async (req, res) => {
     const id = parseObjectId(req.params.id, "id");
-    const projects = req.app.locals.db.collection("projects");
+    const projects = req.app.locals.db.collection<ProjectDocument>("projects");
     await requireDoc(projects, id, "Project");
     await projects.deleteOne({ _id: id });
     res.status(204).end();

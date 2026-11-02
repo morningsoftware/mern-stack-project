@@ -1,11 +1,12 @@
 import assert from "node:assert/strict";
 import { after, before, test } from "node:test";
+import type { RegisteredUser, TestContext } from "./helpers.js";
 import { auth, registerUser, startApi } from "./helpers.js";
 
-let ctx;
-let alex;
-let projectId;
-let milestoneId;
+let ctx: TestContext;
+let alex: RegisteredUser;
+let projectId: string;
+let milestoneId: string;
 
 before(async () => {
   ctx = await startApi();
@@ -67,7 +68,7 @@ test("GET, PATCH, and DELETE /api/tasks/:id", async () => {
     .get(`/api/tasks?projectId=${projectId}&status=todo`)
     .set(auth(alex.token));
   assert.equal(listed.status, 200);
-  assert.ok(listed.body.some((task) => task._id === id));
+  assert.ok(listed.body.some((task: any) => task._id === id));
 
   const updated = await ctx.api.patch(`/api/tasks/${id}`).set(auth(alex.token)).send({
     status: "done",

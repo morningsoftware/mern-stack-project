@@ -1,11 +1,12 @@
 import assert from "node:assert/strict";
 import { after, before, test } from "node:test";
+import type { RegisteredUser, TestContext } from "./helpers.js";
 import { auth, registerUser, startApi } from "./helpers.js";
 
-let ctx;
-let alex;
-let sam;
-let teamId;
+let ctx: TestContext;
+let alex: RegisteredUser;
+let sam: RegisteredUser;
+let teamId: string;
 
 before(async () => {
   ctx = await startApi();

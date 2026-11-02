@@ -1,6 +1,9 @@
 import { Router } from "express";
+import { ObjectId } from "mongodb";
+import type { Filter } from "mongodb";
 import { asyncRoute, httpError } from "../errors.js";
-import { requireAuth } from "../middleware/auth.js";
+import { actorId, requireAuth } from "../middleware/auth.js";
+import type { BugReportDocument, ProjectDocument } from "../schema.js";
 import { BUG_SEVERITIES, BUG_STATUSES } from "../schema.js";
 import {
   oneOf,
@@ -14,21 +17,17 @@ import {
 export const bugReportsRouter = Router();
 bugReportsRouter.use(requireAuth);
 
-function actorId(req) {
-  return parseObjectId(req.user._id.toString(), "user");
-}
-
 bugReportsRouter.get(
   "/",
   asyncRoute(async (req, res) => {
-    const filter = {};
+    const filter: Filter<BugReportDocument> = {};
     const projectId = optionalObjectId(req.query.projectId, "projectId");
     if (projectId) filter.projectId = projectId;
     if (req.query.status !== undefined) {
       filter.status = oneOf(req.query.status, BUG_STATUSES, "status");
     }
     const bugs = await req.app.locals.db
-      .collection("bugReports")
+      .collection<BugReportDocument>("bugReports")
       .find(filter)
       .sort({ createdOn: -1 })
       .toArray();
@@ -48,9 +47,14 @@ bugReportsRouter.post(
     const status = req.body?.status
       ? oneOf(req.body.status, BUG_STATUSES, "status")
       : "open";
-    await requireDoc(req.app.locals.db.collection("projects"), projectId, "Project");
+    await requireDoc(
+      req.app.locals.db.collection<ProjectDocument>("projects"),
+      projectId,
+      "Project"
+    );
     const createdBy = actorId(req);
-    const doc = {
+    const doc: BugReportDocument = {
+      _id: new ObjectId(),
       projectId,
       title,
       description,
@@ -60,8 +64,10 @@ bugReportsRouter.post(
       createdOn: new Date(),
       createdBy,
     };
-    const result = await req.app.locals.db.collection("bugReports").insertOne(doc);
-    res.status(201).json({ ...doc, _id: result.insertedId });
+    await req.app.locals.db
+      .collection<BugReportDocument>("bugReports")
+      .insertOne(doc);
+    res.status(201).json(doc);
   })
 );
 
@@ -69,7 +75,13 @@ bugReportsRouter.get(
   "/:id",
   asyncRoute(async (req, res) => {
     const id = parseObjectId(req.params.id, "id");
-    res.json(await requireDoc(req.app.locals.db.collection("bugReports"), id, "Bug report"));
+    res.json(
+      await requireDoc(
+        req.app.locals.db.collection<BugReportDocument>("bugReports"),
+        id,
+        "Bug report"
+      )
+    );
   })
 );
 
@@ -77,9 +89,9 @@ bugReportsRouter.patch(
   "/:id",
   asyncRoute(async (req, res) => {
     const id = parseObjectId(req.params.id, "id");
-    const bugs = req.app.locals.db.collection("bugReports");
+    const bugs = req.app.locals.db.collection<BugReportDocument>("bugReports");
     await requireDoc(bugs, id, "Bug report");
-    const update = {};
+    const update: Partial<BugReportDocument> = {};
     const title = optionalString(req.body?.title, "title");
     if (title !== undefined) update.title = title;
     if (req.body?.description !== undefined) {
@@ -103,7 +115,7 @@ bugReportsRouter.delete(
   "/:id",
   asyncRoute(async (req, res) => {
     const id = parseObjectId(req.params.id, "id");
-    const bugs = req.app.locals.db.collection("bugReports");
+    const bugs = req.app.locals.db.collection<BugReportDocument>("bugReports");
     await requireDoc(bugs, id, "Bug report");
     await bugs.deleteOne({ _id: id });
     res.status(204).end();

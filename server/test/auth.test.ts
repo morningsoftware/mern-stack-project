@@ -1,9 +1,10 @@
 import assert from "node:assert/strict";
 import { after, before, test } from "node:test";
 import { PUBLIC_USER_FIELDS } from "../src/schema.js";
+import type { TestContext } from "./helpers.js";
 import { auth, registerUser, startApi } from "./helpers.js";
 
-let ctx;
+let ctx: TestContext;
 
 before(async () => {
   ctx = await startApi();

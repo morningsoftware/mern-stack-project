@@ -1,6 +1,9 @@
 import { Router } from "express";
+import { ObjectId } from "mongodb";
+import type { Filter } from "mongodb";
 import { asyncRoute, httpError } from "../errors.js";
-import { requireAuth } from "../middleware/auth.js";
+import { actorId, requireAuth } from "../middleware/auth.js";
+import type { MilestoneDocument, ProjectDocument } from "../schema.js";
 import { MILESTONE_STATUSES } from "../schema.js";
 import {
   oneOf,
@@ -15,18 +18,14 @@ import {
 export const milestonesRouter = Router();
 milestonesRouter.use(requireAuth);
 
-function actorId(req) {
-  return parseObjectId(req.user._id.toString(), "user");
-}
-
 milestonesRouter.get(
   "/",
   asyncRoute(async (req, res) => {
-    const filter = {};
+    const filter: Filter<MilestoneDocument> = {};
     const projectId = optionalObjectId(req.query.projectId, "projectId");
     if (projectId) filter.projectId = projectId;
     const milestones = await req.app.locals.db
-      .collection("milestones")
+      .collection<MilestoneDocument>("milestones")
       .find(filter)
       .sort({ dueDate: 1, createdOn: -1 })
       .toArray();
@@ -44,8 +43,13 @@ milestonesRouter.post(
       ? oneOf(req.body.status, MILESTONE_STATUSES, "status")
       : "todo";
     const dueDate = parseDate(req.body?.dueDate, "dueDate") ?? null;
-    await requireDoc(req.app.locals.db.collection("projects"), projectId, "Project");
-    const doc = {
+    await requireDoc(
+      req.app.locals.db.collection<ProjectDocument>("projects"),
+      projectId,
+      "Project"
+    );
+    const doc: MilestoneDocument = {
+      _id: new ObjectId(),
       projectId,
       name,
       description,
@@ -54,8 +58,10 @@ milestonesRouter.post(
       createdOn: new Date(),
       createdBy: actorId(req),
     };
-    const result = await req.app.locals.db.collection("milestones").insertOne(doc);
-    res.status(201).json({ ...doc, _id: result.insertedId });
+    await req.app.locals.db
+      .collection<MilestoneDocument>("milestones")
+      .insertOne(doc);
+    res.status(201).json(doc);
   })
 );
 
@@ -64,7 +70,11 @@ milestonesRouter.get(
   asyncRoute(async (req, res) => {
     const id = parseObjectId(req.params.id, "id");
     res.json(
-      await requireDoc(req.app.locals.db.collection("milestones"), id, "Milestone")
+      await requireDoc(
+        req.app.locals.db.collection<MilestoneDocument>("milestones"),
+        id,
+        "Milestone"
+      )
     );
   })
 );
@@ -73,9 +83,9 @@ milestonesRouter.patch(
   "/:id",
   asyncRoute(async (req, res) => {
     const id = parseObjectId(req.params.id, "id");
-    const milestones = req.app.locals.db.collection("milestones");
+    const milestones = req.app.locals.db.collection<MilestoneDocument>("milestones");
     await requireDoc(milestones, id, "Milestone");
-    const update = {};
+    const update: Partial<MilestoneDocument> = {};
     const name = optionalString(req.body?.name, "name");
     if (name !== undefined) update.name = name;
     if (req.body?.description !== undefined) {
@@ -99,7 +109,7 @@ milestonesRouter.delete(
   "/:id",
   asyncRoute(async (req, res) => {
     const id = parseObjectId(req.params.id, "id");
-    const milestones = req.app.locals.db.collection("milestones");
+    const milestones = req.app.locals.db.collection<MilestoneDocument>("milestones");
     await requireDoc(milestones, id, "Milestone");
     await milestones.deleteOne({ _id: id });
     res.status(204).end();

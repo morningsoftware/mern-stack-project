@@ -1,7 +1,9 @@
 import path from "path";
 import { fileURLToPath } from "url";
 import express from "express";
+import type { Express, NextFunction, Request, Response } from "express";
 import cors from "cors";
+import type { Db } from "mongodb";
 import { authRouter } from "./routes/auth.js";
 import { bugReportsRouter } from "./routes/bugReports.js";
 import { milestonesRouter } from "./routes/milestones.js";
@@ -16,7 +18,7 @@ const clientDist = path.resolve(
   "../../client/dist"
 );
 
-export function createApp(db) {
+export function createApp(db: Db): Express {
   const app = express();
   app.locals.db = db;
   app.use(cors());
@@ -46,17 +48,20 @@ export function createApp(db) {
     });
   });
 
-  app.use((error, req, res, next) => {
-    if (res.headersSent) return next(error);
-    if (error?.code === 11000) {
-      res.status(409).json({ error: "That record already exists" });
-      return;
+  app.use(
+    (error: unknown, req: Request, res: Response, next: NextFunction) => {
+      if (res.headersSent) return next(error);
+      const err = error as { code?: number; status?: number; message?: string };
+      if (err?.code === 11000) {
+        res.status(409).json({ error: "That record already exists" });
+        return;
+      }
+      const status = err.status || 500;
+      res.status(status).json({
+        error: status === 500 ? "Internal server error" : err.message,
+      });
     }
-    const status = error.status || 500;
-    res.status(status).json({
-      error: status === 500 ? "Internal server error" : error.message,
-    });
-  });
+  );
 
   return app;
 }

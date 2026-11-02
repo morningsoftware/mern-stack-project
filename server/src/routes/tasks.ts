@@ -1,6 +1,14 @@
 import { Router } from "express";
+import { ObjectId } from "mongodb";
+import type { Filter } from "mongodb";
 import { asyncRoute, httpError } from "../errors.js";
-import { requireAuth } from "../middleware/auth.js";
+import { actorId, requireAuth } from "../middleware/auth.js";
+import type {
+  MilestoneDocument,
+  ProjectDocument,
+  TaskDocument,
+  UserDocument,
+} from "../schema.js";
 import { TASK_PRIORITIES, TASK_STATUSES } from "../schema.js";
 import {
   oneOf,
@@ -14,14 +22,10 @@ import {
 export const tasksRouter = Router();
 tasksRouter.use(requireAuth);
 
-function actorId(req) {
-  return parseObjectId(req.user._id.toString(), "user");
-}
-
 tasksRouter.get(
   "/",
   asyncRoute(async (req, res) => {
-    const filter = {};
+    const filter: Filter<TaskDocument> = {};
     const projectId = optionalObjectId(req.query.projectId, "projectId");
     const assigneeId = optionalObjectId(req.query.assigneeId, "assigneeId");
     const milestoneId = optionalObjectId(req.query.milestoneId, "milestoneId");
@@ -32,7 +36,7 @@ tasksRouter.get(
       filter.status = oneOf(req.query.status, TASK_STATUSES, "status");
     }
     const tasks = await req.app.locals.db
-      .collection("tasks")
+      .collection<TaskDocument>("tasks")
       .find(filter)
       .sort({ createdOn: -1 })
       .toArray();
@@ -55,13 +59,22 @@ tasksRouter.post(
       : "medium";
     const assigneeId = parseObjectId(req.body?.assigneeId, "assigneeId");
     const db = req.app.locals.db;
-    const project = await requireDoc(db.collection("projects"), projectId, "Project");
-    const milestone = await requireDoc(db.collection("milestones"), milestoneId, "Milestone");
+    const project = await requireDoc(
+      db.collection<ProjectDocument>("projects"),
+      projectId,
+      "Project"
+    );
+    const milestone = await requireDoc(
+      db.collection<MilestoneDocument>("milestones"),
+      milestoneId,
+      "Milestone"
+    );
     if (milestone.projectId.toString() !== project._id.toString()) {
       throw httpError(400, "milestone does not belong to that project");
     }
-    await requireDoc(db.collection("users"), assigneeId, "User");
-    const doc = {
+    await requireDoc(db.collection<UserDocument>("users"), assigneeId, "User");
+    const doc: TaskDocument = {
+      _id: new ObjectId(),
       projectId,
       milestoneId,
       title,
@@ -72,8 +85,8 @@ tasksRouter.post(
       createdOn: new Date(),
       createdBy: actorId(req),
     };
-    const result = await db.collection("tasks").insertOne(doc);
-    res.status(201).json({ ...doc, _id: result.insertedId });
+    await db.collection<TaskDocument>("tasks").insertOne(doc);
+    res.status(201).json(doc);
   })
 );
 
@@ -81,7 +94,13 @@ tasksRouter.get(
   "/:id",
   asyncRoute(async (req, res) => {
     const id = parseObjectId(req.params.id, "id");
-    res.json(await requireDoc(req.app.locals.db.collection("tasks"), id, "Task"));
+    res.json(
+      await requireDoc(
+        req.app.locals.db.collection<TaskDocument>("tasks"),
+        id,
+        "Task"
+      )
+    );
   })
 );
 
@@ -89,9 +108,9 @@ tasksRouter.patch(
   "/:id",
   asyncRoute(async (req, res) => {
     const id = parseObjectId(req.params.id, "id");
-    const tasks = req.app.locals.db.collection("tasks");
+    const tasks = req.app.locals.db.collection<TaskDocument>("tasks");
     const existing = await requireDoc(tasks, id, "Task");
-    const update = {};
+    const update: Partial<TaskDocument> = {};
     const title = optionalString(req.body?.title, "title");
     if (title !== undefined) update.title = title;
     if (req.body?.description !== undefined) {
@@ -105,13 +124,17 @@ tasksRouter.patch(
     }
     if (req.body?.assigneeId !== undefined) {
       const assigneeId = parseObjectId(req.body.assigneeId, "assigneeId");
-      await requireDoc(req.app.locals.db.collection("users"), assigneeId, "User");
+      await requireDoc(
+        req.app.locals.db.collection<UserDocument>("users"),
+        assigneeId,
+        "User"
+      );
       update.assigneeId = assigneeId;
     }
     if (req.body?.milestoneId !== undefined) {
       const milestoneId = parseObjectId(req.body.milestoneId, "milestoneId");
       const milestone = await requireDoc(
-        req.app.locals.db.collection("milestones"),
+        req.app.locals.db.collection<MilestoneDocument>("milestones"),
         milestoneId,
         "Milestone"
       );
@@ -132,7 +155,7 @@ tasksRouter.delete(
   "/:id",
   asyncRoute(async (req, res) => {
     const id = parseObjectId(req.params.id, "id");
-    const tasks = req.app.locals.db.collection("tasks");
+    const tasks = req.app.locals.db.collection<TaskDocument>("tasks");
     await requireDoc(tasks, id, "Task");
     await tasks.deleteOne({ _id: id });
     res.status(204).end();

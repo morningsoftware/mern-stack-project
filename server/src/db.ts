@@ -1,7 +1,13 @@
 import { MongoClient } from "mongodb";
+import type { Db } from "mongodb";
 import { DATABASE_NAME } from "./schema.js";
 
-export async function connectDatabase(uri) {
+export interface DatabaseConnection {
+  client: MongoClient;
+  db: Db;
+}
+
+export async function connectDatabase(uri: string): Promise<DatabaseConnection> {
   const client = new MongoClient(uri);
   await client.connect();
   const db = client.db(DATABASE_NAME);
@@ -9,7 +15,7 @@ export async function connectDatabase(uri) {
   return { client, db };
 }
 
-export async function ensureIndexes(db) {
+export async function ensureIndexes(db: Db): Promise<void> {
   await db.collection("users").createIndex(
     { username: 1 },
     { unique: true, name: "unique_username" }

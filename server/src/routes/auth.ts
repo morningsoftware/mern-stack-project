@@ -1,6 +1,8 @@
 import { Router } from "express";
+import { ObjectId } from "mongodb";
 import { asyncRoute, httpError } from "../errors.js";
 import { checkPassword, hashPassword, requireAuth, signToken } from "../middleware/auth.js";
+import type { UserDocument } from "../schema.js";
 import { USER_ROLES, publicUser } from "../schema.js";
 import { oneOf, requireString } from "../validate.js";
 
@@ -18,7 +20,7 @@ authRouter.post(
       throw httpError(400, "password must be at least 8 characters");
     }
 
-    const users = req.app.locals.db.collection("users");
+    const users = req.app.locals.db.collection<UserDocument>("users");
     const existing = await users.findOne({
       $or: [{ username }, { email }],
     });
@@ -27,7 +29,8 @@ authRouter.post(
     }
 
     const now = new Date();
-    const doc = {
+    const doc: UserDocument = {
+      _id: new ObjectId(),
       username,
       email,
       displayName,
@@ -36,9 +39,9 @@ authRouter.post(
       createdOn: now,
       createdBy: null,
     };
-    const result = await users.insertOne(doc);
-    const user = publicUser({ ...doc, _id: result.insertedId });
-    res.status(201).json({ token: signToken(result.insertedId), user });
+    await users.insertOne(doc);
+    const user = publicUser(doc);
+    res.status(201).json({ token: signToken(doc._id), user });
   })
 );
 
@@ -50,11 +53,14 @@ authRouter.post(
       "username"
     );
     const password = requireString(req.body?.password, "password");
-    const users = req.app.locals.db.collection("users");
+    const users = req.app.locals.db.collection<UserDocument>("users");
     const user = await users.findOne({
       $or: [{ username: identifier }, { email: identifier.toLowerCase() }],
     });
-    if (!user?.passwordHash || !(await checkPassword(password, user.passwordHash))) {
+    if (
+      !user?.passwordHash ||
+      !(await checkPassword(password, user.passwordHash))
+    ) {
       throw httpError(401, "Invalid username or password");
     }
     res.json({ token: signToken(user._id), user: publicUser(user) });

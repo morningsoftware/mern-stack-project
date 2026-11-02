@@ -1,11 +1,12 @@
 import assert from "node:assert/strict";
 import { after, before, test } from "node:test";
+import type { RegisteredUser, TestContext } from "./helpers.js";
 import { auth, registerUser, startApi } from "./helpers.js";
 
-let ctx;
-let taylor;
-let alex;
-let projectId;
+let ctx: TestContext;
+let taylor: RegisteredUser;
+let alex: RegisteredUser;
+let projectId: string;
 
 before(async () => {
   ctx = await startApi();
@@ -60,7 +61,7 @@ test("GET lists newest feedback first and only the author can change it", async 
     .get(`/api/playtest-feedback?projectId=${projectId}`)
     .set(auth(taylor.token));
   assert.equal(listed.status, 200);
-  const ids = listed.body.map((item) => item._id);
+  const ids = listed.body.map((item: any) => item._id);
   assert.ok(ids.indexOf(newer.body._id) < ids.indexOf(older.body._id));
 
   const forbidden = await ctx.api

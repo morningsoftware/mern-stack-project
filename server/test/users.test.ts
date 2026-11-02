@@ -1,11 +1,12 @@
 import assert from "node:assert/strict";
 import { after, before, test } from "node:test";
 import { PUBLIC_USER_FIELDS } from "../src/schema.js";
+import type { RegisteredUser, TestContext } from "./helpers.js";
 import { auth, registerUser, startApi } from "./helpers.js";
 
-let ctx;
-let alex;
-let sam;
+let ctx: TestContext;
+let alex: RegisteredUser;
+let sam: RegisteredUser;
 
 before(async () => {
   ctx = await startApi();
@@ -31,7 +32,9 @@ test("GET /api/users lists users without password hashes", async () => {
 });
 
 test("GET /api/users/:id returns one user or 404", async () => {
-  const response = await ctx.api.get(`/api/users/${alex.user._id}`).set(auth(sam.token));
+  const response = await ctx.api
+    .get(`/api/users/${alex.user._id}`)
+    .set(auth(sam.token));
   assert.equal(response.status, 200);
   assert.equal(response.body.username, "alex_dev");
 

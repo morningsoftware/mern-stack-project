@@ -1,6 +1,12 @@
 import { Router } from "express";
+import { ObjectId } from "mongodb";
+import type { Filter } from "mongodb";
 import { asyncRoute, httpError } from "../errors.js";
-import { requireAuth } from "../middleware/auth.js";
+import { actorId, requireAuth } from "../middleware/auth.js";
+import type {
+  PlaytestFeedbackDocument,
+  ProjectDocument,
+} from "../schema.js";
 import {
   optionalObjectId,
   optionalString,
@@ -12,18 +18,14 @@ import {
 export const playtestFeedbackRouter = Router();
 playtestFeedbackRouter.use(requireAuth);
 
-function actorId(req) {
-  return parseObjectId(req.user._id.toString(), "user");
-}
-
 playtestFeedbackRouter.get(
   "/",
   asyncRoute(async (req, res) => {
-    const filter = {};
+    const filter: Filter<PlaytestFeedbackDocument> = {};
     const projectId = optionalObjectId(req.query.projectId, "projectId");
     if (projectId) filter.projectId = projectId;
     const feedback = await req.app.locals.db
-      .collection("playtestFeedback")
+      .collection<PlaytestFeedbackDocument>("playtestFeedback")
       .find(filter)
       .sort({ createdOn: -1 })
       .toArray();
@@ -37,9 +39,14 @@ playtestFeedbackRouter.post(
     const projectId = parseObjectId(req.body?.projectId, "projectId");
     const rating = parseRating(req.body?.rating);
     const comments = optionalString(req.body?.comments, "comments") ?? "";
-    await requireDoc(req.app.locals.db.collection("projects"), projectId, "Project");
+    await requireDoc(
+      req.app.locals.db.collection<ProjectDocument>("projects"),
+      projectId,
+      "Project"
+    );
     const userId = actorId(req);
-    const doc = {
+    const doc: PlaytestFeedbackDocument = {
+      _id: new ObjectId(),
       projectId,
       userId,
       rating,
@@ -47,8 +54,10 @@ playtestFeedbackRouter.post(
       createdOn: new Date(),
       createdBy: userId,
     };
-    const result = await req.app.locals.db.collection("playtestFeedback").insertOne(doc);
-    res.status(201).json({ ...doc, _id: result.insertedId });
+    await req.app.locals.db
+      .collection<PlaytestFeedbackDocument>("playtestFeedback")
+      .insertOne(doc);
+    res.status(201).json(doc);
   })
 );
 
@@ -58,7 +67,7 @@ playtestFeedbackRouter.get(
     const id = parseObjectId(req.params.id, "id");
     res.json(
       await requireDoc(
-        req.app.locals.db.collection("playtestFeedback"),
+        req.app.locals.db.collection<PlaytestFeedbackDocument>("playtestFeedback"),
         id,
         "Playtest feedback"
       )
@@ -70,12 +79,14 @@ playtestFeedbackRouter.patch(
   "/:id",
   asyncRoute(async (req, res) => {
     const id = parseObjectId(req.params.id, "id");
-    const feedback = req.app.locals.db.collection("playtestFeedback");
+    const feedback = req.app.locals.db.collection<PlaytestFeedbackDocument>(
+      "playtestFeedback"
+    );
     const existing = await requireDoc(feedback, id, "Playtest feedback");
-    if (existing.userId.toString() !== req.user._id.toString()) {
+    if (existing.userId.toString() !== actorId(req).toString()) {
       throw httpError(403, "You can only update your own feedback");
     }
-    const update = {};
+    const update: Partial<PlaytestFeedbackDocument> = {};
     if (req.body?.rating !== undefined) update.rating = parseRating(req.body.rating);
     if (req.body?.comments !== undefined) {
       update.comments = optionalString(req.body.comments, "comments") ?? "";
@@ -92,9 +103,11 @@ playtestFeedbackRouter.delete(
   "/:id",
   asyncRoute(async (req, res) => {
     const id = parseObjectId(req.params.id, "id");
-    const feedback = req.app.locals.db.collection("playtestFeedback");
+    const feedback = req.app.locals.db.collection<PlaytestFeedbackDocument>(
+      "playtestFeedback"
+    );
     const existing = await requireDoc(feedback, id, "Playtest feedback");
-    if (existing.userId.toString() !== req.user._id.toString()) {
+    if (existing.userId.toString() !== actorId(req).toString()) {
       throw httpError(403, "You can only delete your own feedback");
     }
     await feedback.deleteOne({ _id: id });
