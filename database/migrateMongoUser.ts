@@ -9,11 +9,12 @@
  *   MONGODB_ADMIN_URI=mongodb://127.0.0.1:27017 \
  *   MONGODB_APP_USER=mernapp \
  *   MONGODB_APP_PASSWORD=... \
- *   node database/migrateMongoUser.js
+ *   npm run db:migrate-user
  */
-require("dotenv").config();
+import dotenv from "dotenv";
+import { MongoClient } from "mongodb";
 
-const { MongoClient } = require("mongodb");
+dotenv.config();
 
 const adminUri = process.env.MONGODB_ADMIN_URI || "mongodb://127.0.0.1:27017";
 const username = process.env.MONGODB_APP_USER || "mernapp";
@@ -25,7 +26,7 @@ const roles = [
   { role: "dbAdmin", db: databaseName },
 ];
 
-async function migrate() {
+async function migrate(): Promise<void> {
   if (!password) {
     throw new Error("Set MONGODB_APP_PASSWORD before running this migration.");
   }
@@ -48,7 +49,10 @@ async function migrate() {
   }
 }
 
-migrate().catch((error) => {
-  console.error("Migration failed:", error.message);
+migrate().catch((error: unknown) => {
+  console.error(
+    "Migration failed:",
+    error instanceof Error ? error.message : String(error)
+  );
   process.exitCode = 1;
 });
