@@ -1,16 +1,88 @@
 import { useEffect, useState } from "react";
-import { api, getToken, setToken } from "./api.js";
+import type { ChangeEvent, FormEvent, ReactNode } from "react";
+import { api, getToken, setToken } from "./api";
 
-const USER_ROLES = ["developer", "artist", "playtester"];
-const MEMBER_ROLES = ["owner", "developer", "artist"];
-const PROJECT_STATUSES = ["active", "completed", "archived"];
-const MILESTONE_STATUSES = ["todo", "in_progress", "completed"];
-const TASK_STATUSES = ["todo", "in_progress", "done"];
-const PRIORITIES = ["low", "medium", "high"];
-const BUG_SEVERITIES = ["low", "medium", "high"];
-const BUG_STATUSES = ["open", "in_progress", "resolved"];
+const USER_ROLES = ["developer", "artist", "playtester"] as const;
+const MEMBER_ROLES = ["owner", "developer", "artist"] as const;
+const PROJECT_STATUSES = ["active", "completed", "archived"] as const;
+const MILESTONE_STATUSES = ["todo", "in_progress", "completed"] as const;
+const TASK_STATUSES = ["todo", "in_progress", "done"] as const;
+const PRIORITIES = ["low", "medium", "high"] as const;
+const BUG_SEVERITIES = ["low", "medium", "high"] as const;
+const BUG_STATUSES = ["open", "in_progress", "resolved"] as const;
 
-function ErrorNote({ error }) {
+interface User {
+  _id: string;
+  username: string;
+  email: string;
+  displayName: string;
+  role: string;
+  createdOn?: string;
+  createdBy?: string | null;
+}
+
+interface Team {
+  _id: string;
+  name: string;
+  description?: string;
+}
+
+interface Member {
+  _id: string;
+  userId: string;
+  role: string;
+}
+
+interface Project {
+  _id: string;
+  name: string;
+  description?: string;
+  status: string;
+}
+
+interface Milestone {
+  _id: string;
+  name: string;
+  description?: string;
+  dueDate?: string | null;
+  status: string;
+}
+
+interface Task {
+  _id: string;
+  title: string;
+  description?: string;
+  milestoneId: string;
+  assigneeId: string;
+  status: string;
+  priority: string;
+}
+
+interface BugReport {
+  _id: string;
+  title: string;
+  description?: string;
+  severity: string;
+  status: string;
+}
+
+interface Feedback {
+  _id: string;
+  userId: string;
+  rating: number;
+  comments?: string;
+}
+
+interface AuthResponse {
+  token: string;
+  user: User;
+}
+
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : "Request failed";
+}
+
+function ErrorNote({ error }: { error: string }) {
   if (!error) return null;
   return (
     <p className="error" role="alert">
@@ -19,7 +91,7 @@ function ErrorNote({ error }) {
   );
 }
 
-function Field({ label, children }) {
+function Field({ label, children }: { label: string; children: ReactNode }) {
   return (
     <label className="row">
       {label}
@@ -28,8 +100,8 @@ function Field({ label, children }) {
   );
 }
 
-function AuthScreen({ onReady }) {
-  const [mode, setMode] = useState("login");
+function AuthScreen({ onReady }: { onReady: (user: User) => void }) {
+  const [mode, setMode] = useState<"login" | "register">("login");
   const [error, setError] = useState("");
   const [form, setForm] = useState({
     username: "",
@@ -39,11 +111,14 @@ function AuthScreen({ onReady }) {
     password: "",
   });
 
-  function update(event) {
-    setForm((current) => ({ ...current, [event.target.name]: event.target.value }));
+  function update(event: ChangeEvent<HTMLInputElement | HTMLSelectElement>) {
+    setForm((current) => ({
+      ...current,
+      [event.target.name]: event.target.value,
+    }));
   }
 
-  async function submit(event) {
+  async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError("");
     try {
@@ -52,11 +127,14 @@ function AuthScreen({ onReady }) {
         mode === "login"
           ? { username: form.username, password: form.password }
           : form;
-      const result = await api(path, { method: "POST", body: JSON.stringify(body) });
+      const result = await api<AuthResponse>(path, {
+        method: "POST",
+        body: JSON.stringify(body),
+      });
       setToken(result.token);
       onReady(result.user);
     } catch (err) {
-      setError(err.message);
+      setError(errorMessage(err));
     }
   }
 
@@ -105,21 +183,29 @@ function AuthScreen({ onReady }) {
   );
 }
 
-function TeamsScreen({ user, onOpenTeam, onSignOut }) {
-  const [teams, setTeams] = useState([]);
+function TeamsScreen({
+  user,
+  onOpenTeam,
+  onSignOut,
+}: {
+  user: User;
+  onOpenTeam: (team: Team) => void;
+  onSignOut: () => void;
+}) {
+  const [teams, setTeams] = useState<Team[]>([]);
   const [error, setError] = useState("");
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
 
-  async function load() {
-    setTeams(await api("/api/teams"));
+  async function load(): Promise<void> {
+    setTeams(await api<Team[]>("/api/teams"));
   }
 
   useEffect(() => {
-    load().catch((err) => setError(err.message));
+    load().catch((err: unknown) => setError(errorMessage(err)));
   }, []);
 
-  async function createTeam(event) {
+  async function createTeam(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError("");
     try {
@@ -131,7 +217,7 @@ function TeamsScreen({ user, onOpenTeam, onSignOut }) {
       setDescription("");
       await load();
     } catch (err) {
-      setError(err.message);
+      setError(errorMessage(err));
     }
   }
 
@@ -177,19 +263,27 @@ function TeamsScreen({ user, onOpenTeam, onSignOut }) {
   );
 }
 
-function TeamScreen({ team, onBack, onOpenProject }) {
-  const [members, setMembers] = useState([]);
-  const [projects, setProjects] = useState([]);
-  const [users, setUsers] = useState([]);
+function TeamScreen({
+  team,
+  onBack,
+  onOpenProject,
+}: {
+  team: Team;
+  onBack: () => void;
+  onOpenProject: (project: Project) => void;
+}) {
+  const [members, setMembers] = useState<Member[]>([]);
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
   const [error, setError] = useState("");
   const [memberForm, setMemberForm] = useState({ userId: "", role: "developer" });
   const [projectForm, setProjectForm] = useState({ name: "", description: "" });
 
-  async function load() {
+  async function load(): Promise<void> {
     const [nextMembers, nextProjects, nextUsers] = await Promise.all([
-      api(`/api/teams/${team._id}/members`),
-      api(`/api/projects?teamId=${team._id}`),
-      api("/api/users"),
+      api<Member[]>(`/api/teams/${team._id}/members`),
+      api<Project[]>(`/api/projects?teamId=${team._id}`),
+      api<User[]>("/api/users"),
     ]);
     setMembers(nextMembers);
     setProjects(nextProjects);
@@ -200,12 +294,13 @@ function TeamScreen({ team, onBack, onOpenProject }) {
   }
 
   useEffect(() => {
-    load().catch((err) => setError(err.message));
+    load().catch((err: unknown) => setError(errorMessage(err)));
   }, [team._id]);
 
-  const nameFor = (id) => users.find((user) => user._id === id)?.displayName || id;
+  const nameFor = (id: string): string =>
+    users.find((user) => user._id === id)?.displayName || id;
 
-  async function addMember(event) {
+  async function addMember(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError("");
     try {
@@ -215,11 +310,11 @@ function TeamScreen({ team, onBack, onOpenProject }) {
       });
       await load();
     } catch (err) {
-      setError(err.message);
+      setError(errorMessage(err));
     }
   }
 
-  async function createProject(event) {
+  async function createProject(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError("");
     try {
@@ -230,7 +325,7 @@ function TeamScreen({ team, onBack, onOpenProject }) {
       setProjectForm({ name: "", description: "" });
       await load();
     } catch (err) {
-      setError(err.message);
+      setError(errorMessage(err));
     }
   }
 
@@ -298,25 +393,31 @@ function TeamScreen({ team, onBack, onOpenProject }) {
   );
 }
 
-function ProjectScreen({ project, onBack }) {
-  const [users, setUsers] = useState([]);
-  const [milestones, setMilestones] = useState([]);
-  const [tasks, setTasks] = useState([]);
-  const [bugs, setBugs] = useState([]);
-  const [feedback, setFeedback] = useState([]);
+function ProjectScreen({
+  project,
+  onBack,
+}: {
+  project: Project;
+  onBack: () => void;
+}) {
+  const [users, setUsers] = useState<User[]>([]);
+  const [milestones, setMilestones] = useState<Milestone[]>([]);
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [bugs, setBugs] = useState<BugReport[]>([]);
+  const [feedback, setFeedback] = useState<Feedback[]>([]);
   const [error, setError] = useState("");
   const [milestone, setMilestone] = useState({ name: "", description: "", dueDate: "", status: "todo" });
   const [task, setTask] = useState({ title: "", description: "", milestoneId: "", assigneeId: "", status: "todo", priority: "medium" });
   const [bug, setBug] = useState({ title: "", description: "", severity: "medium", status: "open" });
   const [note, setNote] = useState({ rating: "4", comments: "" });
 
-  async function load() {
+  async function load(): Promise<void> {
     const [nextUsers, nextMilestones, nextTasks, nextBugs, nextFeedback] = await Promise.all([
-      api("/api/users"),
-      api(`/api/milestones?projectId=${project._id}`),
-      api(`/api/tasks?projectId=${project._id}`),
-      api(`/api/bug-reports?projectId=${project._id}`),
-      api(`/api/playtest-feedback?projectId=${project._id}`),
+      api<User[]>("/api/users"),
+      api<Milestone[]>(`/api/milestones?projectId=${project._id}`),
+      api<Task[]>(`/api/tasks?projectId=${project._id}`),
+      api<BugReport[]>(`/api/bug-reports?projectId=${project._id}`),
+      api<Feedback[]>(`/api/playtest-feedback?projectId=${project._id}`),
     ]);
     setUsers(nextUsers);
     setMilestones(nextMilestones);
@@ -331,29 +432,34 @@ function ProjectScreen({ project, onBack }) {
   }
 
   useEffect(() => {
-    load().catch((err) => setError(err.message));
+    load().catch((err: unknown) => setError(errorMessage(err)));
   }, [project._id]);
 
-  const nameFor = (id) => users.find((user) => user._id === id)?.displayName || "Unknown user";
+  const nameFor = (id: string): string =>
+    users.find((user) => user._id === id)?.displayName || "Unknown user";
 
-  async function submit(path, body, reset) {
+  async function submit(
+    path: string,
+    body: unknown,
+    reset: () => void
+  ): Promise<void> {
     setError("");
     try {
       await api(path, { method: "POST", body: JSON.stringify(body) });
       reset();
       await load();
     } catch (err) {
-      setError(err.message);
+      setError(errorMessage(err));
     }
   }
 
-  async function patch(path, body) {
+  async function patch(path: string, body: unknown): Promise<void> {
     setError("");
     try {
       await api(path, { method: "PATCH", body: JSON.stringify(body) });
       await load();
     } catch (err) {
-      setError(err.message);
+      setError(errorMessage(err));
     }
   }
 
@@ -489,10 +595,10 @@ function ProjectScreen({ project, onBack }) {
 }
 
 export function App() {
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState<User | null>(null);
   const [ready, setReady] = useState(false);
-  const [team, setTeam] = useState(null);
-  const [project, setProject] = useState(null);
+  const [team, setTeam] = useState<Team | null>(null);
+  const [project, setProject] = useState<Project | null>(null);
 
   useEffect(() => {
     const token = getToken();
@@ -500,7 +606,7 @@ export function App() {
       setReady(true);
       return;
     }
-    api("/api/auth/me")
+    api<{ user: User }>("/api/auth/me")
       .then((result) => setUser(result.user))
       .catch(() => setToken(null))
       .finally(() => setReady(true));
@@ -521,14 +627,14 @@ export function App() {
       <TeamScreen
         team={team}
         onBack={() => setTeam(null)}
-        onOpenProject={setProject}
+        onOpenProject={(nextProject) => setProject(nextProject)}
       />
     );
   }
   return (
     <TeamsScreen
       user={user}
-      onOpenTeam={setTeam}
+      onOpenTeam={(nextTeam) => setTeam(nextTeam)}
       onSignOut={() => {
         setToken(null);
         setUser(null);
