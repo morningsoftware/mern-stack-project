@@ -1,32 +1,40 @@
 # MERN Stack Project (Group 9)
-## Quick Start
-### MacOS:
-...
+## Local Quick Start
 
-### Linux:
-...
-
-## TypeScript
-
-The client, server, tests, and database scripts are written in TypeScript.
-The server runs directly through `tsx`; the client is built by Vite. There is
-no separate server compilation step.
-
-Run the project checks from the repository root:
-
+1. Install deps
 ```sh
-(cd server && npm run typecheck && npm test)
-(cd client && npm run typecheck && npm run build)
-npm run typecheck
+npm install
+(cd server && npm install)
+(cd client && npm install)
 ```
 
-Database scripts:
+2. Create .env
+```sh
+cp .env.example .env
+# Edit .env with editor of choice
+```
 
+3. Start MongoDB
+```sh
+docker run --rm -d --name mern-mongo -p 27017:27017 mongo:7
+```
+
+4. Create database
 ```sh
 npm run db:setup
-SEED_DEVELOPMENT=true npm run db:seed
-npm run db:migrate-user
+# Optional: SEED_DEVELOPMENT=true npm run db:seed
 ```
 
-`db:migrate-user` reads `MONGODB_ADMIN_URI`, `MONGODB_APP_USER`, and
-`MONGODB_APP_PASSWORD`.
+5. Start server
+```sh
+# In one terminal
+cd server
+npm run dev
+```
+
+6. Start client
+```sh
+# In another terminal
+cd client
+npm run dev
+```
