@@ -18,8 +18,8 @@ npm run dev --prefix client
 ```
 
 The Vite development server forwards `/api` to a local API on port 4000.
-Start the existing server separately using its configured `MONGODB_URI` and
-`JWT_SECRET`. Never commit those values. For the frontend build:
+Start the API with `npm run dev --prefix server`. It reads `MONGODB_URI` and
+`JWT_SECRET` from the environment. Never commit those values. For the frontend build:
 
 ```sh
 npm run build --prefix client
@@ -74,7 +74,7 @@ membership. The API never fetches the supplied download URL. New endpoints:
 | GET    | `/api/builds/:id`           | Retrieve one build                                |
 | PATCH  | `/api/builds/:id`           | Edit a build's metadata/link                      |
 
-`projectId + version + platform` is unique. API startup and database/setup.js add
+`projectId + version + platform` is unique. API startup and database/setup.ts add
 the builds collection indexes without changing existing documents. Feedback
 POST/PATCH accepts an optional buildId; the API verifies that the referenced build
 belongs to the feedback's project. Omitting it preserves general feedback.
