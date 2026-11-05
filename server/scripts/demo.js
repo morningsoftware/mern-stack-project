@@ -6,9 +6,11 @@ import { createApp } from "../src/app.js";
 import { ensureIndexes } from "../src/db.js";
 
 process.env.JWT_SECRET = randomBytes(32).toString("hex");
-const mongod = await MongoMemoryServer.create({
-  instance: { args: ["--nounixsocket"] },
-});
+const mongod = await MongoMemoryServer.create(
+  process.platform === "win32"
+    ? {}
+    : { instance: { args: ["--nounixsocket"] } },
+);
 const client = new MongoClient(mongod.getUri());
 await client.connect();
 const db = client.db("mern");

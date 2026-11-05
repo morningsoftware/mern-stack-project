@@ -17,6 +17,7 @@ import { projectsRouter } from "./routes/projects.js";
 import { taskCommentsRouter } from "./routes/taskComments.js";
 import { tasksRouter } from "./routes/tasks.js";
 import { teamsRouter } from "./routes/teams.js";
+import { githubRouter, githubWebhookRouter } from "./routes/github.js";
 import { usersRouter } from "./routes/users.js";
 
 const clientDist = path.resolve(
@@ -28,6 +29,7 @@ export function createApp(db: Db): Express {
   const app = express();
   app.locals.db = db;
   app.use(cors());
+  app.use("/api/github/webhook", githubWebhookRouter);
   app.use(express.json());
 
   app.get("/api/health", (req, res) => {
@@ -48,6 +50,7 @@ export function createApp(db: Db): Express {
   app.use("/api/bug-reports/:bugId/screenshots", bugScreenshotsRouter);
   app.use("/api/bug-reports", bugReportsRouter);
   app.use("/api/playtest-feedback", playtestFeedbackRouter);
+  app.use("/api/github", githubRouter);
 
   app.use("/api", (req, res) => {
     res.status(404).json({ error: "Not found" });

@@ -11,6 +11,7 @@ import { emptyBugDraft } from "../features/playtesting/BugDetailsFields.jsx";
 import { PlaytestSessions } from "../features/playtesting/PlaytestSessions.jsx";
 import { Notifications } from "../features/activity/Notifications.jsx";
 import { ActivityFeed } from "../features/activity/ActivityFeed.jsx";
+import { GithubDeliveries } from "../features/github/GithubDeliveries.jsx";
 import { MyWork } from "../features/work/MyWork.jsx";
 import { TaskBoard } from "../features/work/TaskBoard.jsx";
 import { ItemDrawer } from "../features/work/ItemDrawer.jsx";
@@ -308,6 +309,13 @@ export function ProjectScreen({
             <ActivityFeed
               projectId={project._id}
               active={view === "activity"}
+            />
+          </section>
+          <section hidden={view !== "github"}>
+            <GithubDeliveries
+              project={project}
+              active={view === "github"}
+              onProjectChange={onProjectChange}
             />
           </section>
           <section hidden={view !== "my-work"}>

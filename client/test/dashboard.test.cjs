@@ -22,7 +22,7 @@ const React = require(base + "/node_modules/react");
 const { act } = React;
 const { createRoot } = require(base + "/node_modules/react-dom/client");
 buildSync({
-  entryPoints: [base + "/src/App.jsx"],
+  entryPoints: [base + "/src/App.tsx"],
   outfile: base + "/node_modules/.cache/review-app.cjs",
   bundle: true,
   platform: "node",
@@ -50,6 +50,7 @@ const user = {
 };
 let rejectStatus = false;
 let rejectComment = false;
+let githubConnected = true;
 let rejectScreenshot = false;
 let screenshots = [];
 let activityEvents = [];
@@ -189,6 +190,105 @@ global.fetch = async (path, options = {}) => {
   } else if (p === "auth/me") data = { user };
   else if (p === "auth/login") data = { user, token: "fixture" };
   else if (p === "users") data = [user, { _id: "u2", displayName: "Sam Chen" }];
+  else if (p === "github/repositories")
+    data = {
+      connected: githubConnected,
+      login: githubConnected ? "octocat" : null,
+      oauthConfigured: true,
+      callbackUrl: "http://127.0.0.1:4000/api/github/callback",
+      installUrl: null,
+      repositories: githubConnected
+        ? [
+            {
+              fullName: "morningsoftware/mern-stack-project",
+              installationId: 7,
+            },
+          ]
+        : [],
+    };
+  else if (p === "github/deliveries")
+    data = {
+      deliveries: [
+        {
+          _id: "d1",
+          event: "push",
+          action: null,
+          repository: "morningsoftware/mern-stack-project",
+          detail: "main · 1 commit",
+          receivedOn: "2026-11-01T00:00:00.000Z",
+        },
+      ],
+    };
+  else if (p === "github/events") data = { events: ["push", "pull_request"] };
+  else if (p === "github/pulls")
+    data = {
+      pulls: [
+        {
+          number: 4,
+          title: "Fix jump",
+          state: "open",
+          url: "https://github.com/example/pull/4",
+          author: "sam",
+        },
+      ],
+    };
+  else if (p === "github/repository")
+    data = {
+      repository: {
+        fullName: "morningsoftware/mern-stack-project",
+        description: "Studio tools",
+        visibility: "private",
+        defaultBranch: "main",
+        url: "https://github.com/morningsoftware/mern-stack-project",
+        homepage: null,
+        stars: 12,
+        forks: 2,
+        openIssues: 3,
+        language: "TypeScript",
+        license: "MIT License",
+        archived: false,
+        pushedAt: "2026-11-02T00:00:00.000Z",
+        createdAt: "2026-01-01T00:00:00.000Z",
+      },
+      languages: [
+        { name: "TypeScript", bytes: 80, share: 80 },
+        { name: "CSS", bytes: 20, share: 20 },
+      ],
+      contributors: [
+        { login: "sam", contributions: 4, url: "https://github.com/sam" },
+      ],
+      contributorsReady: true,
+      branches: [
+        {
+          name: "feat",
+          sha: "bbb2222",
+          protected: false,
+          default: false,
+          committedAt: "2026-11-02T00:00:00.000Z",
+          message: "Add camera",
+          author: "sam",
+        },
+        {
+          name: "main",
+          sha: "aaa1111",
+          protected: true,
+          default: true,
+          committedAt: "2026-10-01T00:00:00.000Z",
+          message: "Start project",
+          author: "alex",
+        },
+      ],
+      branchesTruncated: false,
+      commits: [
+        {
+          sha: "bbb2222ccc",
+          message: "Add camera",
+          author: "sam",
+          date: "2026-11-02T00:00:00.000Z",
+          url: "https://github.com/morningsoftware/mern-stack-project/commit/bbb2222ccc",
+        },
+      ],
+    };
   else if (p === "teams/t1/members")
     data = [{ _id: "tm1", userId: "u1", role: "owner" }];
   else if (options.method === "PATCH") {
@@ -1289,6 +1389,91 @@ test("playtest sessions create and edit instructions, link feedback, and handle 
     assert(findButton("Submit session feedback").disabled);
   } finally {
     rejectStatus = false;
+    await act(async () => root.unmount());
+  }
+});
+
+test("github project tabs show repository details, branches, commits, events, and pull requests", async () => {
+  const project = db.projects.find((item) => item._id === "p1");
+  const savedRepository = project.githubRepository;
+  const savedInstallation = project.githubInstallationId;
+  project.githubRepository = "morningsoftware/mern-stack-project";
+  project.githubInstallationId = 7;
+  sessionStorage.setItem("mern_token", "fixture");
+  root = createRoot(document.getElementById("root"));
+  try {
+    await act(async () => {
+      root.render(React.createElement(App));
+      await tick();
+    });
+    await click("Open");
+    await click("Open");
+    await click("GitHub");
+    await act(async () => {
+      await tick();
+    });
+    const view = () => document.querySelector(".github-view").textContent;
+    assert.equal(
+      document.querySelector("#github-tab-repository").getAttribute("aria-selected"),
+      "true",
+    );
+    assert(view().includes("Stars"));
+    assert(view().includes("12"));
+    assert(view().includes("TypeScript"));
+    assert(view().includes("sam"));
+    assert(!view().includes("Add camera"));
+    await click("Branches");
+    assert(view().includes("feat"));
+    assert(view().includes("protected"));
+    assert.equal(
+      document.querySelector("#github-tab-branches").getAttribute("aria-selected"),
+      "true",
+    );
+    await click("Commits");
+    assert(view().includes("Add camera"));
+    assert(view().includes("Recent commits on main"));
+    await click("Events");
+    await act(async () => {
+      await tick();
+    });
+    assert(view().includes("push"));
+    assert(view().includes("main · 1 commit"));
+    await click("Pull requests");
+    await act(async () => {
+      await tick();
+    });
+    assert(view().includes("Fix jump"));
+    assert(view().includes("#4"));
+  } finally {
+    if (savedRepository === undefined) delete project.githubRepository;
+    else project.githubRepository = savedRepository;
+    if (savedInstallation === undefined) delete project.githubInstallationId;
+    else project.githubInstallationId = savedInstallation;
+    await act(async () => root.unmount());
+  }
+});
+
+test("github repository control prompts to connect when GitHub is not linked", async () => {
+  githubConnected = false;
+  sessionStorage.setItem("mern_token", "fixture");
+  root = createRoot(document.getElementById("root"));
+  try {
+    await act(async () => {
+      root.render(React.createElement(App));
+      await tick();
+    });
+    await click("Open");
+    await click("Open");
+    await click("GitHub");
+    await act(async () => {
+      await tick();
+    });
+    const view = document.querySelector(".github-view").textContent;
+    assert(view.includes("Connect GitHub"));
+    assert(!view.includes("Link repository"));
+    assert.equal(document.querySelector(".github-view select"), null);
+  } finally {
+    githubConnected = true;
     await act(async () => root.unmount());
   }
 });

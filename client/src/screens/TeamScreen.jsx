@@ -1,6 +1,8 @@
 import { useUnsavedChanges } from "../navigation/UnsavedChanges.jsx";
 import { useState } from "react";
+import { api } from "../api.js";
 import { ErrorNote, Field } from "../components/Forms.jsx";
+import { GithubRepositoryField } from "../features/github/GithubRepositoryField.jsx";
 import { useWorkspaceData } from "../hooks/useWorkspaceData.js";
 import { MEMBER_ROLES } from "../constants.js";
 
@@ -15,12 +17,16 @@ export function TeamScreen({ team, onOpenProject, currentUserId }) {
     userId: "",
     role: "developer",
   });
-  const [projectForm, setProjectForm] = useState({ name: "", description: "" });
-
+  const [projectForm, setProjectForm] = useState({
+    name: "",
+    description: "",
+    githubRepository: "",
+  });
   useUnsavedChanges(
     Boolean(
       projectForm.name ||
       projectForm.description ||
+      projectForm.githubRepository ||
       memberForm.userId ||
       memberForm.role !== "developer",
     ),
@@ -53,8 +59,16 @@ export function TeamScreen({ team, onOpenProject, currentUserId }) {
 
   async function createProject(event) {
     event.preventDefault();
-    await mutate("/api/projects", { ...projectForm, teamId: team._id }, () =>
-      setProjectForm({ name: "", description: "" }),
+    const body = {
+      name: projectForm.name,
+      description: projectForm.description,
+      teamId: team._id,
+    };
+    if (projectForm.githubRepository) {
+      body.githubRepository = projectForm.githubRepository;
+    }
+    await mutate("/api/projects", body, () =>
+      setProjectForm({ name: "", description: "", githubRepository: "" }),
     );
   }
 
@@ -142,7 +156,13 @@ export function TeamScreen({ team, onOpenProject, currentUserId }) {
                 <li key={project._id}>
                   <span>
                     {project.name}{" "}
-                    <span className="meta">({project.status})</span>
+                    <span className="meta">
+                      ({project.status}
+                      {project.githubRepository
+                        ? ` · ${project.githubRepository}`
+                        : ""}
+                      )
+                    </span>
                   </span>
                   <button
                     type="button"
@@ -166,6 +186,13 @@ export function TeamScreen({ team, onOpenProject, currentUserId }) {
                   required
                 />
               </Field>
+              <GithubRepositoryField
+                value={projectForm.githubRepository}
+                disabled={loading || pending}
+                onChange={(githubRepository) =>
+                  setProjectForm({ ...projectForm, githubRepository })
+                }
+              />
               <Field label="Project description">
                 <textarea
                   value={projectForm.description}

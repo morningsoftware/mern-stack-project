@@ -854,10 +854,17 @@ button.card-title:hover {
   gap: 8px;
   margin: 18px 0 24px;
 }
-.plan-filters button[aria-pressed="true"] {
+.plan-filters button[aria-pressed="true"],
+.plan-filters button[aria-selected="true"] {
   color: #fffaf1;
   background: #344f3c;
   border-color: #344f3c;
+}
+.version-flags {
+  display: inline-flex;
+  gap: 6px;
+  margin-left: 8px;
+  vertical-align: middle;
 }
 .milestone-timeline {
   list-style: none;

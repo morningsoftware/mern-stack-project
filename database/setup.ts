@@ -21,6 +21,7 @@ const COLLECTIONS = [
   "projectActivity",
   "notifications",
   "playtestSessions",
+  "githubDeliveries",
 ] as const;
 
 async function setupDatabase(): Promise<void> {
@@ -102,6 +103,14 @@ async function setupDatabase(): Promise<void> {
     await db.collection("playtestFeedback").createIndex(
       { sessionId: 1 },
       { name: "feedback_by_session" }
+    );
+    await db.collection("githubDeliveries").createIndex(
+      { deliveryId: 1 },
+      { unique: true, name: "unique_github_delivery" }
+    );
+    await db.collection("githubDeliveries").createIndex(
+      { repository: 1, event: 1, _id: -1 },
+      { name: "github_deliveries_by_repository" }
     );
 
     // USERS

@@ -4,12 +4,11 @@ import { fileURLToPath } from "url";
 import { createApp } from "./app.js";
 import { connectDatabase } from "./db.js";
 
-const rootDir = path.resolve(
+const serverDir = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
-  "../.."
+  ".."
 );
-dotenv.config({ path: path.join(rootDir, ".env") });
-dotenv.config();
+dotenv.config({ path: path.join(serverDir, ".env") });
 
 const uri = process.env.MONGODB_URI;
 const port = Number(process.env.PORT || 4000);

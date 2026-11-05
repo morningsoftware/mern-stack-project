@@ -193,6 +193,44 @@ read and submit feedback while open and before the server-enforced deadline. Sho
 Open, Closed, and Deadline passed as text. Session feedback keeps its build and
 association after submission. General feedback remains available.
 
+## GitHub deliveries
+
+The GitHub App sends every subscribed event to one path,
+`/api/github/webhook`. Checkpoint stores a short delivery record in MongoDB:
+event name, action, repository name, installation id, and arrival time. GitHub
+remains the source for code, pull requests, and check details. A cache is not
+used for this record because a team needs the same history after the server
+restarts. The GitHub view reuses the existing activity list: a heading, a
+refresh control, an empty state, and one line per delivery.
+
+A project can optionally link one repository when it is created, or later from
+the GitHub view. The choices come from the signed-in user's GitHub connection.
+If that person has not connected GitHub, the repository control is a Connect
+GitHub prompt. Checkpoint stores the GitHub login and access token on that user
+in MongoDB and never returns the token to the browser. After a repository is
+chosen, Checkpoint stores its name and installation id. Later reads of pull
+requests, checks, branches, and commits still use the GitHub App installation
+token. Deliveries are shown only for the linked repository. Clearing the choice
+removes the link and leaves the project in place. If the server is missing the
+GitHub OAuth client secret, the control explains that setup instead of sending
+the user to GitHub. The callback URL is
+`http://127.0.0.1:4000/api/github/callback`.
+
+Each subscribed webhook event is accepted on that same path and stored with a
+one-line detail. The project can read open pull requests and check runs for the
+linked repository, and it can publish a check run. Workflow, advisory, star,
+and watch events are recorded when GitHub sends them; Checkpoint does not call
+those APIs.
+
+The GitHub project page uses tabs: Repository, Branches, Commits, Events, and
+Pull requests. Repository, branch, and commit details are read from GitHub when
+that tab is open. They are not copied into MongoDB. The repository tab shows
+the star count, forks, open issues (GitHub includes open pull requests in that
+count), visibility, default branch, license, last push, languages, and
+contributors. Branches are ordered by latest commit, with the default branch
+kept visible. Commit history is the recent history of the default branch.
+Arrow keys move between the tabs.
+
 ## Team permissions
 
 The release audit closed membership escalation: owners manage membership and team

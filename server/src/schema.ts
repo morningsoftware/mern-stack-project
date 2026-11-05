@@ -42,6 +42,11 @@ export interface UserDocument {
   displayName: string;
   role: UserRole;
   passwordHash?: string;
+  githubLogin?: string | null;
+  githubUserId?: number | null;
+  githubAccessToken?: string | null;
+  githubRefreshToken?: string | null;
+  githubTokenExpiresAt?: Date | null;
   createdOn: Date;
   createdBy: ObjectId | null;
 }
@@ -79,6 +84,8 @@ export interface ProjectDocument {
   name: string;
   description: string;
   status: ProjectStatus;
+  githubRepository?: string | null;
+  githubInstallationId?: number | null;
   createdOn: Date;
   createdBy: ObjectId;
 }
@@ -123,6 +130,17 @@ export interface BugReportDocument {
   reportedBy: ObjectId;
   createdOn: Date;
   createdBy: ObjectId;
+}
+
+export interface GithubDeliveryDocument {
+  _id: ObjectId;
+  deliveryId: string;
+  event: string;
+  action: string | null;
+  repository: string | null;
+  installationId: number | null;
+  detail: string | null;
+  receivedOn: Date;
 }
 
 export interface PlaytestFeedbackDocument {

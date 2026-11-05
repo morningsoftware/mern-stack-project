@@ -11,6 +11,7 @@ export const PROJECT_VIEWS = [
   ["sessions", "Playtest sessions"],
   ["activity", "Activity"],
   ["notifications", "Notifications"],
+  ["github", "GitHub"],
 ];
 
 export function AppShell({

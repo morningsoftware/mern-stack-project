@@ -103,4 +103,16 @@ export async function ensureIndexes(db: Db): Promise<void> {
       { projectId: 1, createdOn: -1 },
       { name: "feedback_by_project_date" },
     );
+  await db
+    .collection("githubDeliveries")
+    .createIndex(
+      { deliveryId: 1 },
+      { unique: true, name: "unique_github_delivery" },
+    );
+  await db
+    .collection("githubDeliveries")
+    .createIndex(
+      { repository: 1, event: 1, _id: -1 },
+      { name: "github_deliveries_by_repository" },
+    );
 }
