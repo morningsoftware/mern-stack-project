@@ -21,23 +21,45 @@ deploy.
 
 The droplet's `.env` is never uploaded or overwritten; it stays on the server.
 
+## Current droplet layout
+
+| Item          | Value                                      |
+| ------------- | ------------------------------------------ |
+| SSH user      | `deploy`                                   |
+| App directory | `/srv/checkpoint`                          |
+| PM2 process   | `mern-api`                                 |
+| PM2 service   | `pm2-deploy.service`                       |
+| Nginx config  | `/etc/nginx/sites-enabled/default`         |
+| Domain        | `https://checkpoint.morning.codes`         |
+
+The app previously ran as `demetri` from `/home/demetri/mern-app`. That PM2
+process is stopped, but the files are still there for rollback. Do not start it
+while `deploy`'s `mern-api` process is using port 4000.
+
+To roll back:
+
+```sh
+sudo -iu deploy bash -lc 'pm2 stop mern-api && pm2 save'
+sudo -iu demetri bash -lc 'cd /home/demetri/mern-app/server && pm2 start src/index.js --name mern-api && pm2 save'
+```
+
 ## One-time droplet setup
 
 These steps assume an Ubuntu droplet with Node.js, npm, Nginx, and PM2
-available, and an app directory such as `/var/www/mern-stack-project`.
+available, and an app directory at `/srv/checkpoint`.
 
 ```sh
 sudo apt-get update
 sudo apt-get install -y nginx rsync
 sudo npm install -g pm2
 
-sudo mkdir -p /var/www/mern-stack-project/server
-sudo mkdir -p /var/www/mern-stack-project/client/dist
-sudo chown -R "$USER":"$USER" /var/www/mern-stack-project
+sudo mkdir -p /srv/checkpoint/server
+sudo mkdir -p /srv/checkpoint/client/dist
+sudo chown -R deploy:deploy /srv/checkpoint
 ```
 
-Create `/var/www/mern-stack-project/.env` on the droplet. The server reads this
-file before it reads a local `server/.env`, so keep production values here:
+Create `/srv/checkpoint/.env` on the droplet. The server reads this file before
+it reads a local `server/.env`, so keep production values here:
 
 ```dotenv
 MONGODB_URI=mongodb://127.0.0.1:27017
@@ -58,19 +80,28 @@ DISCORD_CLIENT_SECRET=
 Start the app once manually, then save the PM2 process list:
 
 ```sh
-cd /var/www/mern-stack-project/server
-npm ci --omit=dev
-pm2 start src/index.js --name mern-api
-pm2 save
-pm2 startup
+sudo -iu deploy bash -lc '
+  cd /srv/checkpoint/server
+  npm ci --omit=dev
+  pm2 start src/index.js --name mern-api
+  pm2 save
+'
 ```
 
-Run the command printed by `pm2 startup` so the API comes back after a reboot.
+Enable PM2 on boot. Stop the manually started daemon first so systemd can create
+the PID file:
+
+```sh
+sudo -iu deploy pm2 save
+sudo -iu deploy pm2 kill
+sudo env PATH="$PATH:/usr/bin" pm2 startup systemd -u deploy --hp /home/deploy
+sudo systemctl enable --now pm2-deploy
+sudo -iu deploy pm2 save
+```
 
 The workflow expects Node, npm, and PM2 to be on the deploy user's non-interactive
-`PATH`. If they are installed through a shell-only tool such as `nvm`, either
-move them somewhere on the default `PATH` (NodeSource packages are the simplest
-option) or update the restart step to source the relevant profile.
+`PATH`. On this droplet they are system-wide at `/usr/bin/node`, `/usr/bin/npm`,
+and `/usr/bin/pm2`, so no profile changes are needed.
 
 ## GitHub secrets and variables
 
@@ -78,13 +109,13 @@ Add these under **Settings → Secrets and variables → Actions**.
 
 Secrets:
 
-| Name             | Value                                                   |
-| ---------------- | ------------------------------------------------------- |
-| `DEPLOY_SSH_KEY` | Private key for the deploy user (no passphrase)          |
-| `DEPLOY_HOST`    | Droplet IP address or hostname                           |
-| `DEPLOY_USER`    | SSH user that owns `DEPLOY_PATH`                         |
-| `DEPLOY_PORT`    | Optional. SSH port, defaults to `22`                     |
-| `DEPLOY_PATH`    | App directory, for example `/var/www/mern-stack-project` |
+| Name             | Value                                          |
+| ---------------- | ---------------------------------------------- |
+| `DEPLOY_SSH_KEY` | Private key for the `deploy` user              |
+| `DEPLOY_HOST`    | `checkpoint.morning.codes`                     |
+| `DEPLOY_USER`    | `deploy`                                       |
+| `DEPLOY_PORT`    | Optional. SSH port, defaults to `22`           |
+| `DEPLOY_PATH`    | `/srv/checkpoint`                              |
 
 Variables (optional; the defaults are shown):
 
@@ -93,43 +124,49 @@ Variables (optional; the defaults are shown):
 | `PRODUCTION_URL`   | `https://checkpoint.morning.codes` |
 | `PM2_APP_NAME`     | `mern-api`                       |
 
-Generate a dedicated deploy key and authorize it on the droplet:
+The `deploy` user already has an `authorized_keys` file. For a cleaner setup,
+use a dedicated key instead of a personal one:
 
 ```sh
 ssh-keygen -t ed25519 -C "github-actions@checkpoint" -f checkpoint_deploy
-ssh-copy-id -i checkpoint_deploy.pub deploy@YOUR_DROPLET_IP
 ```
 
-Paste the contents of `checkpoint_deploy` (the private key) into
-`DEPLOY_SSH_KEY`, then delete the local key files.
+Append `checkpoint_deploy.pub` to `/home/deploy/.ssh/authorized_keys`, then paste
+the contents of `checkpoint_deploy` (the private key) into `DEPLOY_SSH_KEY`.
+Delete the local key files after the secret is saved.
+
+For the current droplet, a dedicated key was generated at
+`~/.ssh/checkpoint_deploy` on the developer machine. Its public half is the only
+key in `/home/deploy/.ssh/authorized_keys`. Put the private key in
+`DEPLOY_SSH_KEY`, then delete the local file.
 
 If you use systemd instead of PM2, replace the restart step in the workflow with
 the equivalent `sudo systemctl restart <service>` command and make sure the
 deploy user can run it without an interactive password prompt.
 
-## Switching the domain to checkpoint.morning.codes
+## Domain and TLS
 
-DNS already points `checkpoint.morning.codes` at the droplet. The application
-does not hardcode the old domain, so the remaining changes are on the droplet:
-
-1. Update the Nginx `server_name` and issue a certificate for the new name.
-2. Update the domain values in `/var/www/mern-stack-project/.env`.
-3. Restart PM2 with `--update-env`.
-4. Update any OAuth provider console callback URLs to the new domain.
+`checkpoint.morning.codes` is already configured on the droplet: Nginx uses the
+new `server_name`, Certbot has a valid certificate for the new name, and the
+application does not hardcode the old domain. This section documents how it was
+done in case the configuration needs to be repeated.
 
 ### Nginx and TLS
 
-If the existing site is `/etc/nginx/sites-available/mern.morning.codes`, copy it
-and change the server name. Keep the old certificate paths for the moment so
-`nginx -t` still passes:
+The active config on this droplet is `/etc/nginx/sites-enabled/default`. It is a
+regular file, not a symlink. Change the `server_name` lines and the HTTP redirect
+condition, but leave the existing certificate paths in place until Certbot issues
+the new certificate:
 
 ```sh
-sudo cp /etc/nginx/sites-available/mern.morning.codes \
-  /etc/nginx/sites-available/checkpoint.morning.codes
-sudo sed -i 's/server_name mern\.morning\.codes;/server_name checkpoint.morning.codes;/' \
-  /etc/nginx/sites-available/checkpoint.morning.codes
-sudo ln -sf /etc/nginx/sites-available/checkpoint.morning.codes \
-  /etc/nginx/sites-enabled/checkpoint.morning.codes
+sudo cp /etc/nginx/sites-enabled/default \
+  /etc/nginx/sites-enabled/default.bak.$(date +%F-%H%M)
+
+sudo sed -i \
+  -e 's/server_name mern\.morning\.codes;/server_name checkpoint.morning.codes;/g' \
+  -e 's/if (\$host = mern\.morning\.codes)/if (\$host = checkpoint.morning.codes)/g' \
+  /etc/nginx/sites-enabled/default
+
 sudo nginx -t
 sudo systemctl reload nginx
 sudo certbot --nginx -d checkpoint.morning.codes
@@ -173,8 +210,8 @@ server {
 }
 ```
 
-Remove the old `mern.morning.codes` site from `sites-enabled` once it is no
-longer needed. A redirect from the old domain is only possible if its DNS record
+The old `mern.morning.codes` name is no longer present in the active Nginx
+configuration. A redirect from the old domain is only possible if its DNS record
 also points at this droplet; currently it points elsewhere.
 
 ### Environment and OAuth
@@ -189,8 +226,7 @@ OAUTH_CALLBACK_BASE_URL=https://checkpoint.morning.codes
 Then restart the process so it picks up the change:
 
 ```sh
-cd /var/www/mern-stack-project/server
-pm2 restart mern-api --update-env
+sudo -iu deploy bash -lc 'cd /srv/checkpoint/server && pm2 restart mern-api --update-env'
 ```
 
 If OAuth providers are enabled, update their authorized redirect URIs from the
