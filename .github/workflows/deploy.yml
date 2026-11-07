@@ -58,8 +58,8 @@ jobs:
       - name: Configure SSH
         env:
           SSH_PRIVATE_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
-          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
-          DEPLOY_PORT: ${{ secrets.DEPLOY_PORT || '22' }}
+          DEPLOY_HOST: ${{ vars.DEPLOY_HOST }}
+          DEPLOY_PORT: ${{ vars.DEPLOY_PORT || '22' }}
         run: |
           set -euo pipefail
           install -m 700 -d ~/.ssh
@@ -69,10 +69,10 @@ jobs:
 
       - name: Upload API and client build
         env:
-          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
-          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
-          DEPLOY_PORT: ${{ secrets.DEPLOY_PORT || '22' }}
-          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
+          DEPLOY_HOST: ${{ vars.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ vars.DEPLOY_USER }}
+          DEPLOY_PORT: ${{ vars.DEPLOY_PORT || '22' }}
+          DEPLOY_PATH: ${{ vars.DEPLOY_PATH }}
         run: |
           set -euo pipefail
           SSH="ssh -i ~/.ssh/deploy_key -p $DEPLOY_PORT -o BatchMode=yes"
@@ -83,10 +83,10 @@ jobs:
 
       - name: Install production dependencies and restart app
         env:
-          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
-          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
-          DEPLOY_PORT: ${{ secrets.DEPLOY_PORT || '22' }}
-          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
+          DEPLOY_HOST: ${{ vars.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ vars.DEPLOY_USER }}
+          DEPLOY_PORT: ${{ vars.DEPLOY_PORT || '22' }}
+          DEPLOY_PATH: ${{ vars.DEPLOY_PATH }}
           PM2_APP_NAME: ${{ env.PM2_APP_NAME }}
         run: |
           set -euo pipefail
