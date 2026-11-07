@@ -103,26 +103,33 @@ The workflow expects Node, npm, and PM2 to be on the deploy user's non-interacti
 `PATH`. On this droplet they are system-wide at `/usr/bin/node`, `/usr/bin/npm`,
 and `/usr/bin/pm2`, so no profile changes are needed.
 
-## GitHub secrets and variables
+## GitHub environment configuration
 
-Add these under **Settings → Secrets and variables → Actions**.
+Create an environment named `production` under **Settings → Environments**. The
+deploy job declares `environment: production`, so environment-scoped values are
+available only to that job. You can also add required reviewers or restrict the
+environment to the `main` branch.
 
-Secrets:
+Add the SSH key as an **environment secret**:
 
-| Name             | Value                                          |
-| ---------------- | ---------------------------------------------- |
-| `DEPLOY_SSH_KEY` | Private key for the `deploy` user              |
-| `DEPLOY_HOST`    | `checkpoint.morning.codes`                     |
-| `DEPLOY_USER`    | `deploy`                                       |
-| `DEPLOY_PORT`    | Optional. SSH port, defaults to `22`           |
-| `DEPLOY_PATH`    | `/srv/checkpoint`                              |
+| Name             | Value                             |
+| ---------------- | --------------------------------- |
+| `DEPLOY_SSH_KEY` | Private key for the `deploy` user |
 
-Variables (optional; the defaults are shown):
+Add the non-sensitive values as **environment variables**:
 
-| Name               | Default                          |
-| ------------------ | -------------------------------- |
-| `PRODUCTION_URL`   | `https://checkpoint.morning.codes` |
-| `PM2_APP_NAME`     | `mern-api`                       |
+| Name             | Value                          |
+| ---------------- | ------------------------------ |
+| `DEPLOY_HOST`    | `checkpoint.morning.codes`     |
+| `DEPLOY_USER`    | `deploy`                       |
+| `DEPLOY_PATH`    | `/srv/checkpoint`              |
+| `DEPLOY_PORT`    | Optional. Defaults to `22`     |
+| `PRODUCTION_URL` | `https://checkpoint.morning.codes` |
+| `PM2_APP_NAME`   | `mern-api`                     |
+
+Repository-level variables and secrets also work. Use environment-level values
+when you want deployment credentials scoped to `production`; environment values
+override repository values with the same name.
 
 The `deploy` user already has an `authorized_keys` file. For a cleaner setup,
 use a dedicated key instead of a personal one:
