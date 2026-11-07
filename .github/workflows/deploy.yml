@@ -1,0 +1,115 @@
+name: Deploy production
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# Always queue newest
+concurrency:
+  group: production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  NODE_VERSION: "22"
+  PRODUCTION_URL: ${{ vars.PRODUCTION_URL || 'https://checkpoint.morning.codes' }}
+  PM2_APP_NAME: ${{ vars.PM2_APP_NAME || 'mern-api' }}
+
+jobs:
+  deploy:
+    name: Test, build, and deploy
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: ${{ vars.PRODUCTION_URL || 'https://checkpoint.morning.codes' }}
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: |
+            server/package-lock.json
+            client/package-lock.json
+
+      - name: Install API dependencies
+        working-directory: server
+        run: npm ci
+
+      - name: Install client dependencies
+        working-directory: client
+        run: npm ci
+
+      - name: Run API tests
+        working-directory: server
+        run: npm test
+
+      - name: Build client
+        working-directory: client
+        run: npm run build
+
+      - name: Configure SSH
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_PORT: ${{ secrets.DEPLOY_PORT || '22' }}
+        run: |
+          set -euo pipefail
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -p "$DEPLOY_PORT" -H "$DEPLOY_HOST" >> ~/.ssh/known_hosts
+
+      - name: Upload API and client build
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_PORT: ${{ secrets.DEPLOY_PORT || '22' }}
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
+        run: |
+          set -euo pipefail
+          SSH="ssh -i ~/.ssh/deploy_key -p $DEPLOY_PORT -o BatchMode=yes"
+          rsync -az --delete --exclude node_modules --exclude .env -e "$SSH" \
+            server/ "$DEPLOY_USER@$DEPLOY_HOST:$DEPLOY_PATH/server/"
+          rsync -az --delete -e "$SSH" \
+            client/dist/ "$DEPLOY_USER@$DEPLOY_HOST:$DEPLOY_PATH/client/dist/"
+
+      - name: Install production dependencies and restart app
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_PORT: ${{ secrets.DEPLOY_PORT || '22' }}
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
+          PM2_APP_NAME: ${{ env.PM2_APP_NAME }}
+        run: |
+          set -euo pipefail
+          ssh -i ~/.ssh/deploy_key -p "$DEPLOY_PORT" -o BatchMode=yes \
+            "$DEPLOY_USER@$DEPLOY_HOST" \
+            "set -euo pipefail
+             cd '$DEPLOY_PATH/server'
+             npm ci --omit=dev
+             if pm2 describe '$PM2_APP_NAME' >/dev/null 2>&1; then
+               pm2 restart '$PM2_APP_NAME' --update-env
+             else
+               pm2 start src/index.js --name '$PM2_APP_NAME'
+             fi
+             pm2 save"
+
+      - name: Verify deployment
+        run: |
+          set -euo pipefail
+          for attempt in {1..10}; do
+            if curl --fail --silent --show-error "$PRODUCTION_URL/api/health"; then
+              exit 0
+            fi
+            sleep 3
+          done
+          echo "Health check failed for $PRODUCTION_URL/api/health" >&2
+          exit 1
