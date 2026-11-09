@@ -15,6 +15,13 @@ export const TASK_STATUSES = ["todo", "in_progress", "done"] as const;
 export const TASK_PRIORITIES = ["low", "medium", "high"] as const;
 export const BUG_SEVERITIES = ["low", "medium", "high"] as const;
 export const BUG_STATUSES = ["open", "in_progress", "resolved"] as const;
+export const BUILD_PLATFORMS = [
+  "windows",
+  "macos",
+  "linux",
+  "web",
+  "other",
+] as const;
 
 export type UserRole = (typeof USER_ROLES)[number];
 export type TeamMemberRole = (typeof TEAM_MEMBER_ROLES)[number];
@@ -24,6 +31,7 @@ export type TaskStatus = (typeof TASK_STATUSES)[number];
 export type TaskPriority = (typeof TASK_PRIORITIES)[number];
 export type BugSeverity = (typeof BUG_SEVERITIES)[number];
 export type BugStatus = (typeof BUG_STATUSES)[number];
+export type BuildPlatform = (typeof BUILD_PLATFORMS)[number];
 
 export const PUBLIC_USER_FIELDS = [
   "_id",
@@ -125,6 +133,19 @@ export interface PlaytestFeedbackDocument {
   userId: ObjectId;
   rating: number;
   comments: string;
+  buildId?: ObjectId | null;
+  createdOn: Date;
+  createdBy: ObjectId;
+}
+
+export interface BuildDocument {
+  _id: ObjectId;
+  projectId: ObjectId;
+  version: string;
+  platform: BuildPlatform;
+  downloadUrl: string;
+  releaseNotes: string;
+  updatedOn?: Date;
   createdOn: Date;
   createdBy: ObjectId;
 }

@@ -1,9 +1,10 @@
 import { Router } from "express";
 import { ObjectId } from "mongodb";
-import type { Filter } from "mongodb";
+import type { Db, Filter } from "mongodb";
 import { asyncRoute, httpError } from "../errors.js";
 import { actorId, requireAuth } from "../middleware/auth.js";
 import type {
+  BuildDocument,
   PlaytestFeedbackDocument,
   ProjectDocument,
 } from "../schema.js";
@@ -17,6 +18,23 @@ import {
 
 export const playtestFeedbackRouter = Router();
 playtestFeedbackRouter.use(requireAuth);
+
+async function validateBuild(
+  db: Db,
+  value: unknown,
+  projectId: ObjectId
+): Promise<ObjectId | null> {
+  const buildId = optionalObjectId(value, "buildId");
+  if (!buildId) return null;
+  const build = await requireDoc(
+    db.collection<BuildDocument>("builds"),
+    buildId,
+    "Build"
+  );
+  if (build.projectId.toString() !== projectId.toString())
+    throw httpError(400, "build does not belong to that project");
+  return buildId;
+}
 
 playtestFeedbackRouter.get(
   "/",
@@ -44,10 +62,16 @@ playtestFeedbackRouter.post(
       projectId,
       "Project"
     );
+    const buildId = await validateBuild(
+      req.app.locals.db,
+      req.body?.buildId,
+      projectId
+    );
     const userId = actorId(req);
     const doc: PlaytestFeedbackDocument = {
       _id: new ObjectId(),
       projectId,
+      ...(buildId ? { buildId } : {}),
       userId,
       rating,
       comments,
@@ -87,7 +111,14 @@ playtestFeedbackRouter.patch(
       throw httpError(403, "You can only update your own feedback");
     }
     const update: Partial<PlaytestFeedbackDocument> = {};
-    if (req.body?.rating !== undefined) update.rating = parseRating(req.body.rating);
+    if (req.body?.buildId !== undefined)
+      update.buildId = await validateBuild(
+        req.app.locals.db,
+        req.body.buildId,
+        existing.projectId
+      );
+    if (req.body?.rating !== undefined)
+      update.rating = parseRating(req.body.rating);
     if (req.body?.comments !== undefined) {
       update.comments = optionalString(req.body.comments, "comments") ?? "";
     }

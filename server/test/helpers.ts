@@ -45,7 +45,10 @@ export interface RegisteredUser {
 }
 
 export async function startApi(): Promise<TestContext> {
-  const mongod = await MongoMemoryServer.create();
+  // TCP is sufficient for the isolated test client; do not create a Unix socket.
+  const mongod = await MongoMemoryServer.create({
+    instance: { args: ["--nounixsocket"] },
+  });
   const client = new MongoClient(mongod.getUri());
   await client.connect();
   const db = client.db("mern");
