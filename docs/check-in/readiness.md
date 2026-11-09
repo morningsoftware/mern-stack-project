@@ -2,6 +2,8 @@
 
 Prepared November 9, 2026. This is an evidence-based check-in package, not a claim of a finished project or a guaranteed grade.
 
+**Later November 9 update:** the separate Expo/React Native companion is now implemented on `feat/mobile-playtesting`. Read `mobile/README.md` and `docs/local-verification.md` for current evidence and remaining native-device acceptance. The original audit below predates that implementation and the new Lighthouse runs; its mobile/Lighthouse rows describe that earlier baseline. Email verification/recovery remain absent. Local test results do not imply deployment or a completed phone demo.
+
 ## Current state
 
 Main at the reviewed baseline is `3e02a9f`. The integrated repair branch combines the advanced Checkpoint workflows and Demetri's GitHub integration with the current deployment workflow. It restores production root `.env` loading, runs TypeScript through a stable PM2 ecosystem definition, adds three type-check gates plus frontend tests to deployment, fixes production GitHub return URLs, updates the endpoint audit for TypeScript/multiple routers, and applies the approved checkpoint logo. It remains separate from production until review, merge and deployment.

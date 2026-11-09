@@ -4,12 +4,12 @@ H2,Dashboard and task board,Frontend,2026-11-01,2026-11-02,Historical,H1,Commits
 H3,Advanced collaboration and permissions,API + frontend,2026-11-01,2026-11-05,Historical,H2,Release branch plus GitHub integration
 H4,TypeScript integration and deployment automation,Deployment,2026-11-07,2026-11-09,Historical,H3,"PRs 5, 6, 7 and 8 merged"
 P1,Review and deploy integrated repair branch,API + deployment,2026-11-09,2026-11-10,Proposed,H4,Required reviewer approval; fresh production persistence and restart checks
-P2,Confirm mobile repository and device baseline,Mobile owner to be confirmed,2026-11-09,2026-11-10,Proposed,,"Repository link, owner, executable app and API connection"
+P2,Confirm mobile device baseline,Mobile owner to be confirmed,2026-11-09,2026-11-10,App implemented locally; device verification pending,,Expo companion in mobile/; named owner; executable phone/emulator and API connection
 P3,Instructor check-in and first rehearsal,All members,2026-11-10,2026-11-10,Proposed,P1,Demonstrate actual state and record instructor feedback
 P4,Email verification and password recovery,API + frontend + mobile,2026-11-10,2026-11-13,Proposed,P1,Real email delivery; expiring single-use tokens; expired/reused-token tests
-P5,Mobile quick workflows and device test,Mobile + API,2026-11-10,2026-11-14,Proposed,P2,"Login, own task status, structured bugs/screenshots and feedback review"
+P5,Mobile quick workflows and device test,Mobile + API,2026-11-10,2026-11-14,Implemented locally; native device walkthrough pending,P2,Sign-in; build/session feedback; structured bugs/screenshots; own-report status on real device
 P6,SwaggerHub and endpoint evidence,API,2026-11-12,2026-11-14,Proposed,P4,Current schema; execute a live HTTPS endpoint from SwaggerHub
-P7,"Browser, accessibility and Lighthouse",Frontend + QA,2026-11-13,2026-11-16,Proposed,P4,Save desktop/mobile reports and achieve required score thresholds
+P7,"Browser, accessibility and Lighthouse",Frontend + QA,2026-11-13,2026-11-16,44 local web reports complete; production/device gate remains,P4,Local scores 99–100 Performance and 100 A11y/BP/SEO; rerun on deployed site after remaining changes
 P8,Device and production regression,All members,2026-11-15,2026-11-17,Proposed,P5;P6;P7,"Persistence, permissions, uploads and recovery verified after deployment"
 P9,"Final diagrams, deck and two timed rehearsals",All members,2026-11-16,2026-11-18,Proposed,P8,Confirm roster and all roles; every member speaks; keep rehearsal log
 P10,Release evidence and submission package,All members,2026-11-18,2026-11-19,Proposed,P9,Final date and submission deadline still require instructor confirmation

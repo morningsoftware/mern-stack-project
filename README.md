@@ -1,5 +1,13 @@
 # Checkpoint — MERN Stack Project (Group 9)
 
+## Mobile and local verification
+
+The separate React Native/Expo playtesting companion is in [`mobile/`](mobile/README.md): bug reports, screenshot attachments, build/session feedback and own-report tracking. Desktop keeps planning and project administration. Physical-device walkthrough is a separate remaining acceptance gate.
+
+After `npm ci`, `npm ci --prefix server` and `npm ci --prefix client`, run `npm run demo:local` and open <http://localhost:4002>. This starts a populated, isolated temporary MongoDB/API and the production frontend build; no production database or secrets are used. Accounts: `demo`, `sam`, `tester`; sample password: `checkpoint-demo`.
+
+Install `npm ci --prefix tools/quality` to run `npm run audit:web` (all desktop/mobile web views) or `npm run test:mobile:e2e` (also requires `npm ci --prefix mobile`). See [`docs/local-verification.md`](docs/local-verification.md) for evidence boundaries and reports. These commands are for development, not production deployment.
+
 ## Quick Start
 
 ### MacOS:

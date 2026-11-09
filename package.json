@@ -4,7 +4,10 @@
     "db:seed": "tsx database/data.ts",
     "db:migrate-user": "tsx database/migrateMongoUser.ts",
     "db:migrate-schema": "tsx database/migrateDropletSchema.ts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "demo:local": "node tools/quality/run-local.mjs",
+    "audit:web": "node tools/quality/run-isolated.mjs lighthouse",
+    "test:mobile:e2e": "node tools/quality/run-isolated.mjs mobile-smoke"
   },
   "dependencies": {
     "dotenv": "^18.0.9",

@@ -17,8 +17,9 @@ const db = client.db("mern");
 await ensureIndexes(db);
 const app = createApp(db);
 const port = Number(process.env.CHECKPOINT_DEMO_PORT || 4002);
+const host = process.env.CHECKPOINT_DEMO_HOST || "127.0.0.1";
 const server = await new Promise((resolve, reject) => {
-  const listener = app.listen(port, "127.0.0.1", () => resolve(listener));
+  const listener = app.listen(port, host, () => resolve(listener));
   listener.on("error", reject);
 });
 const origin = `http://127.0.0.1:${port}`;

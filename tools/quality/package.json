@@ -1,0 +1,13 @@
+{
+  "devDependencies": {
+    "lighthouse": "^13.6.0",
+    "puppeteer": "^25.16.0"
+  },
+  "name": "checkpoint-quality",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "lighthouse": "node lighthouse.mjs",
+    "smoke": "node smoke.mjs"
+  }
+}
