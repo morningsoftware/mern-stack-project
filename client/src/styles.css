@@ -216,6 +216,7 @@ hr {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  text-transform: capitalize;
 }
 .sidebar-footer .text-button {
   justify-self: end;
@@ -495,6 +496,24 @@ progress {
   color: #2d5734;
   border-color: #94ae8b;
 }
+.badge-high {
+  background: #f7dfd6;
+  color: #7b291e;
+  border-color: #c28a77;
+}
+.badge-medium {
+  background: #f5e8bf;
+  color: #644c14;
+  border-color: #c5b16f;
+}
+.badge-low {
+  background: #e9eddf;
+  color: #374c32;
+  border-color: #a4ae93;
+}
+.role-label {
+  text-transform: capitalize;
+}
 .empty-state {
   padding: 28px 8px;
   text-align: center;
@@ -546,6 +565,8 @@ progress {
   display: flex;
   align-items: center;
   gap: 8px;
+  min-height: 42px;
+  padding: 0 4px;
   cursor: pointer;
 }
 .toggle-filter input {
@@ -680,6 +701,12 @@ button.card-title:hover {
   margin-top: 22px;
   border-top: 1px solid var(--border);
   padding-top: 16px;
+}
+.create-work-note {
+  margin-top: 22px;
+}
+.create-work-note p {
+  margin: 0 0 10px;
 }
 .create-work summary {
   cursor: pointer;

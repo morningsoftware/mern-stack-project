@@ -78,48 +78,57 @@ export function TeamScreen({
             {members.map((member) => (
               <li key={member._id}>
                 <span>{nameFor(member.userId)}</span>
-                <span className="meta">{member.role}</span>
+                <span className="meta role-label">{member.role}</span>
               </li>
             ))}
           </ul>
-          <form onSubmit={addMember}>
-            <fieldset
-              className="stack"
-              disabled={loading || pending || !availableUsers.length}
-            >
-              <Field label="User">
-                <select
-                  value={selectedUserId}
-                  onChange={(event) =>
-                    setMemberForm({ ...memberForm, userId: event.target.value })
-                  }
-                >
-                  {availableUsers.map((user) => (
-                    <option key={user._id} value={user._id}>
-                      {user.displayName} ({user.username})
-                    </option>
-                  ))}
-                </select>
-              </Field>
-              <Field label="Member role">
-                <select
-                  value={memberForm.role}
-                  onChange={(event) =>
-                    setMemberForm({ ...memberForm, role: event.target.value })
-                  }
-                >
-                  {MEMBER_ROLES.map((role) => (
-                    <option key={role} value={role}>
-                      {role}
-                    </option>
-                  ))}
-                </select>
-              </Field>
-              <button type="submit">
-                {pending ? "Saving…" : "Add member"}
-              </button>
-            </fieldset>
-          </form>
+          {!loading && availableUsers.length === 0 ? (
+            <p className="meta">
+              Everyone in the workspace is already on this team.
+            </p>
+          ) : (
+            <form onSubmit={addMember}>
+              <fieldset
+                className="stack"
+                disabled={loading || pending || !availableUsers.length}
+              >
+                <Field label="User">
+                  <select
+                    value={selectedUserId}
+                    onChange={(event) =>
+                      setMemberForm({
+                        ...memberForm,
+                        userId: event.target.value,
+                      })
+                    }
+                  >
+                    {availableUsers.map((user) => (
+                      <option key={user._id} value={user._id}>
+                        {user.displayName} ({user.username})
+                      </option>
+                    ))}
+                  </select>
+                </Field>
+                <Field label="Member role">
+                  <select
+                    value={memberForm.role}
+                    onChange={(event) =>
+                      setMemberForm({ ...memberForm, role: event.target.value })
+                    }
+                  >
+                    {MEMBER_ROLES.map((role) => (
+                      <option key={role} value={role}>
+                        {role}
+                      </option>
+                    ))}
+                  </select>
+                </Field>
+                <button type="submit">
+                  {pending ? "Saving…" : "Add member"}
+                </button>
+              </fieldset>
+            </form>
+          )}
         </section>
         <section className="panel">
           <p className="eyebrow">Development</p>

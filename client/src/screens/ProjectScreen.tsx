@@ -310,79 +310,95 @@ export function ProjectScreen({
                 patch(`/api/tasks/${id}`, { status })
               }
             />
-            <details className="create-work">
-              <summary>Add a task</summary>
-              <form
-                className="stack"
-                onSubmit={(event) => {
-                  event.preventDefault();
-                  submit(
-                    "/api/tasks",
-                    { ...task, projectId: project._id },
-                    () => setTask({ ...task, title: "", description: "" })
-                  );
-                }}
-              >
-                <Field label="Task title">
-                  <input
-                    value={task.title}
-                    onChange={(event) =>
-                      setTask({ ...task, title: event.target.value })
-                    }
-                    required
-                  />
-                </Field>
-                <Field label="Milestone">
-                  <select
-                    value={task.milestoneId}
-                    onChange={(event) =>
-                      setTask({ ...task, milestoneId: event.target.value })
-                    }
-                    required
-                  >
-                    <option value="">Select a milestone</option>
-                    {milestones.map((item) => (
-                      <option key={item._id} value={item._id}>
-                        {item.name}
-                      </option>
-                    ))}
-                  </select>
-                </Field>
-                <Field label="Assignee">
-                  <select
-                    value={task.assigneeId}
-                    onChange={(event) =>
-                      setTask({ ...task, assigneeId: event.target.value })
-                    }
-                    required
-                  >
-                    {users.map((user) => (
-                      <option key={user._id} value={user._id}>
-                        {user.displayName}
-                      </option>
-                    ))}
-                  </select>
-                </Field>
-                <Field label="Priority">
-                  <select
-                    value={task.priority}
-                    onChange={(event) =>
-                      setTask({
-                        ...task,
-                        priority: event.target.value as TaskPriority,
-                      })
-                    }
-                  >
-                    {PRIORITIES.map((priority) => (
-                      <option key={priority} value={priority}>
-                        {priority}
-                      </option>
-                    ))}
-                  </select>
-                </Field>
-                <button type="submit">Add task</button>
-              </form>
-            </details>
+            {!loading && milestones.length === 0 ? (
+              <div className="empty-notice create-work-note">
+                <p>
+                  Create a milestone before adding tasks so every task has a
+                  home.
+                </p>
+                <button
+                  type="button"
+                  className="secondary"
+                  onClick={() => onViewChange("milestones")}
+                >
+                  Go to milestones
+                </button>
+              </div>
+            ) : (
+              <details className="create-work">
+                <summary>Add a task</summary>
+                <form
+                  className="stack"
+                  onSubmit={(event) => {
+                    event.preventDefault();
+                    submit(
+                      "/api/tasks",
+                      { ...task, projectId: project._id },
+                      () => setTask({ ...task, title: "", description: "" })
+                    );
+                  }}
+                >
+                  <Field label="Task title">
+                    <input
+                      value={task.title}
+                      onChange={(event) =>
+                        setTask({ ...task, title: event.target.value })
+                      }
+                      required
+                    />
+                  </Field>
+                  <Field label="Milestone">
+                    <select
+                      value={task.milestoneId}
+                      onChange={(event) =>
+                        setTask({ ...task, milestoneId: event.target.value })
+                      }
+                      required
+                    >
+                      <option value="">Select a milestone</option>
+                      {milestones.map((item) => (
+                        <option key={item._id} value={item._id}>
+                          {item.name}
+                        </option>
+                      ))}
+                    </select>
+                  </Field>
+                  <Field label="Assignee">
+                    <select
+                      value={task.assigneeId}
+                      onChange={(event) =>
+                        setTask({ ...task, assigneeId: event.target.value })
+                      }
+                      required
+                    >
+                      {users.map((user) => (
+                        <option key={user._id} value={user._id}>
+                          {user.displayName}
+                        </option>
+                      ))}
+                    </select>
+                  </Field>
+                  <Field label="Priority">
+                    <select
+                      value={task.priority}
+                      onChange={(event) =>
+                        setTask({
+                          ...task,
+                          priority: event.target.value as TaskPriority,
+                        })
+                      }
+                    >
+                      {PRIORITIES.map((priority) => (
+                        <option key={priority} value={priority}>
+                          {priority}
+                        </option>
+                      ))}
+                    </select>
+                  </Field>
+                  <button type="submit">Add task</button>
+                </form>
+              </details>
+            )}
           </section>
           <section className="panel" hidden={view !== "bugs"}>
             <h2>Bug reports</h2>
@@ -397,7 +413,9 @@ export function ProjectScreen({
                     >
                       {item.title}
                     </button>{" "}
-                    <span className="badge">{item.severity}</span>
+                    <span className={`badge badge-${item.severity}`}>
+                      {item.severity}
+                    </span>
                   </span>
                   <select
                     aria-label={`Status for ${item.title}`}

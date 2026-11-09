@@ -62,10 +62,11 @@ export function AuthScreen({ onReady }: { onReady: (user: User) => void }) {
         Sign in to manage teams, projects, tasks, bugs, and playtest feedback.
       </p>
       <div className="panel">
-        <div className="auth-switch" aria-label="Account access">
+        <div className="auth-switch" role="group" aria-label="Account access">
           <button
             type="button"
             className={mode === "login" ? "" : "secondary"}
+            aria-pressed={mode === "login"}
             disabled={pending}
             onClick={() => {
               setMode("login");
@@ -77,6 +78,7 @@ export function AuthScreen({ onReady }: { onReady: (user: User) => void }) {
           <button
             type="button"
             className={mode === "register" ? "" : "secondary"}
+            aria-pressed={mode === "register"}
             disabled={pending}
             onClick={() => {
               setMode("register");
