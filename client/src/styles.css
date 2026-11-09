@@ -237,12 +237,6 @@ hr {
 .brand > span:nth-child(2) {
   min-width: 0;
 }
-.brand small {
-  color: var(--sidebar-muted);
-  font-size: 0.7rem;
-  font-weight: 400;
-  margin-top: 3px;
-}
 .brand-mark {
   display: grid;
   place-items: center;
@@ -354,6 +348,7 @@ hr {
 }
 .theme-toggle.brand-theme {
   margin-left: auto;
+  border-color: var(--brand-mark-border);
   color: var(--sidebar-text);
 }
 .theme-toggle.brand-theme:hover {

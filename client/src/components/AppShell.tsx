@@ -71,9 +71,7 @@ export function AppShell({
           <span className="brand-mark" aria-hidden="true">
             C
           </span>
-          <span>
-            Checkpoint<small>Studio workspace</small>
-          </span>
+          <span>Checkpoint</span>
           <ThemeToggle
             theme={theme}
             onToggle={onToggleTheme}
