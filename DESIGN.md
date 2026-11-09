@@ -250,7 +250,7 @@ The dedicated mobile app, email verification/recovery, real browser/device valid
 
 ## Mobile playtesting companion — November 9
 
-The user authorized a separate mobile app focused on bug reporting and simple playtesting, with a smaller scope than desktop. `mobile/` is Expo SDK 57 / React Native with Expo Router. Keep the paper/forest/rust palette, existing wordmark, 4px corners and text-based states. A square app icon uses a geometric check/flag source in `mobile/assets/checkpoint-icon.svg`; the original horizontal wordmark remains unchanged.
+The user authorized a separate mobile app focused on bug reporting and simple playtesting, with a smaller scope than desktop. `mobile/` is Expo SDK 58 / React Native with Expo Router. SDK 58 replaces the original SDK 57 baseline to match the Expo Go version observed on the team phone. Keep the paper/forest/rust palette, existing wordmark, 4px corners and text-based states. A square app icon uses a geometric check/flag source in `mobile/assets/checkpoint-icon.svg`; the original horizontal wordmark remains unchanged.
 
 Mobile flow: sign in or register as a playtester → search projects → choose a build/session → submit rating/comments or structured bug → optionally attach a screenshot → follow own report status. Desktop retains team management, planning/assignments, feedback triage and GitHub management. Do not add desktop navigation or a WebView to this app.
 

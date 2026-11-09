@@ -1,12 +1,12 @@
 # checkpoint mobile — playtesting companion
 
-This is a separate Expo SDK 57 / React Native application in the team repository. It uses the existing Express/MongoDB API. It is not the desktop site in a WebView.
+This is a separate Expo SDK 58 / React Native application in the team repository. It uses the existing Express/MongoDB API. It is not the desktop site in a WebView.
 
 Included: existing-account sign-in, playtester registration, project search, build links/release notes, open playtest sessions, rating/comments feedback, structured bug reports, own-report status tracking, and up to three authenticated screenshot attachments/removal. Team/project administration, planning boards, assignments and GitHub management stay on desktop. Feedback review/triage also stays on desktop.
 
 ## Run on your Mac and phone
 
-Use Node 22.13+ (current Node 22 LTS recommended).
+Use Node 24 LTS (or Node 22.19+). Node 25 is outside the supported engine range of some Expo lint dependencies.
 
 ```bash
 cd "$HOME/checkpoint-review"
@@ -15,7 +15,7 @@ cd mobile
 npx expo start --lan
 ```
 
-Install Expo Go on your phone and scan the QR code. SDK 57 was chosen to match Expo's currently documented physical-device Expo Go setup. If Expo Go reports a version mismatch, follow the version-specific Expo instructions; do not upgrade dependencies individually. The Mac and phone must be able to reach the development server. The default API is `https://checkpoint.morning.codes`; use your existing account, or create a playtester account. New-account verification/recovery are not implemented by this mobile branch.
+Install Expo Go on your phone and scan the QR code. This branch targets SDK 58 to match the installed Expo Go version observed on the team phone. Keep the Expo SDK and its native dependency versions aligned; do not upgrade individual native packages independently. The Mac and phone must be able to reach the development server. The default API is `https://checkpoint.morning.codes`; use your existing account, or create a playtester account. New-account verification/recovery are not implemented by this mobile branch.
 
 **PR #10's shared API must be deployed** before using advanced session/screenshot features against production. This branch includes that repair baseline and should be reviewed after it. This work does not merge or deploy it.
 
@@ -74,3 +74,7 @@ Photo attachment is an explicit second step after a report is saved, so an uploa
 - Change the report's status on desktop; refresh My bug reports on the phone.
 - Try a closed/expired session and a disconnected network; confirm clear errors and preserved drafts.
 - Record device/OS, account role, API origin, date, results and failures. Do not mark the native-device gate complete until this is done.
+
+## iOS Simulator fallback
+
+After Xcode finishes installing, launch Xcode once to complete first-run setup and install an iOS simulator runtime if prompted. Start Metro with an API origin reachable from the simulator, such as `EXPO_PUBLIC_API_URL=http://127.0.0.1:4002 npx expo start --clear`, then press `i`. Keep the local API running. Simulator execution is a separate acceptance check; it was not executed in this environment.
