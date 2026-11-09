@@ -542,11 +542,6 @@ progress {
 .workspace-grid > .panel {
   max-width: 100%;
 }
-.workspace-grid > .panel:has(.work-board) {
-  background: transparent;
-  border: 0;
-  padding: 0;
-}
 .workspace-grid .stack {
   max-width: 480px;
 }

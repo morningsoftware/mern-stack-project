@@ -48,7 +48,9 @@ The desktop sidebar stays pinned to the viewport with its own scroll area, and
 the profile/sign-out block remains anchored at its bottom regardless of page
 length. The workspace bar also stays visible while the work area scrolls.
 Changing teams, projects, or project views returns the work area to the top and
-focuses the main landmark.
+focuses the main landmark. The task board shares the standard panel frame with
+the milestones, bugs, and feedback tabs so their headings begin at the same
+inset.
 
 Overview totals form a compact ledger rather than four decorative cards. Use
 16–24px spacing and thin separators. Artwork and logos require separate approval.
