@@ -1,144 +1,90 @@
 # Design Specification
 
-This document is the authoritative design specification for the project. It
-defines the visual language and interaction patterns for everything
-user-facing. [`AGENTS.md`](./AGENTS.md) requires contributors to read this file
-before any UI, styling, or user-facing copy work, and to update it whenever a
-design decision is made.
+## Approved direction
 
-## How to Use This Document
+The user approved a Codecks-inspired indie-studio personality combined with a
+HacknPlan-style production workspace. This replaces the initial charcoal/violet
+dashboard direction. Keep **MERN Stack Project** until the team approves branding.
 
-- Every defined value here as a rule, not a suggestion.
-- Reference the section name in review comments when requesting a change.
-- Add new sections as the design language grows; keep the table of contents in
-  sync.
-- Record decisions with their rationale.
+The implementation uses warm paper surfaces, forest-green navigation, rust
+controls, compact work cards, and restrained serif project headings. Its main
+screen is the task board. Inspiration informs hierarchy and tone, not copied
+brand assets or proprietary artwork.
 
-## Contents
+## Principles
 
-1. [Design Principles](#design-principles)
-2. [Color](#color)
-3. [Typography](#typography)
-4. [Spacing & Layout](#spacing--layout)
-5. [Components](#components)
-6. [Iconography](#iconography)
-7. [Motion](#motion)
-8. [Accessibility](#accessibility)
-9. [Voice & Tone](#voice--tone)
-10. [Decision Log](#decision-log)
-11. [Open Questions](#open-questions)
+- Show actual development work before decorative metrics.
+- Use project context and plain labels instead of promotional slogans.
+- Keep counts derived from API data; never invent activity, art, or builds.
+- Use text alongside color for every state and priority.
+- Keep native controls and keyboard-accessible alternatives to gestures.
 
-## Design Principles
+## Color and typography
 
-_To be defined._
+| Role                | Value     | Usage                   |
+| ------------------- | --------- | ----------------------- |
+| Canvas              | `#f3f0e7` | Warm paper background   |
+| Surface             | `#fcfaf4` | Forms and detail panels |
+| Navigation          | `#283c31` | Forest sidebar          |
+| Primary text        | `#29332b` | Ink-colored body copy   |
+| Muted text          | `#5e6759` | Secondary information   |
+| Borders             | `#c9ccbb` | Quiet divisions         |
+| Accent              | `#934125` | Rust primary actions    |
+| Selected navigation | `#e7dba9` | Warm yellow on forest   |
 
-Guiding values that resolve ambiguous design decisions. Example format:
+Use system sans-serif for controls/body copy, Georgia for project headings and
+small overview totals, and system monospace for short record identifiers. No
+remote font downloads. Use 3–4px corner radii and minimal shadows. Avoid gradients,
+large matching KPI cards, arbitrary numbered menus, and oversized uppercase copy.
 
-- **Clarity over decoration.** Prefer legible, obvious interfaces to visual
-  flourishes.
-- **Consistency beats novelty.** Reuse existing patterns before creating new
-  ones.
+## Layout
 
-## Color
+Desktop: a 234px sidebar with a flexible work area. The board uses three status
+columns: To do, In progress, Done. Under 1150px, columns stack; under 760px,
+navigation moves above content and wraps. Filters wrap and inputs retain usable
+width. Detail drawers occupy the right edge on desktop and the screen on mobile.
 
-_To be defined._
+Overview totals form a compact ledger rather than four decorative cards. Use
+16–24px spacing and thin separators. Artwork and logos require separate approval.
 
-Document the palette, semantic roles, and usage rules. Example format:
+## Features and contracts
 
-| Token             | Value     | Role                                |
-| ----------------- | --------- | ----------------------------------- |
-| `--color-primary` | `#______` | Primary actions, active states      |
-| `--color-bg`      | `#______` | Page background                     |
-| `--color-text`    | `#______` | Default body text                   |
-| `--color-danger`  | `#______` | Errors and destructive actions      |
+- `features/work/TaskBoard.jsx`: search title/description, assignee, priority,
+  milestone, and My work filters. Filters combine and can be cleared. They operate
+  on the loaded project records, not the complete database.
+- Status selectors move tasks between columns through existing PATCH endpoints.
+  Drag/drop is not required; every move works with a keyboard and touch.
+- `features/work/ItemDrawer.jsx`: fetch fresh task/bug detail, edit existing API
+  fields, save, or cancel. Native modal dialog provides focus containment/Escape.
+  Return focus on close and preserve edits when a save fails.
+- `features/work/BuildLibrary.jsx`: version, platform, release notes, HTTPS link.
+  The user approved external links rather than storing uploaded game binaries.
+  Feedback can optionally reference a build in the same project.
+- React state still controls navigation. Deep links remain separate scope.
+- No new runtime UI libraries. Existing API contracts remain compatible; build
+  endpoints and optional feedback buildId are additive.
 
-Rules to define:
+## Accessibility and errors
 
-- Light/dark mode support and how colors map between them.
-- Contrast requirements (see [Accessibility](#accessibility)).
-- Which colors are off-limits for text, backgrounds, or states.
+Use visible focus outlines, a skip link, semantic landmarks, associated labels,
+status/alert messages, and at least 42px controls (36px for compact card selects).
+Native dialogs provide keyboard focus containment; browser testing is required
+because DOM fixtures do not simulate top-layer or layout behavior. Disable
+submissions during mutations. Never move a card on a failed server response.
+Respect reduced motion. WCAG AA and Lighthouse >=95 remain acceptance targets,
+not claimed scores.
 
-## Typography
+## Approved decisions and remaining scope
 
-_To be defined._
+| Decision                             | Reason                                     |
+| ------------------------------------ | ------------------------------------------ |
+| Warm indie studio + production board | User approved B+C references               |
+| Keep product name                    | Permanent branding remains a team decision |
+| Board first, overview second         | Work is more useful than generic metrics   |
+| External build links                 | User chose links over file storage         |
+| Optional build-specific feedback     | Existing general feedback stays compatible |
 
-Document font families, sizes, weights, line heights, and usage. Example
-format:
-
-| Token             | Family | Size   | Weight | Line height | Use            |
-| ----------------- | ------ | ------ | ------ | ----------- | -------------- |
-| `--font-heading`  | `____` | `__px` | `___`  | `___`       | Page headings  |
-| `--font-body`     | `____` | `__px` | `___`  | `___`       | Body copy      |
-
-Rules to define:
-
-- Type scale and responsive adjustments.
-- Fallback fonts and loading strategy.
-- Maximum line length for readability.
-
-## Spacing & Layout
-
-_To be defined._
-
-Document the spacing scale, grid, breakpoints, and container rules. Example
-format:
-
-| Token          | Value  | Use                          |
-| -------------- | ------ | ---------------------------- |
-| `--space-xs`   | `_px`  | Tight spacing inside inputs  |
-| `--space-md`   | `_px`  | Default component spacing    |
-
-Rules to define:
-
-- Base spacing unit and allowed multiples.
-- Breakpoints and mobile-first behavior.
-- Maximum content width and alignment.
-
-## Components
-
-_To be defined._
-
-For each shared component (buttons, inputs, cards, modals, navigation, etc.),
-document:
-
-- Purpose and when to use it (and when not to).
-- Variants, sizes, and states (default, hover, focus, active, disabled,
-  loading, error).
-- Anatomy and spacing.
-- Accessibility requirements.
-- Code location, once implemented.
-
-## Iconography
-
-_To be defined._
-
-- Icon library or source.
-- Stroke/fill style, sizing, and alignment rules.
-- When icons may stand alone vs. require a text label.
-- Accessible labeling requirements.
-
-## Motion
-
-_To be defined._
-
-- Allowed durations and easing curves.
-- What should and should not animate.
-- Reduced-motion behavior.
-
-## Accessibility
-
-_To be defined._
-
-- Meet WCAG 2.1 AA contrast for text and interactive elements.
-- Every interactive element is keyboard reachable with a visible focus state.
-- Use semantic HTML before ARIA; label all non-text controls.
-- Never convey meaning through color alone.
-- Respect `prefers-reduced-motion`.
-
-## Voice & Tone
-
-_To be defined._
-
-- Product personality and tone for UI copy.
-- Terminology and capitalization rules.
-- Error, empty-state, and success message patterns.
+Uploads, comments/activity history, notifications, final branding, and URL routing
+remain separate scope. Backend authorization for older resources and account
+verification/recovery remain separate work. Build publishing/editing requires
+team membership; build reads use the existing authenticated project model.

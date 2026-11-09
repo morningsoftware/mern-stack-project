@@ -15,6 +15,7 @@ const COLLECTIONS = [
   "tasks",
   "bugReports",
   "playtestFeedback",
+  "builds",
 ] as const;
 
 async function setupDatabase(): Promise<void> {
@@ -131,6 +132,19 @@ async function setupDatabase(): Promise<void> {
     await db.collection("playtestFeedback").createIndex(
       { projectId: 1, createdOn: -1 },
       { name: "feedback_by_project_date" }
+    );
+
+    // BUILDS
+    // A project may publish each version only once per platform.
+    await db.collection("builds").createIndex(
+      { projectId: 1, version: 1, platform: 1 },
+      { unique: true, name: "unique_project_build_platform" }
+    );
+
+    // Retrieve a project's newest builds first.
+    await db.collection("builds").createIndex(
+      { projectId: 1, createdOn: -1 },
+      { name: "builds_by_project_date" }
     );
 
     console.log("Database setup completed successfully.");
