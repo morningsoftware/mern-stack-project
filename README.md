@@ -91,7 +91,8 @@ The workspace supports a persisted light/dark theme. It follows the system
 preference on first visit, can be toggled from the sidebar brand or the
 top-right of the sign-in screen, and stores the choice in `localStorage`.
 
-The signed-out screen lazy-loads a procedural three.js ink-terrain backdrop.
+The signed-out screen lazy-loads a procedural three.js particle-wave backdrop
+with flowing ink dots, rust crests, checkpoint rings, and pointer ripples.
 It is code-split from the main workspace bundle, pauses while the tab is
 hidden, and renders a static frame when reduced motion is requested. `three` is
 the only approved runtime UI dependency, scoped to this screen.

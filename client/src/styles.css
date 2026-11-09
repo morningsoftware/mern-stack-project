@@ -1238,6 +1238,10 @@ body,
   .item-drawer {
     padding: 18px;
   }
+  .auth-wrap {
+    margin: 6vh 16px;
+    padding: 20px;
+  }
 }
 @media (prefers-reduced-motion: reduce) {
   *,

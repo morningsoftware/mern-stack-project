@@ -78,9 +78,10 @@ Overview totals form a compact ledger rather than four decorative cards. Use
 - `features/work/BuildLibrary.tsx`: version, platform, release notes, HTTPS link.
   The user approved external links rather than storing uploaded game binaries.
   Feedback can optionally reference a build in the same project.
-- `components/AuthBackdrop.tsx`: a procedurally generated ink-terrain backdrop
-  for the signed-out screen. It is theme-aware, pauses when hidden, renders a
-  static frame under reduced motion, and must not enter the signed-in bundle.
+- `components/AuthBackdrop.tsx`: a procedural particle-wave scene for the
+  signed-out screen with flowing ink dots, rust crests, checkpoint rings, and
+  pointer ripples. It is theme-aware, pauses when hidden, renders a static
+  frame under reduced motion, and must not enter the signed-in bundle.
 - React state still controls navigation. Deep links remain separate scope.
 - No new runtime UI libraries except `three`, explicitly approved for the
   lazy-loaded auth backdrop only. Existing API contracts remain compatible;
@@ -108,10 +109,10 @@ Use restrained, standard expressiveness rather than decorative looping
 animation. Screens and tabs fade in with a 3–7px rise over 140–240ms; drawers
 slide in from the right; controls transition background, border, and color;
 work cards lift 1px on hover. The three.js auth backdrop is the only ambient
-animation: its terrain continuously morphs, checkpoint markers emit traveling
-ripples, and the pointer creates a local dent and depth parallax. All CSS motion
-and the backdrop respect reduced-motion preferences, and the backdrop pauses
-while the tab is hidden.
+animation: a field of ink particles flows in layered waves with rust crests,
+checkpoint rings ride the surface, and the pointer stirs ripples with a splash
+on press and depth parallax. All CSS motion and the backdrop respect
+reduced-motion preferences, and the backdrop pauses while the tab is hidden.
 
 ## Approved decisions and remaining scope
 
