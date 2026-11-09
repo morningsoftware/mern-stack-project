@@ -47,6 +47,7 @@ const user = {
 let rejectStatus = false;
 let db = {
   teams: [{ _id: "t1", name: "Pixel Forge", description: "An indie studio" }],
+  members: [{ _id: "tm1", userId: "u1", role: "owner" }],
   projects: [
     {
       _id: "p1",
@@ -97,8 +98,7 @@ global.fetch = async (path, options = {}) => {
   if (p === "auth/me") data = { user };
   else if (p === "auth/login") data = { user, token: "fixture" };
   else if (p === "users") data = [user, { _id: "u2", displayName: "Sam Chen" }];
-  else if (p === "teams/t1/members")
-    data = [{ _id: "tm1", userId: "u1", role: "owner" }];
+  else if (p === "teams/t1/members") data = db.members;
   else if (options.method === "PATCH") {
     if (rejectStatus) {
       status = 500;
@@ -348,5 +348,60 @@ test("board filters, task and bug detail drawers, and linked build feedback", as
     await tick();
   });
   assert.equal(db["playtest-feedback"].at(-1).buildId, db.builds[0]._id);
+  await click("Milestones");
+  assert.equal(
+    document
+      .querySelector('select[aria-label="Status for Playable prototype"]')
+      .selectedOptions[0].textContent.trim(),
+    "in progress",
+  );
+  assert.equal(document.title, "Starfall · Checkpoint");
+  await act(async () => root.unmount());
+});
+
+test("empty project guidance and completed team membership", async () => {
+  db.projects = [
+    {
+      _id: "p1",
+      name: "Starfall",
+      description: "A 2D adventure",
+      status: "active",
+      teamId: "t1",
+    },
+  ];
+  db.milestones = [];
+  db.tasks = [];
+  db.members = [
+    { _id: "tm1", userId: "u1", role: "owner" },
+    { _id: "tm2", userId: "u2", role: "developer" },
+  ];
+  sessionStorage.setItem("mern_token", "fixture");
+  root = createRoot(document.getElementById("root"));
+  await act(async () => {
+    root.render(React.createElement(App));
+    await tick();
+  });
+  await click("Open");
+  assert(
+    document.body.textContent.includes(
+      "Everyone in the workspace is already on this team.",
+    ),
+  );
+  assert.equal(document.title, "Pixel Forge · Checkpoint");
+  await click("Open");
+  assert.equal(document.title, "Starfall · Checkpoint");
+  assert(
+    document.body.textContent.includes(
+      "Create a milestone before adding tasks",
+    ),
+  );
+  assert.equal(document.querySelector(".create-work form"), null);
+  await click("Go to milestones");
+  assert.equal(
+    document
+      .querySelector('.sidebar button[aria-current="page"]')
+      .textContent.trim(),
+    "Milestones",
+  );
   await act(async () => root.unmount());
 });
