@@ -57,7 +57,7 @@ export function AuthScreen({ onReady }: { onReady: (user: User) => void }) {
   return (
     <main id="main-content" className="auth-wrap">
       <p className="eyebrow">Studio sign in</p>
-      <h1>MERN Stack Project</h1>
+      <h1>Checkpoint</h1>
       <p>
         Sign in to manage teams, projects, tasks, bugs, and playtest feedback.
       </p>

@@ -51,7 +51,7 @@ export function AppShell({
             M
           </span>
           <span>
-            MERN Stack Project<small>Studio workspace</small>
+            Checkpoint<small>Studio workspace</small>
           </span>
         </div>
         <p className="nav-label">Workspace</p>
