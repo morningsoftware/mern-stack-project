@@ -80,7 +80,11 @@ export function BuildLibrary({
                   {build.releaseNotes || "No release notes provided."}
                 </p>
                 <small className="meta">
-                  {countLabel(feedbackCount, "feedback entry", "feedback entries")}
+                  {countLabel(
+                    feedbackCount,
+                    "feedback entry",
+                    "feedback entries"
+                  )}
                 </small>
                 <div className="build-actions">
                   {safeLink(build.downloadUrl) ? (
@@ -89,6 +93,7 @@ export function BuildLibrary({
                       href={build.downloadUrl}
                       target="_blank"
                       rel="noopener noreferrer"
+                      aria-label={`Open build ${build.version} in a new tab`}
                     >
                       Open build ↗
                     </a>
@@ -99,6 +104,7 @@ export function BuildLibrary({
                     type="button"
                     className="secondary"
                     disabled={pending}
+                    aria-label={`Give feedback on ${build.version}`}
                     onClick={() => onFeedback(build._id)}
                   >
                     Give feedback
@@ -107,6 +113,7 @@ export function BuildLibrary({
                     type="button"
                     className="text-button"
                     disabled={pending}
+                    aria-label={`Edit ${build.version}`}
                     onClick={() => {
                       setEditing(build._id);
                       setForm({

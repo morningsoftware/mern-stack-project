@@ -146,6 +146,7 @@ export function TeamScreen({
                   <button
                     type="button"
                     className="secondary"
+                    aria-label={`Open ${project.name}`}
                     onClick={() => onOpenProject(project)}
                   >
                     Open
