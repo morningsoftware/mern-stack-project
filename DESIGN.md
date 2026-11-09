@@ -78,11 +78,10 @@ Overview totals form a compact ledger rather than four decorative cards. Use
 - `features/work/BuildLibrary.tsx`: version, platform, release notes, HTTPS link.
   The user approved external links rather than storing uploaded game binaries.
   Feedback can optionally reference a build in the same project.
-- `components/AuthBackdrop.tsx`: a procedural falling-blocks scene for the
-  signed-out screen. Flat-shaded paper blocks fall, lock into a growing stack,
-  and clear rows; the pointer steers and rotates the active piece. It is
-  theme-aware, pauses when hidden, renders a static stack under reduced motion,
-  and must not enter the signed-in bundle.
+- `components/AuthBackdrop.tsx`: a lazy-loaded three.js canvas for the
+  signed-out screen. It ships as scene boilerplate — renderer, camera, resize,
+  reduced-motion, visibility pausing, pointer hooks, and cleanup — for
+  authoring a custom scene. It must not enter the signed-in bundle.
 - React state still controls navigation. Deep links remain separate scope.
 - No new runtime UI libraries except `three`, explicitly approved for the
   lazy-loaded auth backdrop only. Existing API contracts remain compatible;
@@ -110,10 +109,9 @@ Use restrained, standard expressiveness rather than decorative looping
 animation. Screens and tabs fade in with a 3–7px rise over 140–240ms; drawers
 slide in from the right; controls transition background, border, and color;
 work cards lift 1px on hover. The three.js auth backdrop is the only ambient
-animation: flat-shaded paper blocks fall in the spirit of Tetris, lock into a
-growing stack, and clear completed rows, while the pointer steers and rotates
-the active piece. All CSS motion and the backdrop respect reduced-motion
-preferences, and the backdrop pauses while the tab is hidden.
+animation and provides scene boilerplate for a custom signed-out scene. All CSS
+motion and the backdrop respect reduced-motion preferences, and the backdrop
+pauses while the tab is hidden.
 
 ## Approved decisions and remaining scope
 
