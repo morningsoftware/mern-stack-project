@@ -68,6 +68,29 @@ export function auth(token: string): { Authorization: string } {
   return { Authorization: `Bearer ${token}` };
 }
 
+export function setCookies(response: any): string[] {
+  const raw = response.headers?.["set-cookie"];
+  if (!raw) return [];
+  return Array.isArray(raw) ? raw : [raw];
+}
+
+export function cookieHeader(response: any): string {
+  return setCookies(response)
+    .map((cookie) => cookie.split(";")[0])
+    .join("; ");
+}
+
+export function cookieValue(response: any, name: string): string | undefined {
+  const prefix = `${name}=`;
+  for (const cookie of setCookies(response)) {
+    const pair = cookie.split(";")[0];
+    if (pair.startsWith(prefix)) {
+      return decodeURIComponent(pair.slice(prefix.length));
+    }
+  }
+  return undefined;
+}
+
 export async function registerUser(
   api: ApiClient,
   overrides: RegisterOverrides = {}

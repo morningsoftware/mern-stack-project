@@ -96,6 +96,8 @@ global.fetch = async (path, options = {}) => {
     data;
   if (p === "auth/me") data = { user };
   else if (p === "auth/login") data = { user, token: "fixture" };
+  else if (p === "auth/logout") data = { ok: true };
+  else if (p === "auth/oauth/providers") data = { providers: [] };
   else if (p === "users") data = [user, { _id: "u2", displayName: "Sam Chen" }];
   else if (p === "teams/t1/members")
     data = [{ _id: "tm1", userId: "u1", role: "owner" }];
@@ -159,7 +161,6 @@ async function change(label, value) {
   });
 }
 test("dashboard navigation, data updates, and failed status regression", async () => {
-  sessionStorage.setItem("mern_token", "fixture");
   await act(async () => {
     root.render(
       React.createElement(React.StrictMode, null, React.createElement(App)),
@@ -205,13 +206,11 @@ test("dashboard navigation, data updates, and failed status regression", async (
   await click("Overview");
   assert.equal(document.querySelector("progress").max, 2);
   await click("Sign out");
-  assert.equal(sessionStorage.getItem("mern_token"), null);
   assert(field("Username"));
   await act(async () => root.unmount());
   db.tasks = [];
   db.milestones = [];
   db["playtest-feedback"] = [];
-  sessionStorage.setItem("mern_token", "fixture");
   root = createRoot(document.getElementById("root"));
   await act(async () => {
     root.render(React.createElement(App));
@@ -253,7 +252,6 @@ test("board filters, task and bug detail drawers, and linked build feedback", as
     { _id: "m1", name: "Playable prototype", status: "in_progress" },
   ];
   db.builds = [];
-  sessionStorage.setItem("mern_token", "fixture");
   root = createRoot(document.getElementById("root"));
   await act(async () => {
     root.render(

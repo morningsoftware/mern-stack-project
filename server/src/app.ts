@@ -3,8 +3,12 @@ import { fileURLToPath } from "url";
 import express from "express";
 import type { Express, NextFunction, Request, Response } from "express";
 import cors from "cors";
+import passport from "passport";
 import type { Db } from "mongodb";
+import { configureOAuth } from "./oauth.js";
+import { checkRequestOrigin } from "./session.js";
 import { authRouter } from "./routes/auth.js";
+import { oauthRouter } from "./routes/oauth.js";
 import { buildsRouter } from "./routes/builds.js";
 import { bugReportsRouter } from "./routes/bugReports.js";
 import { milestonesRouter } from "./routes/milestones.js";
@@ -22,14 +26,23 @@ const clientDist = path.resolve(
 export function createApp(db: Db): Express {
   const app = express();
   app.locals.db = db;
-  app.use(cors());
+  app.locals.oauth = configureOAuth();
+
+  const clientOrigin =
+    app.locals.oauth.clientOrigin || process.env.CLIENT_ORIGIN?.trim();
+  app.use(
+    cors(clientOrigin ? { origin: clientOrigin, credentials: true } : {})
+  );
+  app.use(checkRequestOrigin);
   app.use(express.json());
+  app.use(passport.initialize());
 
   app.get("/api/health", (req, res) => {
     res.json({ ok: true });
   });
 
   app.use("/api/auth", authRouter);
+  app.use("/api/auth/oauth", oauthRouter);
   app.use("/api/users", usersRouter);
   app.use("/api/teams", teamsRouter);
   app.use("/api/projects", projectsRouter);

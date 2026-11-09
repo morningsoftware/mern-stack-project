@@ -88,3 +88,67 @@ Uploads, comments/activity history, notifications, final branding, and URL routi
 remain separate scope. Backend authorization for older resources and account
 verification/recovery remain separate work. Build publishing/editing requires
 team membership; build reads use the existing authenticated project model.
+
+## OAuth sign-in and account settings
+
+- Purpose: offer an alternate way to authenticate without replacing the
+  existing password form, and let signed-in users manage their sign-in methods.
+- Placement: OAuth provider links sit inside the existing auth panel below the
+  password form, preceded by “Or continue with”. Account settings open from the
+  **Account** action in the workspace sidebar.
+- Treatment: text-only provider links using the secondary button-link treatment.
+  Provider logos are intentionally omitted for now to avoid unofficial
+  branding; add official assets only with the provider’s current brand guidance.
+- Providers: only those returned by `GET /api/auth/oauth/providers` are shown,
+  so a provider that is not configured is never presented as an option.
+- Copy: “Continue with Google”, “Continue with GitHub”, and “Continue with
+  Discord”.
+- New-account onboarding: a full-page panel using the existing `.panel`,
+  `.stack`, and `Field` patterns. Email is read-only, username and display name
+  are editable, and role uses the existing `USER_ROLES` select.
+- Existing-account linking: a full-page password confirmation panel explaining
+  that the email already has an account and that the password is needed once to
+  link the provider.
+- Account settings: a workspace panel with password management and connected
+  accounts. Providers returned by `GET /api/auth/oauth/providers` that are not
+  linked appear below as **Link <Provider>** links.
+- Last sign-in method: when an account has no password and only one provider,
+  **Unlink** is disabled and the reason is stated in text. The server enforces
+  the same rule.
+- Accessibility: provider links are real anchors, keyboard reachable, and
+  labeled with text. Read-only email uses the existing disabled visual
+  treatment. Errors use `ErrorNote`; success messages use `role="status"`.
+- Code: `client/src/screens/AuthScreen.tsx`,
+  `client/src/screens/OAuthScreens.tsx`,
+  `client/src/screens/AccountScreen.tsx`, and
+  `client/src/components/AppShell.tsx`.
+
+## Decision Log
+
+- **2026-11-01 — OAuth sign-in:** Added Passport-based Google, GitHub, and
+  Discord sign-in. Provider emails must be verified. Existing password accounts
+  require a one-time password confirmation before a provider is linked; new
+  accounts complete an onboarding form before a user document is created. The
+  browser handoff uses hashed, single-use codes delivered in a URL fragment,
+  never a JWT in the URL. Rationale: preserve the existing JWT/Mongo auth flow
+  while avoiding account takeover through unverified local email registration.
+  Local email verification remains out of scope for this change.
+- **2026-11-09 — OAuth persistence hardening:** Added OAuth collections to
+  database setup, TTL indexes for expiring state/codes/challenges, and a unique
+  index on the provider account pair. Rationale: expire abandoned handoffs
+  automatically and make provider-account uniqueness a database guarantee
+  rather than an application-only check.
+- **2026-11-09 — Cookie sessions and CSRF:** Browser sessions now use an
+  httpOnly JWT cookie with a paired readable, HMAC-signed CSRF cookie and
+  same-origin checks on mutations. Bearer tokens remain for non-browser
+  clients. Rationale: sessionStorage exposes the token to script injection;
+  cookies keep it out of JavaScript while signed double-submit CSRF,
+  `SameSite=Lax`, and origin checks protect state-changing requests.
+- **2026-11-09 — Account settings:** Added a signed-in account screen for
+  password management and provider linking/unlinking. Unlinking the last
+  sign-in method is blocked until a password exists. Rationale: OAuth-created
+  accounts otherwise have no recovery path, and users need to manage provider
+  connections without starting a new sign-in flow.
+- **2026-11-09 — Account entry point:** Account settings open from the workspace
+  sidebar rather than the teams header so they remain reachable from every
+  project view. Rationale: the app shell owns global account actions.

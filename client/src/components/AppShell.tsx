@@ -20,6 +20,7 @@ export function AppShell({
   onViewChange,
   onTeams,
   onTeam,
+  onAccount,
   onSignOut,
   children,
 }: {
@@ -30,6 +31,7 @@ export function AppShell({
   onViewChange: (view: ProjectView) => void;
   onTeams: () => void;
   onTeam: () => void;
+  onAccount: () => void;
   onSignOut: () => void;
   children: ReactNode;
 }) {
@@ -99,6 +101,9 @@ export function AppShell({
             <strong>{user.displayName}</strong>
             <small>{user.role}</small>
           </div>
+          <button className="text-button" onClick={onAccount}>
+            Account
+          </button>
           <button className="text-button" onClick={onSignOut}>
             Sign out
           </button>
