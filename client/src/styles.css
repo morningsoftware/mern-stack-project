@@ -343,7 +343,8 @@ textarea {
 }
 select {
   width: fit-content;
-  min-width: 9rem;
+  min-width: 6rem;
+  field-sizing: content;
   text-overflow: ellipsis;
 }
 input::placeholder,
