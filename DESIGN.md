@@ -80,11 +80,11 @@ submissions during mutations. Never move a card on a failed server response.
 Respect reduced motion. WCAG AA and Lighthouse >=95 remain acceptance targets,
 not claimed scores.
 
-Dropdowns size to the selected value so the native indicator stays close to
-it; text inputs may still use the full form width. Values shown to people use
-readable labels such as "In progress" and "macOS" while API values remain
-unchanged. Empty states say what to do next and offer the relevant action when
-one exists.
+Dropdowns size to the selected value, and their chevron is inset by the same
+spacing used above and below it so it does not hug the control edge. Text inputs
+may still use the full form width. Values shown to people use readable labels
+such as "In progress" and "macOS" while API values remain unchanged. Empty
+states say what to do next and offer the relevant action when one exists.
 
 ## Approved decisions and remaining scope
 
