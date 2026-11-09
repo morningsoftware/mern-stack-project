@@ -3,6 +3,7 @@ import type { FormEvent } from "react";
 import { api } from "../../api";
 import type { ApiError } from "../../api";
 import { ErrorNote, Field } from "../../components/Forms";
+import { formatStatus } from "../../format";
 import {
   TASK_STATUSES,
   PRIORITIES,
@@ -175,7 +176,7 @@ export function ItemDrawer({
                 {(kind === "task" ? TASK_STATUSES : BUG_STATUSES).map(
                   (status) => (
                     <option key={status} value={status}>
-                      {status.replaceAll("_", " ")}
+                      {formatStatus(status)}
                     </option>
                   )
                 )}

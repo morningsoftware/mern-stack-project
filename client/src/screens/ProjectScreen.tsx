@@ -17,6 +17,7 @@ import type {
   TaskStatus,
 } from "../constants";
 import { ErrorNote, Field } from "../components/Forms";
+import { BUILD_PLATFORM_LABELS, formatStatus } from "../format";
 import { TaskBoard } from "../features/work/TaskBoard";
 import { ItemDrawer } from "../features/work/ItemDrawer";
 import { BuildLibrary } from "../features/work/BuildLibrary";
@@ -203,7 +204,7 @@ export function ProjectScreen({
           >
             {PROJECT_STATUSES.map((status) => (
               <option key={status} value={status}>
-                {status}
+                {formatStatus(status)}
               </option>
             ))}
           </select>
@@ -248,7 +249,7 @@ export function ProjectScreen({
                   >
                     {MILESTONE_STATUSES.map((status) => (
                       <option key={status} value={status}>
-                        {status}
+                        {formatStatus(status)}
                       </option>
                     ))}
                   </select>
@@ -428,7 +429,7 @@ export function ProjectScreen({
                   >
                     {BUG_STATUSES.map((status) => (
                       <option key={status} value={status}>
-                        {status}
+                        {formatStatus(status)}
                       </option>
                     ))}
                   </select>
@@ -557,7 +558,8 @@ export function ProjectScreen({
                   <option value="">General project feedback</option>
                   {builds.map((build) => (
                     <option key={build._id} value={build._id}>
-                      {build.version} · {build.platform}
+                      {build.version} ·{" "}
+                      {BUILD_PLATFORM_LABELS[build.platform]}
                     </option>
                   ))}
                 </select>

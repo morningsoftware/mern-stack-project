@@ -66,7 +66,8 @@ export function TaskBoard({
         <div>
           <h2 id="task-board-title">Task board</h2>
           <p className="meta">
-            {visible.length} of {tasks.length} tasks
+            {visible.length} of {tasks.length}{" "}
+            {tasks.length === 1 ? "task" : "tasks"}
           </p>
         </div>
         <label className="toggle-filter">

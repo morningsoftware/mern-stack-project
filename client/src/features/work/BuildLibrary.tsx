@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Field } from "../../components/Forms";
 import { BUILD_PLATFORMS } from "../../constants";
 import type { BuildPlatform } from "../../constants";
+import { BUILD_PLATFORM_LABELS, countLabel } from "../../format";
 import type { Build, PlaytestFeedback } from "../../types";
 
 export interface BuildForm {
@@ -63,59 +64,65 @@ export function BuildLibrary({
               </p>
             </div>
           )}
-          {builds.map((build) => (
-            <article key={build._id} className="build-entry">
-              <header>
-                <h3>{build.version}</h3>
-                <span className="badge">{build.platform}</span>
-              </header>
-              <p className="release-notes">
-                {build.releaseNotes || "No release notes provided."}
-              </p>
-              <small className="meta">
-                {feedback.filter((entry) => entry.buildId === build._id).length}{" "}
-                feedback entries
-              </small>
-              <div className="build-actions">
-                {safeLink(build.downloadUrl) ? (
-                  <a
-                    className="button-link"
-                    href={build.downloadUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
+          {builds.map((build) => {
+            const feedbackCount = feedback.filter(
+              (entry) => entry.buildId === build._id
+            ).length;
+            return (
+              <article key={build._id} className="build-entry">
+                <header>
+                  <h3>{build.version}</h3>
+                  <span className="badge">
+                    {BUILD_PLATFORM_LABELS[build.platform]}
+                  </span>
+                </header>
+                <p className="release-notes">
+                  {build.releaseNotes || "No release notes provided."}
+                </p>
+                <small className="meta">
+                  {countLabel(feedbackCount, "feedback entry", "feedback entries")}
+                </small>
+                <div className="build-actions">
+                  {safeLink(build.downloadUrl) ? (
+                    <a
+                      className="button-link"
+                      href={build.downloadUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      Open build ↗
+                    </a>
+                  ) : (
+                    <span className="meta">Download link unavailable</span>
+                  )}
+                  <button
+                    type="button"
+                    className="secondary"
+                    disabled={pending}
+                    onClick={() => onFeedback(build._id)}
                   >
-                    Open build ↗
-                  </a>
-                ) : (
-                  <span className="meta">Download link unavailable</span>
-                )}
-                <button
-                  type="button"
-                  className="secondary"
-                  disabled={pending}
-                  onClick={() => onFeedback(build._id)}
-                >
-                  Give feedback
-                </button>
-                <button
-                  type="button"
-                  className="text-button"
-                  disabled={pending}
-                  onClick={() => {
-                    setEditing(build._id);
-                    setForm({
-                      version: build.version,
-                      platform: build.platform,
-                      downloadUrl: build.downloadUrl,
-                      releaseNotes: build.releaseNotes || "",
-                    });
-                  }}
-                >
-                  Edit build
-                </button>
-              </div>
-            </article>
-          ))}
+                    Give feedback
+                  </button>
+                  <button
+                    type="button"
+                    className="text-button"
+                    disabled={pending}
+                    onClick={() => {
+                      setEditing(build._id);
+                      setForm({
+                        version: build.version,
+                        platform: build.platform,
+                        downloadUrl: build.downloadUrl,
+                        releaseNotes: build.releaseNotes || "",
+                      });
+                    }}
+                  >
+                    Edit build
+                  </button>
+                </div>
+              </article>
+            );
+          })}
         </div>
         <section className="panel">
           <h3>{editing ? "Edit build" : "Publish a build link"}</h3>
@@ -145,7 +152,7 @@ export function BuildLibrary({
                 >
                   {BUILD_PLATFORMS.map((platform) => (
                     <option key={platform} value={platform}>
-                      {platform}
+                      {BUILD_PLATFORM_LABELS[platform]}
                     </option>
                   ))}
                 </select>
