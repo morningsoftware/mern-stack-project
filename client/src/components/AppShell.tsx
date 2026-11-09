@@ -40,7 +40,7 @@ export function AppShell({
     if (previousLocation.current !== null) {
       document.documentElement.scrollTop = 0;
       document.body.scrollTop = 0;
-      main.current?.focus();
+      main.current?.focus({ preventScroll: true });
     }
     previousLocation.current = location;
   }, [location]);
