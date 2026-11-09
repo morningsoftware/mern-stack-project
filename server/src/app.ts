@@ -5,13 +5,19 @@ import type { Express, NextFunction, Request, Response } from "express";
 import cors from "cors";
 import type { Db } from "mongodb";
 import { authRouter } from "./routes/auth.js";
+import { playtestSessionsRouter } from "./routes/playtestSessions.js";
+import { notificationsRouter } from "./routes/notifications.js";
+import { activityRouter } from "./routes/activity.js";
 import { buildsRouter } from "./routes/builds.js";
+import { bugScreenshotsRouter } from "./routes/bugScreenshots.js";
 import { bugReportsRouter } from "./routes/bugReports.js";
 import { milestonesRouter } from "./routes/milestones.js";
 import { playtestFeedbackRouter } from "./routes/playtestFeedback.js";
 import { projectsRouter } from "./routes/projects.js";
+import { taskCommentsRouter } from "./routes/taskComments.js";
 import { tasksRouter } from "./routes/tasks.js";
 import { teamsRouter } from "./routes/teams.js";
+import { githubRouter, githubWebhookRouter } from "./routes/github.js";
 import { usersRouter } from "./routes/users.js";
 
 const clientDist = path.resolve(
@@ -23,6 +29,7 @@ export function createApp(db: Db): Express {
   const app = express();
   app.locals.db = db;
   app.use(cors());
+  app.use("/api/github/webhook", githubWebhookRouter);
   app.use(express.json());
 
   app.get("/api/health", (req, res) => {
@@ -34,10 +41,16 @@ export function createApp(db: Db): Express {
   app.use("/api/teams", teamsRouter);
   app.use("/api/projects", projectsRouter);
   app.use("/api/milestones", milestonesRouter);
+  app.use("/api/tasks/:taskId/comments", taskCommentsRouter);
   app.use("/api/tasks", tasksRouter);
+  app.use("/api/playtest-sessions", playtestSessionsRouter);
+  app.use("/api/notifications", notificationsRouter);
+  app.use("/api/activity", activityRouter);
   app.use("/api/builds", buildsRouter);
+  app.use("/api/bug-reports/:bugId/screenshots", bugScreenshotsRouter);
   app.use("/api/bug-reports", bugReportsRouter);
   app.use("/api/playtest-feedback", playtestFeedbackRouter);
+  app.use("/api/github", githubRouter);
 
   app.use("/api", (req, res) => {
     res.status(404).json({ error: "Not found" });

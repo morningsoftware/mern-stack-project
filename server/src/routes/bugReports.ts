@@ -1,6 +1,9 @@
+import { requireBugAccess } from "../projectAccess.js";
 import { Router } from "express";
 import { ObjectId } from "mongodb";
 import type { Filter } from "mongodb";
+import { recordActivity } from "../activity.js";
+import { validateBuildReference } from "../buildReference.js";
 import { asyncRoute, httpError } from "../errors.js";
 import { actorId, requireAuth } from "../middleware/auth.js";
 import type { BugReportDocument, ProjectDocument } from "../schema.js";
@@ -23,6 +26,8 @@ bugReportsRouter.get(
     const filter: Filter<BugReportDocument> = {};
     const projectId = optionalObjectId(req.query.projectId, "projectId");
     if (projectId) filter.projectId = projectId;
+    const buildId = optionalObjectId(req.query.buildId, "buildId");
+    if (buildId) filter.buildId = buildId;
     if (req.query.status !== undefined) {
       filter.status = oneOf(req.query.status, BUG_STATUSES, "status");
     }
@@ -32,7 +37,7 @@ bugReportsRouter.get(
       .sort({ createdOn: -1 })
       .toArray();
     res.json(bugs);
-  })
+  }),
 );
 
 bugReportsRouter.post(
@@ -40,7 +45,8 @@ bugReportsRouter.post(
   asyncRoute(async (req, res) => {
     const projectId = parseObjectId(req.body?.projectId, "projectId");
     const title = requireString(req.body?.title, "title");
-    const description = optionalString(req.body?.description, "description") ?? "";
+    const description =
+      optionalString(req.body?.description, "description") ?? "";
     const severity = req.body?.severity
       ? oneOf(req.body.severity, BUG_SEVERITIES, "severity")
       : "medium";
@@ -48,27 +54,63 @@ bugReportsRouter.post(
       ? oneOf(req.body.status, BUG_STATUSES, "status")
       : "open";
     await requireDoc(
-      req.app.locals.db.collection<ProjectDocument>("projects"),
+      req.app.locals.db.collection("projects"),
       projectId,
-      "Project"
+      "Project",
     );
+    const buildId = await validateBuildReference(
+      req.app.locals.db,
+      req.body?.buildId,
+      projectId,
+    );
+    const sourceFeedbackId = optionalObjectId(
+      req.body?.sourceFeedbackId,
+      "sourceFeedbackId",
+    );
+    if (sourceFeedbackId) {
+      const source = await requireDoc(
+        req.app.locals.db.collection("playtestFeedback"),
+        sourceFeedbackId,
+        "Feedback",
+      );
+      if (source.projectId.toString() !== projectId.toString())
+        throw httpError(400, "feedback does not belong to that project");
+    }
+    const details: Record<string, string> = {};
+    for (const field of [
+      "reproductionSteps",
+      "expectedResult",
+      "actualResult",
+      "environment",
+    ])
+      details[field] = optionalString(req.body?.[field], field) ?? "";
     const createdBy = actorId(req);
     const doc: BugReportDocument = {
       _id: new ObjectId(),
       projectId,
       title,
       description,
+      ...details,
+      ...(buildId ? { buildId } : {}),
+      ...(sourceFeedbackId ? { sourceFeedbackId } : {}),
       severity,
       status,
       reportedBy: createdBy,
       createdOn: new Date(),
       createdBy,
     };
-    await req.app.locals.db
-      .collection<BugReportDocument>("bugReports")
+    const result = await req.app.locals.db
+      .collection("bugReports")
       .insertOne(doc);
-    res.status(201).json(doc);
-  })
+    await recordActivity(
+      req,
+      res,
+      "bug",
+      { ...doc, _id: result.insertedId },
+      "created",
+    );
+    res.status(201).json({ ...doc, _id: result.insertedId });
+  }),
 );
 
 bugReportsRouter.get(
@@ -77,25 +119,43 @@ bugReportsRouter.get(
     const id = parseObjectId(req.params.id, "id");
     res.json(
       await requireDoc(
-        req.app.locals.db.collection<BugReportDocument>("bugReports"),
+        req.app.locals.db.collection("bugReports"),
         id,
-        "Bug report"
-      )
+        "Bug report",
+      ),
     );
-  })
+  }),
 );
 
 bugReportsRouter.patch(
   "/:id",
   asyncRoute(async (req, res) => {
     const id = parseObjectId(req.params.id, "id");
-    const bugs = req.app.locals.db.collection<BugReportDocument>("bugReports");
-    await requireDoc(bugs, id, "Bug report");
+    const bugs = req.app.locals.db.collection("bugReports");
+    const existing = await requireDoc(bugs, id, "Bug report");
+    await requireBugAccess(req.app.locals.db, existing, actorId(req));
     const update: Partial<BugReportDocument> = {};
+    if (req.body?.buildId !== undefined)
+      update.buildId = await validateBuildReference(
+        req.app.locals.db,
+        req.body.buildId,
+        existing.projectId,
+      );
+    const detailFields = [
+      "reproductionSteps",
+      "expectedResult",
+      "actualResult",
+      "environment",
+    ] as const;
+    for (const field of detailFields) {
+      if (req.body?.[field] !== undefined)
+        update[field] = optionalString(req.body[field], field) ?? "";
+    }
     const title = optionalString(req.body?.title, "title");
     if (title !== undefined) update.title = title;
     if (req.body?.description !== undefined) {
-      update.description = optionalString(req.body.description, "description") ?? "";
+      update.description =
+        optionalString(req.body.description, "description") ?? "";
     }
     if (req.body?.severity !== undefined) {
       update.severity = oneOf(req.body.severity, BUG_SEVERITIES, "severity");
@@ -107,17 +167,23 @@ bugReportsRouter.patch(
       throw httpError(400, "No updatable fields were provided");
     }
     await bugs.updateOne({ _id: id }, { $set: update });
-    res.json(await bugs.findOne({ _id: id }));
-  })
+    const updated = await bugs.findOne({ _id: id });
+    await recordActivity(req, res, "bug", updated, "updated", existing);
+    res.json(updated);
+  }),
 );
 
 bugReportsRouter.delete(
   "/:id",
   asyncRoute(async (req, res) => {
     const id = parseObjectId(req.params.id, "id");
-    const bugs = req.app.locals.db.collection<BugReportDocument>("bugReports");
-    await requireDoc(bugs, id, "Bug report");
+    const bugs = req.app.locals.db.collection("bugReports");
+    const existing = await requireDoc(bugs, id, "Bug report");
+    await requireBugAccess(req.app.locals.db, existing, actorId(req));
     await bugs.deleteOne({ _id: id });
+    await req.app.locals.db
+      .collection("bugScreenshots")
+      .deleteMany({ bugId: id });
     res.status(204).end();
-  })
+  }),
 );

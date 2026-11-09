@@ -11,16 +11,25 @@ let milestoneId: string;
 before(async () => {
   ctx = await startApi();
   alex = await registerUser(ctx.api, { username: "sam_codes" });
-  const team = await ctx.api.post("/api/teams").set(auth(alex.token)).send({ name: "Pixel Forge" });
-  const project = await ctx.api.post("/api/projects").set(auth(alex.token)).send({
-    teamId: team.body._id,
-    name: "Starfall",
-  });
+  const team = await ctx.api
+    .post("/api/teams")
+    .set(auth(alex.token))
+    .send({ name: "Pixel Forge" });
+  const project = await ctx.api
+    .post("/api/projects")
+    .set(auth(alex.token))
+    .send({
+      teamId: team.body._id,
+      name: "Starfall",
+    });
   projectId = project.body._id;
-  const milestone = await ctx.api.post("/api/milestones").set(auth(alex.token)).send({
-    projectId,
-    name: "Playable Prototype",
-  });
+  const milestone = await ctx.api
+    .post("/api/milestones")
+    .set(auth(alex.token))
+    .send({
+      projectId,
+      name: "Playable Prototype",
+    });
   milestoneId = milestone.body._id;
 });
 
@@ -64,20 +73,29 @@ test("GET, PATCH, and DELETE /api/tasks/:id", async () => {
   assert.equal(created.body.status, "todo");
   assert.equal(created.body.priority, "medium");
 
+  const fetched = await ctx.api.get(`/api/tasks/${id}`).set(auth(alex.token));
+  assert.equal(fetched.status, 200);
+  assert.equal(fetched.body.title, "Create the first level background");
+
   const listed = await ctx.api
     .get(`/api/tasks?projectId=${projectId}&status=todo`)
     .set(auth(alex.token));
   assert.equal(listed.status, 200);
   assert.ok(listed.body.some((task: any) => task._id === id));
 
-  const updated = await ctx.api.patch(`/api/tasks/${id}`).set(auth(alex.token)).send({
-    status: "done",
-    priority: "low",
-  });
+  const updated = await ctx.api
+    .patch(`/api/tasks/${id}`)
+    .set(auth(alex.token))
+    .send({
+      status: "done",
+      priority: "low",
+    });
   assert.equal(updated.status, 200);
   assert.equal(updated.body.status, "done");
 
-  const removed = await ctx.api.delete(`/api/tasks/${id}`).set(auth(alex.token));
+  const removed = await ctx.api
+    .delete(`/api/tasks/${id}`)
+    .set(auth(alex.token));
   assert.equal(removed.status, 204);
   const missing = await ctx.api.get(`/api/tasks/${id}`).set(auth(alex.token));
   assert.equal(missing.status, 404);

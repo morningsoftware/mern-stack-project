@@ -1,0 +1,22 @@
+sequenceDiagram
+    actor Tester
+    participant UI as React web / planned mobile
+    participant API as Express API
+    participant DB as MongoDB
+    actor Member
+    Tester->>UI: Choose a build or open session and submit feedback
+    UI->>API: POST /api/playtest-feedback with bearer token
+    API->>DB: Verify user, project, build and session
+    alt Invalid token or closed/expired session
+      API-->>UI: 401 or 400; retain entered feedback
+    else Valid submission
+      API->>DB: Insert feedback with server author and timestamp
+      API->>DB: Record activity and recipient notifications (best effort)
+      API-->>UI: 201; show persisted feedback
+      Member->>UI: Open feedback and mark reviewed or log bug
+      UI->>API: PATCH feedback / POST bug report
+      API->>DB: Check team membership and same-project references
+      API->>DB: Persist review or linked bug
+      API-->>UI: Updated record
+    end
+    Note over UI,API: Separate mobile implementation remains unverified

@@ -3,6 +3,7 @@
     "db:setup": "tsx database/setup.ts",
     "db:seed": "tsx database/data.ts",
     "db:migrate-user": "tsx database/migrateMongoUser.ts",
+    "db:migrate-schema": "tsx database/migrateDropletSchema.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
@@ -13,5 +14,6 @@
     "@types/node": "^26.6.6",
     "tsx": "^4.23.15",
     "typescript": "^7.0.2"
-  }
+  },
+  "type": "module"
 }

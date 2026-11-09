@@ -1,3 +1,5 @@
+import express from "express";
+import { appendFileSync } from "node:fs";
 import { MongoMemoryServer } from "mongodb-memory-server";
 import { MongoClient } from "mongodb";
 import type { Db } from "mongodb";
@@ -45,18 +47,38 @@ export interface RegisteredUser {
 }
 
 export async function startApi(): Promise<TestContext> {
-  // TCP is sufficient for the isolated test client; do not create a Unix socket.
-  const mongod = await MongoMemoryServer.create({
-    instance: { args: ["--nounixsocket"] },
-  });
+  const mongod = await MongoMemoryServer.create(
+    process.platform === "win32"
+      ? {}
+      : { instance: { args: ["--nounixsocket"] } }
+  );
   const client = new MongoClient(mongod.getUri());
   await client.connect();
   const db = client.db("mern");
   await ensureIndexes(db);
   const app = createApp(db);
+  const observed = express();
+  const routeLog = process.env.CHECKPOINT_ROUTE_LOG;
+  if (routeLog) {
+    observed.use((req, res, next) => {
+      const requestPath = req.path.replace(/\/[a-f0-9]{24}(?=\/|$)/gi, "/:id");
+      res.once("finish", () =>
+        appendFileSync(
+          routeLog,
+          JSON.stringify({
+            method: req.method,
+            path: requestPath,
+            status: res.statusCode,
+          }) + "\n"
+        )
+      );
+      next();
+    });
+  }
+  observed.use(app);
   return {
     db,
-    api: request(app),
+    api: request(observed),
     async stop() {
       await client.close();
       await mongod.stop();

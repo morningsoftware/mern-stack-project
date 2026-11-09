@@ -6,7 +6,8 @@
     "start": "tsx src/index.ts",
     "dev": "tsx watch src/index.ts",
     "typecheck": "tsc --noEmit",
-    "test": "node --import tsx --test --test-concurrency=1 test/*.test.ts"
+    "test": "node --import tsx --test --test-concurrency=1 test/*.test.ts test/*.test.js",
+    "demo": "tsx scripts/demo.js"
   },
   "dependencies": {
     "bcryptjs": "^3.0.2",

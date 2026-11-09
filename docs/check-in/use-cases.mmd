@@ -1,0 +1,28 @@
+flowchart TB
+    O["Team owner"]
+    M["Developer or artist (team member)"]
+    P["Signed-in playtester"]
+    G["GitHub service"]
+    subgraph checkpoint["checkpoint application"]
+      A(["Register, sign in and sign out"])
+      B(["Manage teams and membership"])
+      C(["Plan projects, milestones and assigned tasks"])
+      D(["Filter board, update status and use My work"])
+      E(["Discuss tasks and inspect activity or notifications"])
+      F(["Publish HTTPS build links and run playtest sessions"])
+      H(["Submit feedback and structured bugs with screenshots"])
+      I(["Triage feedback, log linked bugs and review reports"])
+      J(["Connect GitHub, inspect repositories and receive signed events"])
+    end
+    O --> B
+    O --> C
+    M --> A
+    M --> C
+    M --> D
+    M --> E
+    M --> F
+    M --> I
+    M --> J
+    P --> A
+    P --> H
+    G --> J

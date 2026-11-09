@@ -13,7 +13,16 @@ usersRouter.get(
   asyncRoute(async (req, res) => {
     const users = await req.app.locals.db
       .collection<UserDocument>("users")
-      .find({}, { projection: { passwordHash: 0 } })
+      .find(
+        {},
+        {
+          projection: {
+            passwordHash: 0,
+            githubAccessToken: 0,
+            githubRefreshToken: 0,
+          },
+        },
+      )
       .sort({ username: 1 })
       .toArray();
     res.json(users.map(publicUser));

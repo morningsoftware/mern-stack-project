@@ -2,17 +2,16 @@
 
 Production runs on a DigitalOcean droplet at
 <https://checkpoint.morning.codes>. Every push to `main` runs
-[`.github/workflows/deploy.yml`](../.github/workflows/deploy.yml), which tests the
-API, builds the client, copies both to the droplet, and restarts the API.
+[`.github/workflows/deploy.yml`](../.github/workflows/deploy.yml), which checks database/API/client types, runs API and frontend tests, builds the client, copies both to the droplet, and restarts the API.
 
 The Express server serves the API and the built client from the same process
-(`server/src/app.js` points at `client/dist`), so there is only one service to
+(`server/src/app.ts` points at `client/dist`), so there is only one service to
 deploy.
 
 ## How a deploy works
 
 1. Install the server and client dependencies.
-2. Run the API test suite with `npm test`.
+2. Run database/API/client type checks, the frontend interaction tests, and the API test suite.
 3. Build the client with `npm run build`.
 4. `rsync` the `server/` tree and `client/dist/` to `DEPLOY_PATH` on the droplet.
 5. Run `npm ci --omit=dev` on the droplet and restart the PM2 process.
@@ -40,7 +39,7 @@ To roll back:
 
 ```sh
 sudo -iu deploy bash -lc 'pm2 stop mern-api && pm2 save'
-sudo -iu demetri bash -lc 'cd /home/demetri/mern-app/server && pm2 start src/index.js --name mern-api && pm2 save'
+sudo -iu demetri bash -lc 'cd /home/demetri/mern-app/server && pm2 startOrReload ecosystem.config.cjs --update-env && pm2 save'
 ```
 
 ## One-time droplet setup
@@ -83,7 +82,7 @@ Start the app once manually, then save the PM2 process list:
 sudo -iu deploy bash -lc '
   cd /srv/checkpoint/server
   npm ci --omit=dev
-  pm2 start src/index.js --name mern-api
+  pm2 startOrReload ecosystem.config.cjs --update-env
   pm2 save
 '
 ```

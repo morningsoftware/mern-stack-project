@@ -1,0 +1,61 @@
+name: Validate pull request
+on:
+  pull_request:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: |
+            server/package-lock.json
+            client/package-lock.json
+
+      - name: Install API dependencies
+        working-directory: server
+        run: npm ci
+
+      - name: Install client dependencies
+        working-directory: client
+        run: npm ci
+
+      - name: Install database tooling
+        run: npm ci
+
+      - name: Check database types
+        run: npm run typecheck
+
+      - name: Check API types
+        working-directory: server
+        run: npm run typecheck
+
+      - name: Check client types
+        working-directory: client
+        run: npm run typecheck
+
+      - name: Run frontend interaction tests
+        working-directory: client
+        run: npm test
+
+      - name: Run API tests and audit every endpoint
+        working-directory: server
+        run: node --import tsx scripts/endpoint-evidence.js
+
+      - name: Build client
+        working-directory: client
+        run: npm run build
+
+      - name: Preserve endpoint evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: endpoint-evidence
+          path: docs/endpoint-test-evidence.json

@@ -16,6 +16,12 @@ const COLLECTIONS = [
   "bugReports",
   "playtestFeedback",
   "builds",
+  "taskComments",
+  "bugScreenshots",
+  "projectActivity",
+  "notifications",
+  "playtestSessions",
+  "githubDeliveries",
 ] as const;
 
 async function setupDatabase(): Promise<void> {
@@ -61,6 +67,51 @@ async function setupDatabase(): Promise<void> {
         console.log(`Collection already exists: ${collectionName}`);
       }
     }
+
+    await db.collection("builds").createIndex(
+      { projectId: 1, version: 1, platform: 1 },
+      { unique: true, name: "unique_project_build_platform" }
+    );
+    await db.collection("builds").createIndex(
+      { projectId: 1, createdOn: -1 },
+      { name: "builds_by_project_date" }
+    );
+    await db.collection("taskComments").createIndex(
+      { taskId: 1, _id: -1 },
+      { name: "comments_by_task" }
+    );
+    await db.collection("bugScreenshots").createIndex(
+      { bugId: 1, _id: 1 },
+      { name: "screenshots_by_bug" }
+    );
+    await db.collection("projectActivity").createIndex(
+      { projectId: 1, _id: -1 },
+      { name: "activity_by_project" }
+    );
+    await db.collection("notifications").createIndex(
+      { userId: 1, projectId: 1, _id: -1 },
+      { name: "notifications_by_recipient" }
+    );
+    await db.collection("notifications").createIndex(
+      { eventId: 1, userId: 1 },
+      { unique: true, name: "unique_event_recipient" }
+    );
+    await db.collection("playtestSessions").createIndex(
+      { projectId: 1, deadline: 1 },
+      { name: "sessions_by_project_deadline" }
+    );
+    await db.collection("playtestFeedback").createIndex(
+      { sessionId: 1 },
+      { name: "feedback_by_session" }
+    );
+    await db.collection("githubDeliveries").createIndex(
+      { deliveryId: 1 },
+      { unique: true, name: "unique_github_delivery" }
+    );
+    await db.collection("githubDeliveries").createIndex(
+      { repository: 1, event: 1, _id: -1 },
+      { name: "github_deliveries_by_repository" }
+    );
 
     // USERS
     // Prevent duplicate usernames and email addresses.
@@ -132,19 +183,6 @@ async function setupDatabase(): Promise<void> {
     await db.collection("playtestFeedback").createIndex(
       { projectId: 1, createdOn: -1 },
       { name: "feedback_by_project_date" }
-    );
-
-    // BUILDS
-    // A project may publish each version only once per platform.
-    await db.collection("builds").createIndex(
-      { projectId: 1, version: 1, platform: 1 },
-      { unique: true, name: "unique_project_build_platform" }
-    );
-
-    // Retrieve a project's newest builds first.
-    await db.collection("builds").createIndex(
-      { projectId: 1, createdOn: -1 },
-      { name: "builds_by_project_date" }
     );
 
     console.log("Database setup completed successfully.");
