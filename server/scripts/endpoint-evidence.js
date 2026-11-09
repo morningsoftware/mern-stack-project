@@ -54,7 +54,7 @@ try {
         path: (match[1] + route[2])
           .replace(/\/$/, "")
           .replace(/:[\w]+/g, ":id"),
-        routeSource: `server/src/routes/${file}`,
+        routeSource: path.relative(root, actualSource),
       });
   }
   const requests = readFileSync(log, "utf8")
