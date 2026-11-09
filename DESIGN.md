@@ -44,20 +44,26 @@ columns: To do, In progress, Done. Under 1150px, columns stack; under 760px,
 navigation moves above content and wraps. Filters wrap and inputs retain usable
 width. Detail drawers occupy the right edge on desktop and the screen on mobile.
 
+The desktop sidebar stays pinned to the viewport with its own scroll area, and
+the profile/sign-out block remains anchored at its bottom regardless of page
+length. The workspace bar also stays visible while the work area scrolls.
+Changing teams, projects, or project views returns the work area to the top and
+focuses the main landmark.
+
 Overview totals form a compact ledger rather than four decorative cards. Use
 16–24px spacing and thin separators. Artwork and logos require separate approval.
 
 ## Features and contracts
 
-- `features/work/TaskBoard.jsx`: search title/description, assignee, priority,
+- `features/work/TaskBoard.tsx`: search title/description, assignee, priority,
   milestone, and My work filters. Filters combine and can be cleared. They operate
   on the loaded project records, not the complete database.
 - Status selectors move tasks between columns through existing PATCH endpoints.
   Drag/drop is not required; every move works with a keyboard and touch.
-- `features/work/ItemDrawer.jsx`: fetch fresh task/bug detail, edit existing API
+- `features/work/ItemDrawer.tsx`: fetch fresh task/bug detail, edit existing API
   fields, save, or cancel. Native modal dialog provides focus containment/Escape.
   Return focus on close and preserve edits when a save fails.
-- `features/work/BuildLibrary.jsx`: version, platform, release notes, HTTPS link.
+- `features/work/BuildLibrary.tsx`: version, platform, release notes, HTTPS link.
   The user approved external links rather than storing uploaded game binaries.
   Feedback can optionally reference a build in the same project.
 - React state still controls navigation. Deep links remain separate scope.
@@ -73,6 +79,12 @@ because DOM fixtures do not simulate top-layer or layout behavior. Disable
 submissions during mutations. Never move a card on a failed server response.
 Respect reduced motion. WCAG AA and Lighthouse >=95 remain acceptance targets,
 not claimed scores.
+
+Dropdowns size to their content so the native indicator stays close to the
+selected value; text inputs may still use the full form width. Values shown to
+people use readable labels such as "In progress" and "macOS" while API values
+remain unchanged. Empty states say what to do next and offer the relevant
+action when one exists.
 
 ## Approved decisions and remaining scope
 
