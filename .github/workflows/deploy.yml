@@ -98,7 +98,7 @@ jobs:
              if pm2 describe '$PM2_APP_NAME' >/dev/null 2>&1; then
                pm2 restart '$PM2_APP_NAME' --update-env
              else
-               pm2 start src/index.js --name '$PM2_APP_NAME'
+               pm2 start src/index.ts --name '$PM2_APP_NAME'
              fi
              pm2 save"
 
