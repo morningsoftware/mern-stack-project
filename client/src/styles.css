@@ -627,7 +627,7 @@ progress {
   margin-bottom: 12px;
 }
 .priority {
-  font-size: 0.67rem;
+  font-size: 0.7rem;
   color: #60694f;
 }
 .priority-high {
@@ -635,7 +635,7 @@ progress {
 }
 .record-id {
   font-family: ui-monospace, SFMono-Regular, monospace;
-  font-size: 0.65rem;
+  font-size: 0.7rem;
   color: #65705b;
 }
 button.card-title {
