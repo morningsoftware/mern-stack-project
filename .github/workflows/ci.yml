@@ -59,3 +59,29 @@ jobs:
         with:
           name: endpoint-evidence
           path: docs/endpoint-test-evidence.json
+
+  mobile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: mobile/package-lock.json
+      - run: npm ci
+        working-directory: mobile
+      - run: npm run typecheck
+        working-directory: mobile
+      - run: npm run lint
+        working-directory: mobile
+      - run: npm test
+        working-directory: mobile
+      - name: Export both native platforms
+        run: npm run export:native
+        working-directory: mobile
+      - name: Export mobile validation preview
+        run: npm run export:web
+        working-directory: mobile
+        env:
+          EXPO_PUBLIC_API_URL: http://127.0.0.1:4002

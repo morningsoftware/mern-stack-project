@@ -247,3 +247,13 @@ The user explicitly approved the product name `checkpoint` and requested an intu
 The integrated branch includes milestone planning, structured playtesting, discussions, deep links/draft guards, My work, screenshots, activity, in-app notifications and sessions, plus Demetri's GitHub UI. Core files use TypeScript; the previously authored advanced modules remain JS/JSX under allowJs. These modules have runtime/integration tests but are not all strictly type-checked. This is an incremental migration, not a claim of full TypeScript coverage.
 
 The dedicated mobile app, email verification/recovery, real browser/device validation and measured Lighthouse targets remain separate required work. Do not imply that the responsive web layout substitutes for the mobile app.
+
+## Mobile playtesting companion — November 9
+
+The user authorized a separate mobile app focused on bug reporting and simple playtesting, with a smaller scope than desktop. `mobile/` is Expo SDK 57 / React Native with Expo Router. Keep the paper/forest/rust palette, existing wordmark, 4px corners and text-based states. A square app icon uses a geometric check/flag source in `mobile/assets/checkpoint-icon.svg`; the original horizontal wordmark remains unchanged.
+
+Mobile flow: sign in or register as a playtester → search projects → choose a build/session → submit rating/comments or structured bug → optionally attach a screenshot → follow own report status. Desktop retains team management, planning/assignments, feedback triage and GitHub management. Do not add desktop navigation or a WebView to this app.
+
+Use 48px minimum touch controls, explicit field labels, keyboard-aware scroll layouts, native stack navigation and textual submission/error states. Preserve failed form writes and lock duplicate submissions. Attachments happen after saving the report, with a separate retry; never recreate a report when its upload fails. Current unsent drafts are in memory, so leaving a screen/restarting discards them; offline drafts are not claimed. Native credentials use SecureStore. The test-only web target uses sessionStorage and does not replace a physical-device demonstration.
+
+Lighthouse repairs reserve logo dimensions, preload that asset, defer the full authenticated menu until a saved link resolves, and keep unloaded workspace content out of layout until populated. Native platform bundles, automated browser checks, measured local Lighthouse scores and deployed/device results are separate evidence categories.
