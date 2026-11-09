@@ -37,9 +37,24 @@ export function AppShell({
   const previousLocation = useRef<string | null>(null);
   const location = `${team?._id || "teams"}/${project?._id || ""}/${view}`;
   useEffect(() => {
-    if (previousLocation.current !== null) main.current?.focus();
+    if (previousLocation.current !== null) {
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+      main.current?.focus();
+    }
     previousLocation.current = location;
   }, [location]);
+  useEffect(() => {
+    const nextTitle = project
+      ? `${project.name} · Checkpoint`
+      : team
+        ? `${team.name} · Checkpoint`
+        : "Checkpoint";
+    document.title = nextTitle;
+    return () => {
+      if (document.title === nextTitle) document.title = "Checkpoint";
+    };
+  }, [team, project]);
   return (
     <div className="app-shell">
       <a className="skip-link" href="#main-content">
@@ -48,7 +63,7 @@ export function AppShell({
       <aside className="sidebar">
         <div className="brand">
           <span className="brand-mark" aria-hidden="true">
-            M
+            C
           </span>
           <span>
             Checkpoint<small>Studio workspace</small>
@@ -123,7 +138,13 @@ export function AppShell({
               {project && <li>{project.name}</li>}
             </ol>
           </nav>
-          <span className="workspace-label">Team workspace</span>
+          <span className="workspace-label">
+            {project
+              ? "Project workspace"
+              : team
+                ? "Team workspace"
+                : "Studio workspace"}
+          </span>
         </header>
         <main
           id="main-content"

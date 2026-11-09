@@ -236,6 +236,9 @@ hr {
   min-width: 0;
 }
 .workspace-bar {
+  position: sticky;
+  top: 0;
+  z-index: 3;
   padding: 14px 30px;
   border-bottom: 1px solid var(--border);
   background: #eeeadd;
