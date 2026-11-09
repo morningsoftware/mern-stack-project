@@ -108,9 +108,10 @@ Use restrained, standard expressiveness rather than decorative looping
 animation. Screens and tabs fade in with a 3–7px rise over 140–240ms; drawers
 slide in from the right; controls transition background, border, and color;
 work cards lift 1px on hover. The three.js auth backdrop is the only ambient
-animation and may drift slowly with pointer parallax. All CSS motion and the
-backdrop respect reduced-motion preferences, and the backdrop pauses while the
-tab is hidden.
+animation: its terrain continuously morphs, checkpoint markers emit traveling
+ripples, and the pointer creates a local dent and depth parallax. All CSS motion
+and the backdrop respect reduced-motion preferences, and the backdrop pauses
+while the tab is hidden.
 
 ## Approved decisions and remaining scope
 

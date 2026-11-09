@@ -20,22 +20,31 @@ type Materials = {
   markers: ShaderMaterial;
 };
 
+type Marker = {
+  x: number;
+  z: number;
+  phase: number;
+};
+
 const COLORS = {
   light: {
     line: 0x5e6759,
-    rowOpacity: 0.3,
-    columnOpacity: 0.11,
+    rowOpacity: 0.32,
+    columnOpacity: 0.12,
     marker: 0x934125,
   },
   dark: {
     line: 0xe7e0c9,
-    rowOpacity: 0.25,
-    columnOpacity: 0.08,
+    rowOpacity: 0.28,
+    columnOpacity: 0.09,
     marker: 0xc06a45,
   },
 };
 
-const MARKER_POINTS: ReadonlyArray<readonly [number, number]> = [
+const WIDTH = 34;
+const DEPTH = 24;
+
+const MARKERS: ReadonlyArray<readonly [number, number]> = [
   [-11, 5],
   [-6, -4],
   [-1, 3],
@@ -44,62 +53,43 @@ const MARKER_POINTS: ReadonlyArray<readonly [number, number]> = [
   [12, 6],
 ];
 
-function heightAt(x: number, z: number): number {
-  return (
-    Math.sin(x * 0.28 + Math.cos(z * 0.19) * 1.4) * 0.55 +
-    Math.cos(z * 0.33 + x * 0.08) * 0.32 +
-    Math.sin((x + z) * 0.15) * 0.28
-  );
-}
+const MARKER_DATA: Marker[] = MARKERS.map(([x, z], index) => ({
+  x,
+  z,
+  phase: index * 1.7,
+}));
 
-function terrainGeometry(
-  columns: number,
-  rows: number,
-  width: number,
-  depth: number
-): BufferGeometry {
-  const positions: number[] = [];
-  for (let row = 0; row <= rows; row += 1) {
-    const z = (row / rows - 0.5) * depth;
-    for (let column = 0; column < columns; column += 1) {
-      const x1 = (column / columns - 0.5) * width;
-      const x2 = ((column + 1) / columns - 0.5) * width;
-      positions.push(
-        x1,
-        heightAt(x1, z),
-        z,
-        x2,
-        heightAt(x2, z),
-        z
-      );
-    }
-  }
-  return geometryFrom(positions);
-}
+function heightAt(
+  x: number,
+  z: number,
+  time: number,
+  pointerX: number,
+  pointerZ: number
+): number {
+  const drift = time * 0.22;
+  let height =
+    Math.sin(x * 0.26 + drift + Math.cos(z * 0.17 - drift * 0.6) * 1.35) *
+      0.55 +
+    Math.cos(z * 0.31 - drift * 0.8 + x * 0.09) * 0.34 +
+    Math.sin((x + z) * 0.16 + drift * 1.25) * 0.24 +
+    Math.sin(Math.sqrt(x * x + z * z) * 0.55 - drift * 2.1) * 0.12;
 
-function crossGeometry(
-  columns: number,
-  rows: number,
-  width: number,
-  depth: number
-): BufferGeometry {
-  const positions: number[] = [];
-  for (let column = 0; column <= columns; column += 1) {
-    const x = (column / columns - 0.5) * width;
-    for (let row = 0; row < rows; row += 1) {
-      const z1 = (row / rows - 0.5) * depth;
-      const z2 = ((row + 1) / rows - 0.5) * depth;
-      positions.push(
-        x,
-        heightAt(x, z1),
-        z1,
-        x,
-        heightAt(x, z2),
-        z2
-      );
-    }
+  for (const marker of MARKER_DATA) {
+    const dx = x - marker.x;
+    const dz = z - marker.z;
+    const distance = Math.sqrt(dx * dx + dz * dz);
+    height +=
+      Math.sin(distance * 0.9 - time * 1.6 + marker.phase) *
+      Math.exp(-distance * 0.14) *
+      0.42;
   }
-  return geometryFrom(positions);
+
+  const pointerDistance =
+    (x - pointerX) * (x - pointerX) + (z - pointerZ) * (z - pointerZ);
+  height +=
+    Math.exp(-pointerDistance / 9) *
+    (0.62 + Math.sin(time * 2.4) * 0.18);
+  return height;
 }
 
 function geometryFrom(positions: number[]): BufferGeometry {
@@ -111,23 +101,47 @@ function geometryFrom(positions: number[]): BufferGeometry {
   return geometry;
 }
 
-function markerGeometry(): BufferGeometry {
+function rowGeometry(
+  columns: number,
+  rows: number,
+  heights: Float32Array
+): BufferGeometry {
   const positions: number[] = [];
-  const phases: number[] = [];
-  MARKER_POINTS.forEach(([x, z], index) => {
-    positions.push(x, heightAt(x, z) + 0.2, z);
-    phases.push(index * 1.7);
-  });
-  const geometry = new BufferGeometry();
-  geometry.setAttribute(
-    "position",
-    new Float32BufferAttribute(positions, 3)
-  );
-  geometry.setAttribute(
-    "aPhase",
-    new Float32BufferAttribute(phases, 1)
-  );
-  return geometry;
+  for (let row = 0; row <= rows; row += 1) {
+    const z = (row / rows - 0.5) * DEPTH;
+    for (let column = 0; column < columns; column += 1) {
+      const x1 = (column / columns - 0.5) * WIDTH;
+      const x2 = ((column + 1) / columns - 0.5) * WIDTH;
+      const index = row * (columns + 1) + column;
+      positions.push(x1, heights[index], z, x2, heights[index + 1], z);
+    }
+  }
+  return geometryFrom(positions);
+}
+
+function columnGeometry(
+  columns: number,
+  rows: number,
+  heights: Float32Array
+): BufferGeometry {
+  const positions: number[] = [];
+  for (let column = 0; column <= columns; column += 1) {
+    const x = (column / columns - 0.5) * WIDTH;
+    for (let row = 0; row < rows; row += 1) {
+      const z1 = (row / rows - 0.5) * DEPTH;
+      const z2 = ((row + 1) / rows - 0.5) * DEPTH;
+      const index = row * (columns + 1) + column;
+      positions.push(
+        x,
+        heights[index],
+        z1,
+        x,
+        heights[index + columns + 1],
+        z2
+      );
+    }
+  }
+  return geometryFrom(positions);
 }
 
 function markerMaterial(color: number): ShaderMaterial {
@@ -169,6 +183,29 @@ function markerMaterial(color: number): ShaderMaterial {
   });
 }
 
+function markerGeometry(): BufferGeometry {
+  const positions: number[] = [];
+  const phases: number[] = [];
+  MARKER_DATA.forEach((marker) => {
+    positions.push(
+      marker.x,
+      heightAt(marker.x, marker.z, 0, 0, 0) + 0.2,
+      marker.z
+    );
+    phases.push(marker.phase);
+  });
+  const geometry = new BufferGeometry();
+  geometry.setAttribute(
+    "position",
+    new Float32BufferAttribute(positions, 3)
+  );
+  geometry.setAttribute(
+    "aPhase",
+    new Float32BufferAttribute(phases, 1)
+  );
+  return geometry;
+}
+
 export default function AuthBackdrop({ theme }: { theme: Theme }) {
   const host = useRef<HTMLDivElement>(null);
   const materials = useRef<Materials | null>(null);
@@ -197,10 +234,8 @@ export default function AuthBackdrop({ theme }: { theme: Theme }) {
       window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches ?? false;
     const compact =
       window.matchMedia?.("(max-width: 760px)")?.matches ?? false;
-    const width = 34;
-    const depth = 24;
-    const columnCount = compact ? 58 : 92;
-    const rowCount = compact ? 38 : 60;
+    const columns = compact ? 54 : 92;
+    const rows = compact ? 34 : 60;
     const palette = COLORS[themeRef.current];
 
     const scene = new Scene();
@@ -217,6 +252,28 @@ export default function AuthBackdrop({ theme }: { theme: Theme }) {
     terrain.position.y = -0.9;
     scene.add(terrain);
 
+    const heights = new Float32Array((columns + 1) * (rows + 1));
+    const updateHeights = (
+      time: number,
+      pointerX: number,
+      pointerZ: number
+    ): void => {
+      for (let row = 0; row <= rows; row += 1) {
+        const z = (row / rows - 0.5) * DEPTH;
+        for (let column = 0; column <= columns; column += 1) {
+          const x = (column / columns - 0.5) * WIDTH;
+          heights[row * (columns + 1) + column] = heightAt(
+            x,
+            z,
+            time,
+            pointerX,
+            pointerZ
+          );
+        }
+      }
+    };
+    updateHeights(0, 0, 0);
+
     const rowsMaterial = new LineBasicMaterial({
       color: palette.line,
       transparent: true,
@@ -229,23 +286,21 @@ export default function AuthBackdrop({ theme }: { theme: Theme }) {
       opacity: palette.columnOpacity,
       depthWrite: false,
     });
-    const rowsGeometry = terrainGeometry(
-      columnCount,
-      rowCount,
-      width,
-      depth
+    const rowMeshGeometry = rowGeometry(columns, rows, heights);
+    const columnMeshGeometry = columnGeometry(columns, rows, heights);
+    const rowsMesh = new LineSegments(rowMeshGeometry, rowsMaterial);
+    const columnsMesh = new LineSegments(
+      columnMeshGeometry,
+      columnsMaterial
     );
-    const columnsGeometry = crossGeometry(
-      columnCount,
-      rowCount,
-      width,
-      depth
-    );
-    terrain.add(new LineSegments(rowsGeometry, rowsMaterial));
-    terrain.add(new LineSegments(columnsGeometry, columnsMaterial));
+    rowsMesh.frustumCulled = false;
+    columnsMesh.frustumCulled = false;
+    terrain.add(rowsMesh, columnsMesh);
 
     const markersMaterial = markerMaterial(palette.marker);
-    const markers = new Points(markerGeometry(), markersMaterial);
+    const markersGeometry = markerGeometry();
+    const markers = new Points(markersGeometry, markersMaterial);
+    markers.frustumCulled = false;
     markers.renderOrder = 2;
     terrain.add(markers);
     materials.current = {
@@ -253,6 +308,18 @@ export default function AuthBackdrop({ theme }: { theme: Theme }) {
       columns: columnsMaterial,
       markers: markersMaterial,
     };
+
+    const rowsAttribute = rowMeshGeometry.getAttribute(
+      "position"
+    ) as Float32BufferAttribute;
+    const columnsAttribute = columnMeshGeometry.getAttribute(
+      "position"
+    ) as Float32BufferAttribute;
+    const markerAttribute = markersGeometry.getAttribute(
+      "position"
+    ) as Float32BufferAttribute;
+    const rowsArray = rowsAttribute.array as Float32Array;
+    const columnsArray = columnsAttribute.array as Float32Array;
 
     renderer.setPixelRatio(
       Math.min(window.devicePixelRatio || 1, compact ? 1.5 : 2)
@@ -262,12 +329,62 @@ export default function AuthBackdrop({ theme }: { theme: Theme }) {
     renderer.domElement.className = "auth-backdrop-canvas";
     container.appendChild(renderer.domElement);
 
+    const updateGeometry = (
+      time: number,
+      pointerX: number,
+      pointerZ: number
+    ): void => {
+      updateHeights(time, pointerX, pointerZ);
+      let rowVertex = 0;
+      for (let row = 0; row <= rows; row += 1) {
+        for (let column = 0; column < columns; column += 1) {
+          const index = row * (columns + 1) + column;
+          rowsArray[rowVertex + 1] = heights[index];
+          rowsArray[rowVertex + 4] = heights[index + 1];
+          rowVertex += 6;
+        }
+      }
+      let columnVertex = 0;
+      for (let column = 0; column <= columns; column += 1) {
+        for (let row = 0; row < rows; row += 1) {
+          const index = row * (columns + 1) + column;
+          columnsArray[columnVertex + 1] = heights[index];
+          columnsArray[columnVertex + 4] =
+            heights[index + columns + 1];
+          columnVertex += 6;
+        }
+      }
+      rowsAttribute.needsUpdate = true;
+      columnsAttribute.needsUpdate = true;
+
+      MARKER_DATA.forEach((marker, index) => {
+        const x = marker.x + Math.sin(time * 0.42 + marker.phase) * 0.75;
+        const z = marker.z + Math.cos(time * 0.33 + marker.phase) * 0.65;
+        markerAttribute.setXYZ(
+          index,
+          x,
+          heightAt(x, z, time, pointerX, pointerZ) + 0.2,
+          z
+        );
+      });
+      markerAttribute.needsUpdate = true;
+    };
+
+    const renderStatic = (): void => {
+      updateGeometry(0, 0, 0);
+      renderer.render(scene, camera);
+    };
+
     let frame = 0;
     let active = true;
-    let pointerX = 0;
-    let pointerY = 0;
-    let targetX = 0;
-    let targetY = 0;
+    let pointerWorldX = 0;
+    let pointerWorldZ = 0;
+    let targetWorldX = 0;
+    let targetWorldZ = 0;
+    let tiltX = 0;
+    let tiltY = 0;
+    let targetTiltX = 0;
+    let targetTiltY = 0;
     const start = performance.now();
 
     const resize = (): void => {
@@ -276,24 +393,32 @@ export default function AuthBackdrop({ theme }: { theme: Theme }) {
       camera.updateProjectionMatrix();
       renderer.setSize(size.width, size.height);
       markersMaterial.uniforms.uPixelRatio.value = renderer.getPixelRatio();
+      if (reducedMotion) renderStatic();
     };
 
     const animate = (now: number): void => {
       if (!active) return;
       const elapsed = (now - start) / 1000;
-      pointerX += (targetX - pointerX) * 0.04;
-      pointerY += (targetY - pointerY) * 0.04;
-      terrain.rotation.y = Math.sin(elapsed * 0.07) * 0.04 + pointerX;
-      terrain.rotation.x = -0.04 + Math.sin(elapsed * 0.11) * 0.01 + pointerY;
-      terrain.position.y = -0.9 + Math.sin(elapsed * 0.22) * 0.05;
+      pointerWorldX += (targetWorldX - pointerWorldX) * 0.055;
+      pointerWorldZ += (targetWorldZ - pointerWorldZ) * 0.055;
+      tiltX += (targetTiltX - tiltX) * 0.055;
+      tiltY += (targetTiltY - tiltY) * 0.055;
+      updateGeometry(elapsed, pointerWorldX, pointerWorldZ);
+      terrain.rotation.x = -0.05 + Math.sin(elapsed * 0.17) * 0.02 + tiltX;
+      terrain.rotation.y = Math.sin(elapsed * 0.1) * 0.07 + tiltY;
+      terrain.position.y = -0.9 + Math.sin(elapsed * 0.27) * 0.07;
       markersMaterial.uniforms.uTime.value = elapsed;
       renderer.render(scene, camera);
       frame = requestAnimationFrame(animate);
     };
 
     const onPointer = (event: PointerEvent): void => {
-      targetX = (event.clientX / window.innerWidth - 0.5) * 0.09;
-      targetY = (event.clientY / window.innerHeight - 0.5) * 0.05;
+      const x = event.clientX / window.innerWidth - 0.5;
+      const y = event.clientY / window.innerHeight - 0.5;
+      targetTiltY = x * 0.18;
+      targetTiltX = y * 0.08;
+      targetWorldX = x * WIDTH;
+      targetWorldZ = y * DEPTH;
     };
 
     const onVisibility = (): void => {
@@ -312,7 +437,10 @@ export default function AuthBackdrop({ theme }: { theme: Theme }) {
     window.addEventListener("pointermove", onPointer, { passive: true });
 
     if (reducedMotion) {
-      renderer.render(scene, camera);
+      renderStatic();
+      frame = requestAnimationFrame(() => {
+        if (active) renderStatic();
+      });
     } else {
       frame = requestAnimationFrame(animate);
     }
@@ -323,9 +451,9 @@ export default function AuthBackdrop({ theme }: { theme: Theme }) {
       window.removeEventListener("resize", resize);
       window.removeEventListener("visibilitychange", onVisibility);
       window.removeEventListener("pointermove", onPointer);
-      rowsGeometry.dispose();
-      columnsGeometry.dispose();
-      markers.geometry.dispose();
+      rowMeshGeometry.dispose();
+      columnMeshGeometry.dispose();
+      markersGeometry.dispose();
       rowsMaterial.dispose();
       columnsMaterial.dispose();
       markersMaterial.dispose();
