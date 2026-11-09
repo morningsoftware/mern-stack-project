@@ -1,4 +1,4 @@
-# MERN Stack Project (Group 9)
+# Checkpoint (Group 9)
 
 ## Deployment
 

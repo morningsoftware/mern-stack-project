@@ -4,7 +4,7 @@
 
 The user approved a Codecks-inspired indie-studio personality combined with a
 HacknPlan-style production workspace. This replaces the initial charcoal/violet
-dashboard direction. Keep **MERN Stack Project** until the team approves branding.
+dashboard direction.
 
 The implementation uses warm paper surfaces, forest-green navigation, rust
 controls, compact work cards, and restrained serif project headings. Its main
