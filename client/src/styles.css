@@ -221,6 +221,7 @@ hr {
 }
 .sidebar-footer .text-button {
   justify-self: end;
+  margin-right: 2px;
   color: #f2d7ad;
   white-space: nowrap;
 }
