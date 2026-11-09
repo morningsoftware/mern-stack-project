@@ -778,6 +778,15 @@ button.card-title:hover {
   gap: 24px;
   align-items: start;
 }
+.build-library .section-heading {
+  align-items: start;
+}
+.build-library .section-heading h2 {
+  margin-bottom: 0;
+}
+.build-library .section-heading p {
+  margin-top: 8px;
+}
 .build-entry {
   border-top: 2px solid #9ea98b;
   background: #faf7ee;
