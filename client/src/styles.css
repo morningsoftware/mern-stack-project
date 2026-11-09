@@ -643,7 +643,7 @@ button.card-title:hover {
 }
 .column-empty {
   padding: 18px 8px;
-  color: #626c58;
+  color: #5e6759;
   font-size: 0.8rem;
   text-align: center;
 }
@@ -1124,5 +1124,5 @@ button.milestone-title {
 }
 
 /* Approved checkpoint identity: a check mark ending in a milestone flag. */
-.brand-logo { display:block; width:190px; height:auto; padding:8px; background:#fcfaf4; border-radius:4px; }
+.brand-logo { display:block; width:190px; height:74px; object-fit:contain; padding:8px; background:#fcfaf4; border-radius:4px; }
 .auth-brand img { display:block; max-width:100%; height:auto; }

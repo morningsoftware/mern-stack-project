@@ -36,7 +36,7 @@ export function TeamsScreen({ onOpenTeam }) {
           Loading teams…
         </p>
       )}
-      <div className="team-layout">
+      <div className="team-layout" hidden={loading}>
         <section className="panel create-panel">
           <p className="eyebrow">New studio</p>
           <h2>Create a team</h2>

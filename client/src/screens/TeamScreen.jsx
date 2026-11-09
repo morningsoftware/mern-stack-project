@@ -87,7 +87,7 @@ export function TeamScreen({ team, onOpenProject, currentUserId }) {
           Loading team workspace…
         </p>
       )}
-      <div className="grid">
+      <div className="grid" hidden={loading}>
         <section className="panel">
           <p className="eyebrow">People</p>
           <h2>Members</h2>

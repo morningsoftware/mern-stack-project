@@ -1477,3 +1477,27 @@ test("github repository control prompts to connect when GitHub is not linked", a
     await act(async () => root.unmount());
   }
 });
+
+test("a slow saved project link keeps unrelated team controls out of the first paint", async () => {
+  window.history.replaceState({ checkpointIndex: 0 }, "", "#/teams/t1/projects/p1/tasks");
+  sessionStorage.setItem("mern_token", "fixture");
+  const originalFetch = global.fetch;
+  let release;
+  const gate = new Promise(resolve => { release = resolve; });
+  global.fetch = async (path, options) => {
+    if (path === "/api/teams/t1") await gate;
+    return originalFetch(path, options);
+  };
+  root = createRoot(document.getElementById("root"));
+  try {
+    await act(async () => { root.render(React.createElement(App)); await tick(); await tick(); });
+    assert(document.body.textContent.includes("Opening workspace…"));
+    assert(!document.body.textContent.includes("Create a team"));
+    assert.equal(document.querySelector(".sidebar"), null);
+    await act(async () => { release(); await tick(); await tick(); });
+    assert.equal(document.querySelector('[aria-current="page"]').textContent, "Task board");
+  } finally {
+    release(); global.fetch = originalFetch;
+    await act(async () => root.unmount());
+  }
+});

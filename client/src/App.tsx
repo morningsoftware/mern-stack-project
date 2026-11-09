@@ -212,6 +212,16 @@ function Workspace() {
       </main>
     );
   if (!user) return <AuthScreen onReady={setUser} />;
+  // Resolve a saved project link before painting the smaller teams navigation.
+  // Otherwise the project menu pushes the entire mobile workspace down on load.
+  let awaitingRoute = false;
+  try {
+    const requested = parseRoute(hash);
+    awaitingRoute = requested.teamId !== (team?._id || null) ||
+      requested.projectId !== (project?._id || null);
+  } catch { /* The route effect renders the explicit invalid-link error. */ }
+  if (awaitingRoute && !routeError)
+    return <main id="main-content" className="auth-wrap"><p role="status">Opening workspace…</p></main>;
   return (
     <AppShell
       user={user}

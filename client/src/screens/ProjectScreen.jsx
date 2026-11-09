@@ -275,6 +275,7 @@ export function ProjectScreen({
       )}
       <fieldset
         className="workspace-fields"
+        hidden={loading}
         disabled={pending || loading}
         aria-busy={pending}
       >
