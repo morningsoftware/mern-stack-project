@@ -790,7 +790,7 @@ button.card-title:hover {
 .build-entry {
   border-top: 2px solid #9ea98b;
   background: #faf7ee;
-  padding: 20px 0;
+  padding: 20px;
   margin-bottom: 16px;
 }
 .build-entry header {
