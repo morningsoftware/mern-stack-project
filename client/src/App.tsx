@@ -7,9 +7,11 @@ import { TeamsScreen } from "./screens/TeamsScreen";
 import { TeamScreen } from "./screens/TeamScreen";
 import { ProjectScreen } from "./screens/ProjectScreen";
 import type { ProjectView } from "./constants";
+import { useTheme } from "./theme";
 import type { Project, Team, User } from "./types";
 
 export function App() {
+  const { theme, toggleTheme } = useTheme();
   const [user, setUser] = useState<User | null>(null);
   const [ready, setReady] = useState(false);
   const [sessionError, setSessionError] = useState("");
@@ -57,13 +59,22 @@ export function App() {
         </button>
       </main>
     );
-  if (!user) return <AuthScreen onReady={setUser} />;
+  if (!user)
+    return (
+      <AuthScreen
+        onReady={setUser}
+        theme={theme}
+        onToggleTheme={toggleTheme}
+      />
+    );
   return (
     <AppShell
       user={user}
       team={team}
       project={project}
       view={view}
+      theme={theme}
+      onToggleTheme={toggleTheme}
       onViewChange={setView}
       onTeams={() => {
         setTeam(null);

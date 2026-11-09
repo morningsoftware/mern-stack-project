@@ -1,14 +1,27 @@
-import { useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import type { ChangeEvent, FormEvent } from "react";
 import { api, setToken } from "../api";
 import type { ApiError } from "../api";
 import { USER_ROLES } from "../constants";
 import { ErrorNote, Field } from "../components/Forms";
+import { ThemeToggle } from "../components/ThemeToggle";
+import type { Theme } from "../theme";
 import type { AuthResponse, User } from "../types";
 
-export function AuthScreen({ onReady }: { onReady: (user: User) => void }) {
+const AuthBackdrop = lazy(() => import("../components/AuthBackdrop"));
+
+export function AuthScreen({
+  onReady,
+  theme,
+  onToggleTheme,
+}: {
+  onReady: (user: User) => void;
+  theme: Theme;
+  onToggleTheme: () => void;
+}) {
   const submitLock = useRef(false);
   const [pending, setPending] = useState(false);
+  const [showBackdrop, setShowBackdrop] = useState(false);
   const [mode, setMode] = useState<"login" | "register">("login");
   const [error, setError] = useState("");
   const [form, setForm] = useState({
@@ -18,6 +31,11 @@ export function AuthScreen({ onReady }: { onReady: (user: User) => void }) {
     role: "developer",
     password: "",
   });
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => setShowBackdrop(true), 400);
+    return () => window.clearTimeout(timer);
+  }, []);
 
   function update(
     event: ChangeEvent<HTMLInputElement | HTMLSelectElement>
@@ -55,104 +73,116 @@ export function AuthScreen({ onReady }: { onReady: (user: User) => void }) {
   }
 
   return (
-    <main id="main-content" className="auth-wrap">
-      <p className="eyebrow">Studio sign in</p>
-      <h1>Checkpoint</h1>
-      <p>
-        Sign in to manage teams, projects, tasks, bugs, and playtest feedback.
-      </p>
-      <div className="panel">
-        <div className="auth-switch" role="group" aria-label="Account access">
-          <button
-            type="button"
-            className={mode === "login" ? "" : "secondary"}
-            aria-pressed={mode === "login"}
-            disabled={pending}
-            onClick={() => {
-              setMode("login");
-              setError("");
-            }}
-          >
-            Sign in
-          </button>
-          <button
-            type="button"
-            className={mode === "register" ? "" : "secondary"}
-            aria-pressed={mode === "register"}
-            disabled={pending}
-            onClick={() => {
-              setMode("register");
-              setError("");
-            }}
-          >
-            Create account
-          </button>
-        </div>
-        <ErrorNote error={error} />
-        <form onSubmit={submit}>
-          <fieldset className="stack" disabled={pending}>
-            <Field label="Username">
-              <input
-                name="username"
-                value={form.username}
-                onChange={update}
-                autoComplete="username"
-                required
-              />
-            </Field>
-            {mode === "register" && (
-              <>
-                <Field label="Email">
-                  <input
-                    name="email"
-                    type="email"
-                    value={form.email}
-                    onChange={update}
-                    autoComplete="email"
-                    required
-                  />
-                </Field>
-                <Field label="Display name">
-                  <input
-                    name="displayName"
-                    value={form.displayName}
-                    onChange={update}
-                    required
-                  />
-                </Field>
-                <Field label="Role">
-                  <select name="role" value={form.role} onChange={update}>
-                    {USER_ROLES.map((role) => (
-                      <option key={role} value={role}>
-                        {role}
-                      </option>
-                    ))}
-                  </select>
-                </Field>
-              </>
-            )}
-            <Field label="Password">
-              <input
-                name="password"
-                type="password"
-                value={form.password}
-                onChange={update}
-                autoComplete={
-                  mode === "login" ? "current-password" : "new-password"
-                }
-                required
-              />
-            </Field>
-            <button type="submit">
-              {pending
-                ? "Please wait…"
-                : mode === "login"
-                  ? "Sign in"
-                  : "Create account"}
+    <>
+      {showBackdrop && (
+        <Suspense fallback={null}>
+          <AuthBackdrop theme={theme} />
+        </Suspense>
+      )}
+      <ThemeToggle
+        theme={theme}
+        onToggle={onToggleTheme}
+        className="auth-theme-toggle"
+      />
+      <main id="main-content" className="auth-wrap">
+        <p className="eyebrow">Studio sign in</p>
+        <h1>Checkpoint</h1>
+        <p>
+          Sign in to manage teams, projects, tasks, bugs, and playtest feedback.
+        </p>
+        <div className="panel">
+          <div className="auth-switch" role="group" aria-label="Account access">
+            <button
+              type="button"
+              className={mode === "login" ? "" : "secondary"}
+              aria-pressed={mode === "login"}
+              disabled={pending}
+              onClick={() => {
+                setMode("login");
+                setError("");
+              }}
+            >
+              Sign in
             </button>
-          </fieldset>
-        </form>
-      </div>
-    </main>
+            <button
+              type="button"
+              className={mode === "register" ? "" : "secondary"}
+              aria-pressed={mode === "register"}
+              disabled={pending}
+              onClick={() => {
+                setMode("register");
+                setError("");
+              }}
+            >
+              Create account
+            </button>
+          </div>
+          <ErrorNote error={error} />
+          <form onSubmit={submit}>
+            <fieldset className="stack" disabled={pending}>
+              <Field label="Username">
+                <input
+                  name="username"
+                  value={form.username}
+                  onChange={update}
+                  autoComplete="username"
+                  required
+                />
+              </Field>
+              {mode === "register" && (
+                <>
+                  <Field label="Email">
+                    <input
+                      name="email"
+                      type="email"
+                      value={form.email}
+                      onChange={update}
+                      autoComplete="email"
+                      required
+                    />
+                  </Field>
+                  <Field label="Display name">
+                    <input
+                      name="displayName"
+                      value={form.displayName}
+                      onChange={update}
+                      required
+                    />
+                  </Field>
+                  <Field label="Role">
+                    <select name="role" value={form.role} onChange={update}>
+                      {USER_ROLES.map((role) => (
+                        <option key={role} value={role}>
+                          {role}
+                        </option>
+                      ))}
+                    </select>
+                  </Field>
+    </>
+              )}
+              <Field label="Password">
+                <input
+                  name="password"
+                  type="password"
+                  value={form.password}
+                  onChange={update}
+                  autoComplete={
+                    mode === "login" ? "current-password" : "new-password"
+                  }
+                  required
+                />
+              </Field>
+              <button type="submit">
+                {pending
+                  ? "Please wait…"
+                  : mode === "login"
+                    ? "Sign in"
+                    : "Create account"}
+              </button>
+            </fieldset>
+          </form>
+        </div>
+      </main>
+    </>
   );
 }

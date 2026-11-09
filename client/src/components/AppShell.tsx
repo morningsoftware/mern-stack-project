@@ -1,6 +1,8 @@
 import { useEffect, useRef } from "react";
 import type { ReactNode } from "react";
 import type { ProjectView } from "../constants";
+import { ThemeToggle } from "./ThemeToggle";
+import type { Theme } from "../theme";
 import type { Project, Team, User } from "../types";
 
 export const PROJECT_VIEWS: ReadonlyArray<readonly [ProjectView, string]> = [
@@ -17,6 +19,8 @@ export function AppShell({
   team,
   project,
   view,
+  theme,
+  onToggleTheme,
   onViewChange,
   onTeams,
   onTeam,
@@ -27,6 +31,8 @@ export function AppShell({
   team: Team | null;
   project: Project | null;
   view: ProjectView;
+  theme: Theme;
+  onToggleTheme: () => void;
   onViewChange: (view: ProjectView) => void;
   onTeams: () => void;
   onTeam: () => void;
@@ -68,6 +74,11 @@ export function AppShell({
           <span>
             Checkpoint<small>Studio workspace</small>
           </span>
+          <ThemeToggle
+            theme={theme}
+            onToggle={onToggleTheme}
+            className="brand-theme"
+          />
         </div>
         <p className="nav-label">Workspace</p>
         <nav aria-label="Workspace navigation" className="workspace-nav">

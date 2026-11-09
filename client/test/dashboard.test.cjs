@@ -170,6 +170,18 @@ test("dashboard navigation, data updates, and failed status regression", async (
   await click("Open");
   await click("Open");
   assert(document.body.textContent.includes("Task board"));
+  assert.equal(document.documentElement.dataset.theme, "light");
+  await act(async () => {
+    document.querySelector(".brand-theme").click();
+    await tick();
+  });
+  assert.equal(document.documentElement.dataset.theme, "dark");
+  assert.equal(window.localStorage.getItem("checkpoint_theme"), "dark");
+  await act(async () => {
+    document.querySelector(".brand-theme").click();
+    await tick();
+  });
+  assert.equal(document.documentElement.dataset.theme, "light");
   await click("Overview");
   assert.equal(document.querySelectorAll(".project-ledger > div").length, 4);
   assert.equal(document.querySelector("progress").value, 1);

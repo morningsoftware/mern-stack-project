@@ -37,6 +37,16 @@ small overview totals, and system monospace for short record identifiers. No
 remote font downloads. Use 3–4px corner radii and minimal shadows. Avoid gradients,
 large matching KPI cards, arbitrary numbered menus, and oversized uppercase copy.
 
+### Dark theme
+
+A persisted light/dark theme is supported. The initial theme follows the
+operating system; the toggle in the sidebar brand (and top-right of the sign-in
+screen) overrides it and stores the choice. Dark mode keeps the same forest/rust
+personality rather than switching to neutral gray: canvas `#171d19`, surfaces
+`#212923`, borders `#465246`, ink `#eee9dc`, muted text `#a7b1a2`, accent
+`#c06a45`, and navigation `#101712`. The selected navigation color, status
+meanings, and focus treatments stay consistent between themes.
+
 ## Layout
 
 Desktop: a 234px sidebar with a flexible work area. The board uses three status
@@ -68,9 +78,13 @@ Overview totals form a compact ledger rather than four decorative cards. Use
 - `features/work/BuildLibrary.tsx`: version, platform, release notes, HTTPS link.
   The user approved external links rather than storing uploaded game binaries.
   Feedback can optionally reference a build in the same project.
+- `components/AuthBackdrop.tsx`: a procedurally generated ink-terrain backdrop
+  for the signed-out screen. It is theme-aware, pauses when hidden, renders a
+  static frame under reduced motion, and must not enter the signed-in bundle.
 - React state still controls navigation. Deep links remain separate scope.
-- No new runtime UI libraries. Existing API contracts remain compatible; build
-  endpoints and optional feedback buildId are additive.
+- No new runtime UI libraries except `three`, explicitly approved for the
+  lazy-loaded auth backdrop only. Existing API contracts remain compatible;
+  build endpoints and optional feedback buildId are additive.
 
 ## Accessibility and errors
 
@@ -88,6 +102,16 @@ may still use the full form width. Values shown to people use readable labels
 such as "In progress" and "macOS" while API values remain unchanged. Empty
 states say what to do next and offer the relevant action when one exists.
 
+## Motion
+
+Use restrained, standard expressiveness rather than decorative looping
+animation. Screens and tabs fade in with a 3–7px rise over 140–240ms; drawers
+slide in from the right; controls transition background, border, and color;
+work cards lift 1px on hover. The three.js auth backdrop is the only ambient
+animation and may drift slowly with pointer parallax. All CSS motion and the
+backdrop respect reduced-motion preferences, and the backdrop pauses while the
+tab is hidden.
+
 ## Approved decisions and remaining scope
 
 | Decision                             | Reason                                     |
@@ -97,6 +121,9 @@ states say what to do next and offer the relevant action when one exists.
 | Board first, overview second         | Work is more useful than generic metrics   |
 | External build links                 | User chose links over file storage         |
 | Optional build-specific feedback     | Existing general feedback stays compatible |
+| Dark theme                           | User requested it for the studio workspace |
+| Standard motion with reduced-motion  | Adds dimension without distracting from work |
+| three.js auth backdrop (exception)   | User approved a procedural signed-out scene |
 
 Uploads, comments/activity history, notifications, final branding, and URL routing
 remain separate scope. Backend authorization for older resources and account
