@@ -1,207 +1,128 @@
 import { useEffect, useRef } from "react";
 import {
-  BufferGeometry,
-  Color,
-  Float32BufferAttribute,
+  BoxGeometry,
+  DirectionalLight,
   Group,
+  HemisphereLight,
+  Mesh,
+  MeshLambertMaterial,
   PerspectiveCamera,
-  Points,
   Scene,
-  ShaderMaterial,
   WebGLRenderer,
 } from "three";
 import type { Theme } from "../theme";
 
-type Palette = {
-  line: { r: number; g: number; b: number };
-  rust: { r: number; g: number; b: number };
-  rustHex: number;
-  opacity: number;
+type ScenePalette = {
+  colors: string[];
+  hemiSky: number;
+  hemiGround: number;
+  hemiIntensity: number;
+  dirIntensity: number;
 };
 
 type Materials = {
-  points: ShaderMaterial;
-  markers: ShaderMaterial;
-  palette: Palette;
+  cells: MeshLambertMaterial[];
+  hemi: HemisphereLight;
+  dir: DirectionalLight;
+  palette: ScenePalette;
 };
 
-type Marker = {
-  x: number;
-  z: number;
-  phase: number;
+type Cell = {
+  mesh: Mesh;
+  colorIndex: number;
 };
 
-const PALETTES: Record<Theme, Palette> = {
+type FallingPiece = {
+  col: number;
+  row: number;
+  colorIndex: number;
+  cells: ReadonlyArray<readonly [number, number]>;
+  visualY: number;
+};
+
+const PALETTES: Record<Theme, ScenePalette> = {
   light: {
-    line: { r: 0.35, g: 0.41, b: 0.33 },
-    rust: { r: 0.58, g: 0.26, b: 0.15 },
-    rustHex: 0x934125,
-    opacity: 0.95,
+    colors: ["#93a087", "#58604e", "#a9532f", "#d9cb98", "#6f7a68"],
+    hemiSky: 0xfff7e6,
+    hemiGround: 0x8b9488,
+    hemiIntensity: 0.85,
+    dirIntensity: 0.8,
   },
   dark: {
-    line: { r: 0.9, g: 0.88, b: 0.79 },
-    rust: { r: 0.75, g: 0.42, b: 0.27 },
-    rustHex: 0xc06a45,
-    opacity: 0.9,
+    colors: ["#8fa08a", "#7c8f78", "#c06a45", "#e7dba9", "#aab4a4"],
+    hemiSky: 0xf4efe0,
+    hemiGround: 0x2c3a30,
+    hemiIntensity: 0.55,
+    dirIntensity: 0.6,
   },
 };
 
-const WIDTH = 36;
-const DEPTH = 26;
-
-const MARKERS: ReadonlyArray<readonly [number, number]> = [
-  [-11, 5],
-  [-6, -4],
-  [-1, 3],
-  [4, -5],
-  [8, 2],
-  [12, 6],
+const SHAPES: ReadonlyArray<ReadonlyArray<readonly [number, number]>> = [
+  [
+    [0, 0],
+    [1, 0],
+    [2, 0],
+    [3, 0],
+  ],
+  [
+    [0, 0],
+    [1, 0],
+    [0, 1],
+    [1, 1],
+  ],
+  [
+    [0, 1],
+    [1, 1],
+    [2, 1],
+    [1, 0],
+  ],
+  [
+    [1, 0],
+    [2, 0],
+    [0, 1],
+    [1, 1],
+  ],
+  [
+    [0, 0],
+    [1, 0],
+    [1, 1],
+    [2, 1],
+  ],
+  [
+    [0, 0],
+    [0, 1],
+    [1, 1],
+    [2, 1],
+  ],
+  [
+    [2, 0],
+    [0, 1],
+    [1, 1],
+    [2, 1],
+  ],
 ];
 
-const MARKER_DATA: Marker[] = MARKERS.map(([x, z], index) => ({
-  x,
-  z,
-  phase: index * 1.7,
-}));
+const CELL = 2.0;
+const STEP_SECONDS = 0.22;
+const SPAWN_SECONDS = 0.85;
 
-const RIPPLE_DATA: Marker[] = MARKER_DATA.slice(0, 4);
-
-function surfaceHeight(
-  x: number,
-  z: number,
-  time: number,
-  pointerX: number,
-  pointerZ: number,
-  splash: number
-): number {
-  let height =
-    Math.sin(x * 0.55 + time * 1.1) * 0.55 +
-    Math.cos(z * 0.6 + time * 0.85) * 0.45 +
-    Math.sin((x + z) * 0.28 - time * 1.4) * 0.3 +
-    Math.sin(x * 0.12 - time * 0.6 + z * 0.2) * 0.2;
-
-  for (const marker of RIPPLE_DATA) {
-    const dx = x - marker.x;
-    const dz = z - marker.z;
-    const distance = Math.sqrt(dx * dx + dz * dz);
-    height +=
-      Math.sin(distance * 0.8 - time * 1.5 + marker.phase) *
-      Math.exp(-distance * 0.13) *
-      0.5;
-  }
-
-  const dx = x - pointerX;
-  const dz = z - pointerZ;
-  const distance = Math.sqrt(dx * dx + dz * dz);
-  height +=
-    Math.sin(distance * 3.1 - time * 4.8) *
-    Math.exp(-distance * 0.5) *
-    (1.3 + splash * 1.5);
-  return height;
-}
-
-function pointMaterial(palette: Palette): ShaderMaterial {
-  return new ShaderMaterial({
-    transparent: true,
-    depthWrite: false,
-    uniforms: {
-      uSize: { value: 2.2 },
-      uPixelRatio: { value: 1 },
-      uScale: { value: 18 },
-      uTime: { value: 0 },
-      uOpacity: { value: palette.opacity },
-    },
-    vertexShader: `
-      attribute vec3 aColor;
-      uniform float uSize;
-      uniform float uPixelRatio;
-      uniform float uScale;
-      uniform float uTime;
-      varying vec3 vColor;
-      varying float vElevation;
-      void main() {
-        vec4 viewPosition = modelViewMatrix * vec4(position, 1.0);
-        float phase = fract(sin(dot(position.xy, vec2(12.9898, 78.233))) * 43758.5453);
-        float pulse = 0.9 + 0.12 * sin(uTime * 1.8 + phase * 6.28318);
-        gl_PointSize = uSize * uPixelRatio * uScale * pulse / max(0.1, -viewPosition.z);
-        vColor = aColor;
-        vElevation = position.y;
-        gl_Position = projectionMatrix * viewPosition;
-      }
-    `,
-    fragmentShader: `
-      uniform float uOpacity;
-      varying vec3 vColor;
-      varying float vElevation;
-      void main() {
-        vec2 point = gl_PointCoord - vec2(0.5);
-        float distanceToCenter = length(point);
-        if (distanceToCenter > 0.5) discard;
-        float alpha = smoothstep(0.5, 0.12, distanceToCenter);
-        float core = smoothstep(0.18, 0.0, distanceToCenter);
-        vec3 color = mix(vColor, vColor * 1.15, core);
-        gl_FragColor = vec4(color, alpha * uOpacity);
-      }
-    `,
-  });
-}
-
-function markerMaterial(color: number): ShaderMaterial {
-  return new ShaderMaterial({
-    transparent: true,
-    depthWrite: false,
-    depthTest: false,
-    uniforms: {
-      uColor: { value: new Color(color) },
-      uTime: { value: 0 },
-      uPixelRatio: { value: 1 },
-    },
-    vertexShader: `
-      attribute float aPhase;
-      uniform float uTime;
-      uniform float uPixelRatio;
-      varying float vPulse;
-      void main() {
-        vec4 viewPosition = modelViewMatrix * vec4(position, 1.0);
-        vPulse = 0.65 + 0.35 * sin(uTime * 0.7 + aPhase);
-        gl_PointSize = (12.0 + 3.0 * vPulse) * uPixelRatio;
-        gl_Position = projectionMatrix * viewPosition;
-      }
-    `,
-    fragmentShader: `
-      uniform vec3 uColor;
-      varying float vPulse;
-      void main() {
-        vec2 point = gl_PointCoord - vec2(0.5);
-        float distanceToCenter = length(point);
-        if (distanceToCenter > 0.5) discard;
-        float ring = smoothstep(0.50, 0.43, distanceToCenter)
-          - smoothstep(0.34, 0.28, distanceToCenter);
-        float dot = smoothstep(0.16, 0.05, distanceToCenter);
-        float alpha = clamp(ring * 0.75 + dot * 0.6, 0.0, 1.0) * vPulse;
-        gl_FragColor = vec4(uColor, alpha);
-      }
-    `,
-  });
-}
-
-function markerGeometry(): BufferGeometry {
-  const positions: number[] = [];
-  const phases: number[] = [];
-  MARKER_DATA.forEach((marker) => {
-    positions.push(marker.x, surfaceHeight(marker.x, marker.z, 0, 0, 0, 0) + 0.3, marker.z);
-    phases.push(marker.phase);
-  });
-  const geometry = new BufferGeometry();
-  geometry.setAttribute(
-    "position",
-    new Float32BufferAttribute(positions, 3)
+function rotateCells(
+  cells: ReadonlyArray<readonly [number, number]>
+): ReadonlyArray<readonly [number, number]> {
+  const rotated = cells.map(([row, column]) => [column, 3 - row] as const);
+  const minRow = Math.min(...rotated.map((cell) => cell[0]));
+  const minColumn = Math.min(...rotated.map((cell) => cell[1]));
+  return rotated.map(
+    ([row, column]) => [row - minRow, column - minColumn] as const
   );
-  geometry.setAttribute(
-    "aPhase",
-    new Float32BufferAttribute(phases, 1)
-  );
-  return geometry;
+}
+
+function seededRandom(): () => number {
+  let seed = 0x2f6e2b;
+  return () => {
+    seed = (seed * 1664525 + 1013904223) >>> 0;
+    return seed / 0xffffffff;
+  };
 }
 
 export default function AuthBackdrop({ theme }: { theme: Theme }) {
@@ -232,174 +153,288 @@ export default function AuthBackdrop({ theme }: { theme: Theme }) {
       window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches ?? false;
     const compact =
       window.matchMedia?.("(max-width: 760px)")?.matches ?? false;
-    const columns = compact ? 56 : 96;
-    const rows = compact ? 36 : 60;
-    const count = columns * rows;
+    const columns = compact ? 10 : 14;
+    const rows = compact ? 12 : 18;
+    const stepSeconds = compact ? 0.26 : STEP_SECONDS;
+    const spawnSeconds = compact ? 1.1 : SPAWN_SECONDS;
     const palette = PALETTES[themeRef.current];
 
     const scene = new Scene();
     const camera = new PerspectiveCamera(
-      38,
+      45,
       window.innerWidth / window.innerHeight,
       0.1,
       100
     );
-    camera.position.set(0, 6.6, 17);
-    camera.lookAt(0, -0.4, 0);
+    camera.position.set(0, 7, 20);
+    camera.lookAt(0, 3, 0);
 
-    const field = new Group();
-    field.position.y = -1;
-    scene.add(field);
+    const board = new Group();
+    board.position.set(0, -6.5, 0);
+    scene.add(board);
 
-    const positions = new Float32Array(count * 3);
-    const baseX = new Float32Array(count);
-    const baseZ = new Float32Array(count);
-    const variance = new Float32Array(count);
-    let index = 0;
-    for (let row = 0; row < rows; row += 1) {
-      const z = (row / (rows - 1) - 0.5) * DEPTH;
-      for (let column = 0; column < columns; column += 1) {
-        const x = (column / (columns - 1) - 0.5) * WIDTH;
-        baseX[index] = x;
-        baseZ[index] = z;
-        variance[index] = Math.random();
-        positions[index * 3] = x;
-        positions[index * 3 + 2] = z;
-        index += 1;
-      }
-    }
-
-    const geometry = new BufferGeometry();
-    const positionAttribute = new Float32BufferAttribute(positions, 3);
-    geometry.setAttribute("position", positionAttribute);
-    const colorAttribute = new Float32BufferAttribute(
-      new Float32Array(count * 3),
-      3
+    const hemi = new HemisphereLight(
+      palette.hemiSky,
+      palette.hemiGround,
+      palette.hemiIntensity
     );
-    geometry.setAttribute("aColor", colorAttribute);
+    const dir = new DirectionalLight(0xfff2dd, palette.dirIntensity);
+    dir.position.set(6, 12, 8);
+    scene.add(hemi, dir);
 
-    const pointsMaterial = pointMaterial(palette);
-    const points = new Points(geometry, pointsMaterial);
-    points.frustumCulled = false;
-    field.add(points);
-
-    const markersMaterial = markerMaterial(palette.rustHex);
-    const markersGeometry = markerGeometry();
-    const markers = new Points(markersGeometry, markersMaterial);
-    markers.frustumCulled = false;
-    markers.renderOrder = 2;
-    field.add(markers);
-    materials.current = {
-      points: pointsMaterial,
-      markers: markersMaterial,
-      palette,
-    };
-
-    renderer.setPixelRatio(
-      Math.min(window.devicePixelRatio || 1, compact ? 1.5 : 2)
+    const boxGeometry = new BoxGeometry(CELL * 0.96, CELL * 0.96, CELL * 0.96);
+    const cellMaterials = palette.colors.map(
+      (color) => new MeshLambertMaterial({ color, flatShading: true })
     );
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.setClearColor(0x000000, 0);
-    renderer.domElement.className = "auth-backdrop-canvas";
-    container.appendChild(renderer.domElement);
+    materials.current = { cells: cellMaterials, hemi, dir, palette };
 
-    const markerAttribute = markersGeometry.getAttribute(
-      "position"
-    ) as Float32BufferAttribute;
-    const positionsArray = positionAttribute.array as Float32Array;
-    const colorsArray = colorAttribute.array as Float32Array;
+    const grid: Array<Array<Cell | null>> = Array.from(
+      { length: rows },
+      () => Array.from({ length: columns }, () => null)
+    );
+    const clearing: Array<{ mesh: Mesh; until: number }> = [];
+    const pieceGroup = new Group();
+    const pieceMeshes = Array.from({ length: 4 }, () => {
+      const mesh = new Mesh(boxGeometry, cellMaterials[0]);
+      mesh.visible = false;
+      pieceGroup.add(mesh);
+      return mesh;
+    });
+    pieceGroup.position.z = 0.4;
+    board.add(pieceGroup);
 
-    const updateGeometry = (
-      time: number,
-      pointerX: number,
-      pointerZ: number,
-      splash: number
-    ): void => {
-      const current = materials.current;
-      const activePalette = current?.palette ?? palette;
-      const line = activePalette.line;
-      const rust = activePalette.rust;
-      for (let i = 0; i < count; i += 1) {
-        const y = surfaceHeight(
-          baseX[i],
-          baseZ[i],
-          time,
-          pointerX,
-          pointerZ,
-          splash
-        );
-        positionsArray[i * 3 + 1] = y;
-        const crest = Math.min(1, Math.max(0, (y + 1.1) * 0.42));
-        const shade = 0.82 + variance[i] * 0.28;
-        const tint = crest * 0.85;
-        colorsArray[i * 3] = (line.r * shade) * (1 - tint) + rust.r * tint;
-        colorsArray[i * 3 + 1] =
-          (line.g * shade) * (1 - tint) + rust.g * tint;
-        colorsArray[i * 3 + 2] =
-          (line.b * shade) * (1 - tint) + rust.b * tint;
-      }
-      positionAttribute.needsUpdate = true;
-      colorAttribute.needsUpdate = true;
-
-      MARKER_DATA.forEach((marker, markerIndex) => {
-        const x = marker.x + Math.sin(time * 0.42 + marker.phase) * 0.75;
-        const z = marker.z + Math.cos(time * 0.33 + marker.phase) * 0.65;
-        markerAttribute.setXYZ(
-          markerIndex,
-          x,
-          surfaceHeight(x, z, time, pointerX, pointerZ, 0) + 0.3,
-          z
-        );
-      });
-      markerAttribute.needsUpdate = true;
-    };
-
-    const renderStatic = (): void => {
-      updateGeometry(0, 0, 0, 0);
-      renderer.render(scene, camera);
-    };
-
-    let frame = 0;
-    let active = true;
-    let pointerWorldX = 0;
-    let pointerWorldZ = 0;
-    let targetWorldX = 0;
-    let targetWorldZ = 0;
+    let falling: FallingPiece | null = null;
+    let colorCounter = 0;
+    let spawnTimer = spawnSeconds;
+    let stepAccumulator = 0;
+    let targetColumn = Math.floor(columns / 2) - 2;
+    let targetCameraX = 0;
+    let cameraX = 0;
     let tiltX = 0;
     let tiltY = 0;
     let targetTiltX = 0;
     let targetTiltY = 0;
-    let splash = 0;
+    let active = true;
+    let frame = 0;
     let lastTime = performance.now();
     const start = lastTime;
+
+    const random = seededRandom();
+    const columnWidth = (cells: FallingPiece["cells"]): number =>
+      Math.max(...cells.map((cell) => cell[1])) + 1;
+
+    const worldX = (column: number): number =>
+      (column + 0.5 - columns / 2) * CELL;
+
+    const collides = (
+      cells: FallingPiece["cells"],
+      column: number,
+      row: number
+    ): boolean =>
+      cells.some(([cellRow, cellColumn]) => {
+        const gridRow = row + cellRow;
+        const gridColumn = column + cellColumn;
+        if (gridColumn < 0 || gridColumn >= columns) return true;
+        if (gridRow < 0) return true;
+        if (gridRow < rows && grid[gridRow][gridColumn]) return true;
+        return false;
+      });
+
+    const addCell = (
+      gridColumn: number,
+      gridRow: number,
+      colorIndex: number
+    ): void => {
+      const mesh = new Mesh(boxGeometry, cellMaterials[colorIndex]);
+      mesh.position.set(
+        worldX(gridColumn),
+        (gridRow + 0.5) * CELL,
+        (random() - 0.5) * 0.5
+      );
+      board.add(mesh);
+      grid[gridRow][gridColumn] = { mesh, colorIndex };
+    };
+
+    const removePiece = (): void => {
+      falling = null;
+      pieceMeshes.forEach((mesh) => {
+        mesh.visible = false;
+      });
+    };
+
+    const clearBoard = (): void => {
+      grid.forEach((rowCells, row) => {
+        rowCells.forEach((cell, column) => {
+          if (!cell) return;
+          clearing.push({ mesh: cell.mesh, until: lastTime + 0.22 });
+          grid[row][column] = null;
+        });
+      });
+    };
+
+    const collapseRows = (): void => {
+      for (let column = 0; column < columns; column += 1) {
+        const remaining: Cell[] = [];
+        for (let row = 0; row < rows; row += 1) {
+          const cell = grid[row][column];
+          if (cell) remaining.push(cell);
+        }
+        for (let row = 0; row < rows; row += 1) {
+          grid[row][column] = remaining[row] ?? null;
+        }
+        remaining.forEach((cell, row) => {
+          cell.mesh.position.y = (row + 0.5) * CELL;
+        });
+      }
+    };
+
+    const checkRows = (): void => {
+      let cleared = false;
+      for (let row = 0; row < rows; row += 1) {
+        const full = grid[row].every((cell) => cell !== null);
+        if (!full) continue;
+        cleared = true;
+        grid[row].forEach((cell, column) => {
+          if (!cell) return;
+          clearing.push({ mesh: cell.mesh, until: lastTime + 0.2 });
+          grid[row][column] = null;
+        });
+      }
+      if (cleared) collapseRows();
+    };
+
+    const lockPiece = (): void => {
+      if (!falling) return;
+      for (const [cellRow, cellColumn] of falling.cells) {
+        const gridRow = falling.row + cellRow;
+        if (gridRow >= rows) {
+          clearBoard();
+          removePiece();
+          return;
+        }
+        addCell(falling.col + cellColumn, gridRow, falling.colorIndex);
+      }
+      removePiece();
+      checkRows();
+    };
+
+    const spawn = (): void => {
+      if (falling) return;
+      const cells = SHAPES[Math.floor(random() * SHAPES.length)];
+      const width = columnWidth(cells);
+      const column = Math.min(
+        columns - width,
+        2 + Math.floor(random() * Math.max(1, columns - width - 4))
+      );
+      const colorIndex = colorCounter++ % cellMaterials.length;
+      const piece: FallingPiece = {
+        col: column,
+        row: rows + 2,
+        colorIndex,
+        cells,
+        visualY: (rows + 2) * CELL,
+      };
+      falling = piece;
+      pieceMeshes.forEach((mesh, index) => {
+        mesh.visible = true;
+        mesh.material = cellMaterials[colorIndex];
+        const [cellRow, cellColumn] = piece.cells[index];
+        mesh.position.set(
+          worldX(column + cellColumn),
+          (cellRow + 0.5) * CELL,
+          0
+        );
+      });
+    };
+
+    const updatePiece = (): void => {
+      if (!falling) return;
+      const piece = falling;
+      const targetY = piece.row * CELL;
+      piece.visualY += (targetY - piece.visualY) * 0.35;
+      pieceGroup.position.set(0, piece.visualY, 0.4);
+      pieceMeshes.forEach((mesh, index) => {
+        const [cellRow, cellColumn] = piece.cells[index];
+        mesh.position.set(
+          worldX(piece.col + cellColumn),
+          (cellRow + 0.5) * CELL,
+          0
+        );
+      });
+    };
+
+    const updateFalling = (delta: number): void => {
+      if (!falling) return;
+      stepAccumulator += delta;
+      while (stepAccumulator >= stepSeconds) {
+        stepAccumulator -= stepSeconds;
+        if (collides(falling.cells, falling.col, falling.row - 1)) {
+          lockPiece();
+          break;
+        }
+        falling.row -= 1;
+      }
+      updatePiece();
+    };
+
+    const updateClearing = (now: number): void => {
+      for (let index = clearing.length - 1; index >= 0; index -= 1) {
+        const entry = clearing[index];
+        const remaining = Math.max(0, (entry.until - now) / 0.2);
+        entry.mesh.scale.setScalar(Math.max(0.001, remaining));
+        if (remaining <= 0) {
+          board.remove(entry.mesh);
+          clearing.splice(index, 1);
+        }
+      }
+    };
+
+    let staticBuilt = false;
+    const renderStatic = (): void => {
+      // A calm seeded stack so reduced motion still shows the scene.
+      if (!staticBuilt) {
+        staticBuilt = true;
+        for (let row = 0; row < 7; row += 1) {
+          const gaps = new Set<number>();
+          const gapCount = 1 + Math.floor(random() * 2);
+          for (let gap = 0; gap < gapCount; gap += 1) {
+            gaps.add(Math.floor(random() * columns));
+          }
+          for (let column = 0; column < columns; column += 1) {
+            if (gaps.has(column)) continue;
+            addCell(column, row, Math.floor(random() * cellMaterials.length));
+          }
+        }
+      }
+      renderer.render(scene, camera);
+    };
 
     const resize = (): void => {
       const size = container.getBoundingClientRect();
       camera.aspect = size.width / Math.max(size.height, 1);
       camera.updateProjectionMatrix();
       renderer.setSize(size.width, size.height);
-      pointsMaterial.uniforms.uPixelRatio.value = renderer.getPixelRatio();
-      pointsMaterial.uniforms.uScale.value =
-        size.height / (2 * Math.tan((camera.fov * Math.PI) / 360));
-      markersMaterial.uniforms.uPixelRatio.value = renderer.getPixelRatio();
       if (reducedMotion) renderStatic();
     };
 
     const animate = (now: number): void => {
       if (!active) return;
       const elapsed = (now - start) / 1000;
-      const delta = (now - lastTime) / 1000;
+      const delta = Math.min(0.1, (now - lastTime) / 1000);
       lastTime = now;
-      pointerWorldX += (targetWorldX - pointerWorldX) * 0.06;
-      pointerWorldZ += (targetWorldZ - pointerWorldZ) * 0.06;
-      tiltX += (targetTiltX - tiltX) * 0.06;
-      tiltY += (targetTiltY - tiltY) * 0.06;
-      splash *= Math.exp(-delta * 2.2);
-      updateGeometry(elapsed, pointerWorldX, pointerWorldZ, splash);
-      field.rotation.x = -0.09 + Math.sin(elapsed * 0.18) * 0.02 + tiltX;
-      field.rotation.y = Math.sin(elapsed * 0.11) * 0.06 + tiltY;
-      pointsMaterial.uniforms.uTime.value = elapsed;
-      markersMaterial.uniforms.uTime.value = elapsed;
+      spawnTimer -= delta;
+      if (spawnTimer <= 0) {
+        spawnTimer = spawnSeconds;
+        spawn();
+      }
+      updateFalling(delta);
+      updateClearing(now);
+      cameraX += (targetCameraX - cameraX) * 0.05;
+      tiltX += (targetTiltX - tiltX) * 0.05;
+      tiltY += (targetTiltY - tiltY) * 0.05;
+      camera.position.x = cameraX;
+      board.rotation.x = 0.06 + tiltX;
+      board.rotation.y = 0.08 + Math.sin(elapsed * 0.1) * 0.015 + tiltY;
       renderer.render(scene, camera);
       frame = requestAnimationFrame(animate);
     };
@@ -407,21 +442,36 @@ export default function AuthBackdrop({ theme }: { theme: Theme }) {
     const onPointer = (event: PointerEvent): void => {
       const x = event.clientX / window.innerWidth - 0.5;
       const y = event.clientY / window.innerHeight - 0.5;
-      targetTiltY = x * 0.16;
-      targetTiltX = y * 0.07;
-      targetWorldX = x * WIDTH;
-      targetWorldZ = y * DEPTH;
+      targetColumn = Math.floor((x + 0.5) * columns);
+      if (falling) {
+        const width = columnWidth(falling.cells);
+        const next = Math.min(columns - width, Math.max(0, targetColumn));
+        if (!collides(falling.cells, next, falling.row)) {
+          falling.col = next;
+          updatePiece();
+        }
+      }
+      targetCameraX = x * 2.2;
+      targetTiltX = y * 0.05;
+      targetTiltY = x * 0.12;
     };
 
     const onPointerDown = (): void => {
-      splash = 1;
+      if (!falling) return;
+      const rotated = rotateCells(falling.cells);
+      const width = columnWidth(rotated);
+      const nextColumn = Math.min(columns - width, falling.col);
+      if (!collides(rotated, nextColumn, falling.row)) {
+        falling.cells = rotated;
+        falling.col = nextColumn;
+        updatePiece();
+      }
     };
 
     const onPointerLeave = (): void => {
+      targetCameraX = 0;
       targetTiltX = 0;
       targetTiltY = 0;
-      targetWorldX = 0;
-      targetWorldZ = 0;
     };
 
     const onVisibility = (): void => {
@@ -433,6 +483,14 @@ export default function AuthBackdrop({ theme }: { theme: Theme }) {
         frame = requestAnimationFrame(animate);
       }
     };
+
+    renderer.setPixelRatio(
+      Math.min(window.devicePixelRatio || 1, compact ? 1.5 : 2)
+    );
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setClearColor(0x000000, 0);
+    renderer.domElement.className = "auth-backdrop-canvas";
+    container.appendChild(renderer.domElement);
 
     resize();
     window.addEventListener("resize", resize);
@@ -447,6 +505,7 @@ export default function AuthBackdrop({ theme }: { theme: Theme }) {
         if (active) renderStatic();
       });
     } else {
+      spawn();
       frame = requestAnimationFrame(animate);
     }
 
@@ -458,10 +517,8 @@ export default function AuthBackdrop({ theme }: { theme: Theme }) {
       window.removeEventListener("pointermove", onPointer);
       window.removeEventListener("pointerdown", onPointerDown);
       window.removeEventListener("pointerleave", onPointerLeave);
-      geometry.dispose();
-      markersGeometry.dispose();
-      pointsMaterial.dispose();
-      markersMaterial.dispose();
+      boxGeometry.dispose();
+      cellMaterials.forEach((material) => material.dispose());
       renderer.dispose();
       renderer.domElement.remove();
       materials.current = null;
@@ -473,8 +530,13 @@ export default function AuthBackdrop({ theme }: { theme: Theme }) {
     if (!current) return;
     const palette = PALETTES[theme];
     current.palette = palette;
-    current.points.uniforms.uOpacity.value = palette.opacity;
-    current.markers.uniforms.uColor.value.setHex(palette.rustHex);
+    current.cells.forEach((material, index) => {
+      material.color.set(palette.colors[index]);
+    });
+    current.hemi.color.setHex(palette.hemiSky);
+    current.hemi.groundColor.setHex(palette.hemiGround);
+    current.hemi.intensity = palette.hemiIntensity;
+    current.dir.intensity = palette.dirIntensity;
   }, [theme]);
 
   return <div ref={host} className="auth-backdrop" aria-hidden="true" />;
