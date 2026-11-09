@@ -337,6 +337,11 @@ textarea {
   border-radius: 3px;
   background: #fffdf7;
 }
+select {
+  width: fit-content;
+  min-width: 9rem;
+  text-overflow: ellipsis;
+}
 input::placeholder,
 textarea::placeholder {
   color: #6d7567;
@@ -510,7 +515,7 @@ progress {
   padding: 0;
 }
 .workspace-grid .stack {
-  max-width: 700px;
+  max-width: 480px;
 }
 .loading,
 .save-status {
@@ -525,14 +530,17 @@ progress {
   margin-bottom: 22px;
 }
 .board-filters .row {
-  flex: 1 1 145px;
+  flex: 0 1 auto;
 }
 .board-filters .row:first-child {
-  flex: 2 1 200px;
+  flex: 1 1 260px;
+  max-width: 360px;
 }
-.board-filters input,
-.board-filters select {
+.board-filters input {
   width: 100%;
+}
+.board-filters > .text-button {
+  margin-left: auto;
 }
 .toggle-filter {
   display: flex;
@@ -654,6 +662,7 @@ button.card-title:hover {
 .work-card select {
   font-size: 0.72rem;
   min-height: 36px;
+  min-width: 0;
   padding: 5px;
   width: 110px;
 }
@@ -839,6 +848,14 @@ button.card-title:hover {
   }
   .workspace-label {
     display: none;
+  }
+  .board-filters .row,
+  .board-filters .row:first-child {
+    flex: 1 1 calc(50% - 6px);
+    max-width: none;
+  }
+  .board-filters .row:first-child {
+    flex-basis: 100%;
   }
   .top,
   .list li {
