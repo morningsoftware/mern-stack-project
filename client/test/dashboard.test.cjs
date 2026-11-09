@@ -22,7 +22,7 @@ const React = require(base + "/node_modules/react");
 const { act } = React;
 const { createRoot } = require(base + "/node_modules/react-dom/client");
 buildSync({
-  entryPoints: [base + "/src/App.jsx"],
+  entryPoints: [base + "/src/App.tsx"],
   outfile: base + "/node_modules/.cache/review-app.cjs",
   bundle: true,
   platform: "node",

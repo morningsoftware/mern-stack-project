@@ -53,7 +53,7 @@ Requests omitting buildId preserve existing behavior. No old records are rewritt
 
 API startup adds two indexes to the builds collection: unique
 (projectId, version, platform), plus (projectId, createdOn descending).
-`database/setup.js` also creates the collection/indexes. No seed or destructive
+`database/setup.ts` also creates the collection/indexes. No seed or destructive
 migration is required. Ensure the app's MongoDB account can create indexes.
 Deploy the updated API and frontend together; the project workspace loads builds
 alongside tasks, milestones, bugs, and feedback.

@@ -1,6 +1,17 @@
 {
+  "scripts": {
+    "db:setup": "tsx database/setup.ts",
+    "db:seed": "tsx database/data.ts",
+    "db:migrate-user": "tsx database/migrateMongoUser.ts",
+    "typecheck": "tsc --noEmit"
+  },
   "dependencies": {
     "dotenv": "^18.0.9",
     "mongodb": "^7.7.0"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.6",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2"
   }
 }
