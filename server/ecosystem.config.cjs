@@ -6,7 +6,12 @@ module.exports = {
     script: './node_modules/tsx/dist/cli.mjs',
     args: 'src/index.ts',
     interpreter: 'node',
-    env: { NODE_ENV: 'production' },
+    env: {
+      NODE_ENV: 'production',
+      ...(process.env.CHECKPOINT_PUBLIC_URL
+        ? { CHECKPOINT_PUBLIC_URL: process.env.CHECKPOINT_PUBLIC_URL }
+        : {}),
+    },
     kill_timeout: 5000,
   }],
 };

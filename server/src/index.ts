@@ -1,15 +1,8 @@
-import dotenv from "dotenv";
-import path from "path";
-import { fileURLToPath } from "url";
+import { loadEnvironment } from "./environment.js";
 import { createApp } from "./app.js";
 import { connectDatabase } from "./db.js";
 
-const rootDir = path.resolve(
-  path.dirname(fileURLToPath(import.meta.url)),
-  "../.."
-);
-dotenv.config({ path: path.join(rootDir, ".env") });
-dotenv.config();
+loadEnvironment();
 
 const uri = process.env.MONGODB_URI;
 const port = Number(process.env.PORT || 4000);
