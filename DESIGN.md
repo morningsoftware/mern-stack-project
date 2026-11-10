@@ -323,9 +323,11 @@ Lighthouse repairs reserve logo dimensions, preload that asset, defer the full a
 
 - Purpose: offer an alternate way to authenticate without replacing the
   existing password form, and let signed-in users manage their sign-in methods.
-- Placement: OAuth provider links sit inside the existing auth panel below the
-  password form, separated by a horizontal rule. Account settings open by
-  selecting the profile card (avatar, name, and role) in the workspace sidebar.
+- Placement: the signed-out screen is a single centered glass card, at most
+  460px wide, with a 240px wordmark and compact form spacing. It fits within the
+  viewport without page scrolling. OAuth provider links sit below the password
+  form, separated by a horizontal rule. Account settings open by selecting the
+  profile card (avatar, name, and role) in the workspace sidebar.
 - Sidebar actions: the profile card is a button with an accessible label. Sign
   out is an icon-only button with an accessible label and tooltip beside the
   profile card, not below it. While account settings are open, no workspace or
@@ -415,3 +417,8 @@ Lighthouse repairs reserve logo dimensions, preload that asset, defer the full a
   for disabled, read-only, and already-focused controls. Rationale: editable
   fields should read as interactive before they are clicked, while read-only and
   disabled fields should not invite interaction.
+- **2026-11-10 — Centered compact sign-in:** The signed-out view is now a fixed,
+  viewport-centered 460px card with a 240px wordmark, tighter form rhythm, and no
+  page scroll. The tagline is shortened to one plain sentence. Rationale: the
+  previous card was wider and taller than needed, and its combined wrapper/panel
+  padding made the form feel inset and cramped.

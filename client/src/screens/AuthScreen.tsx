@@ -143,9 +143,7 @@ export function AuthScreen({
             height="102"
           />
         </h1>
-        <p>
-          Sign in to manage teams, projects, tasks, bugs, and playtest feedback.
-        </p>
+        <p>Sign in to your studio workspace.</p>
         <div className="panel">
           <div className="auth-switch" role="group" aria-label="Account access">
             <button
