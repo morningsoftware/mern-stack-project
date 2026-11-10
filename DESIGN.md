@@ -43,26 +43,28 @@ large matching KPI cards, arbitrary numbered menus, and oversized uppercase copy
 
 Desktop: a sidebar that defaults to 234px and can be resized between 200px and
 420px by dragging its right edge or using the arrow, Home, and End keys while
-the separator is focused. The chosen width persists in local storage. The board
-uses three status columns: To do, In progress, Done. Under 1150px, columns
-stack; under 760px, navigation moves above content and wraps. Filters wrap and
-inputs retain usable width. Detail drawers occupy the right edge on desktop and
-the screen on mobile.
+the separator is focused. The chosen width persists in local storage. Project
+navigation is grouped into Plan, Playtest, and Project so the eleven tools stay
+scannable; the sidebar scrolls independently while the profile footer stays
+visible. Under 1150px, board columns stack; under 760px, navigation moves above
+content and the groups flow into compact columns. Spacing follows a 4/8/12/16/24/32
+scale. Filters wrap and inputs retain usable width. Detail drawers occupy the
+right edge on desktop and the screen on mobile.
 
 Overview totals form a compact ledger rather than four decorative cards. Use
 16–24px spacing and thin separators. Artwork and logos require separate approval.
 
 ## Features and contracts
 
-- `features/work/TaskBoard.jsx`: search title/description, assignee, priority,
+- `features/work/TaskBoard.tsx`: search title/description, assignee, priority,
   milestone, and My work filters. Filters combine and can be cleared. They operate
   on the loaded project records, not the complete database.
 - Status selectors move tasks between columns through existing PATCH endpoints.
   Drag/drop is not required; every move works with a keyboard and touch.
-- `features/work/ItemDrawer.jsx`: fetch fresh task/bug detail, edit existing API
+- `features/work/ItemDrawer.tsx`: fetch fresh task/bug detail, edit existing API
   fields, save, or cancel. Native modal dialog provides focus containment/Escape.
   Return focus on close and preserve edits when a save fails.
-- `features/work/BuildLibrary.jsx`: version, platform, release notes, HTTPS link.
+- `features/work/BuildLibrary.tsx`: version, platform, release notes, HTTPS link.
   The user approved external links rather than storing uploaded game binaries.
   Feedback can optionally reference a build in the same project.
 - Hash URLs identify the team, project, and selected view. React state hydrates
@@ -89,6 +91,8 @@ not claimed scores.
 | Board first, overview second         | Work is more useful than generic metrics   |
 | External build links                 | User chose links over file storage         |
 | Optional build-specific feedback     | Existing general feedback stays compatible |
+| Grouped project navigation           | Eleven tools stay scannable in the sidebar |
+| 4–32px spacing scale                 | Keeps layouts and actions on one rhythm    |
 
 Screenshots, activity history, and in-app notifications are now implemented below.
 Account verification/recovery, device push, and private-project visibility remain
@@ -245,7 +249,7 @@ playtesting; these controls do not imply private-project visibility.
 
 ## November 9 integration and approved checkpoint identity
 
-The user explicitly approved the product name `checkpoint` and requested an intuitive logo. The mark combines a completion check with a milestone flag, using the existing forest/rust palette. `client/public/brand/checkpoint-logo.png` is the approved generated raster asset. The sign-in heading and sidebar use that asset with an accessible text alternative and preserved proportions. Keep the paper backing in the dark sidebar so the dark wordmark stays readable.
+The user explicitly approved the product name `checkpoint` and requested an intuitive logo. The mark combines a completion check with a milestone flag, using the existing forest/rust palette. `client/public/brand/checkpoint-logo.png` is the approved generated raster asset with transparent edge padding trimmed. The sign-in heading uses the wordmark at up to 320px wide; the sidebar uses the same asset on a paper plate that fills the rail. Both preserve proportions and keep the paper backing in the dark sidebar so the dark wordmark stays readable.
 
 The integrated branch includes milestone planning, structured playtesting, discussions, deep links/draft guards, My work, screenshots, activity, in-app notifications and sessions, plus the GitHub UI. All client and server application source and tests use strict TypeScript.
 
@@ -337,3 +341,10 @@ Lighthouse repairs reserve logo dimensions, preload that asset, defer the full a
   sidebar's right edge with keyboard support and a persisted width. Rationale:
   long team and project names need more room without forcing a global layout
   change, while the default stays compact for the board.
+- **2026-11-10 — Navigation hierarchy and spacing:** Grouped project views into
+  Plan, Playtest, and Project, removed decorative glyphs from workspace items,
+  and adopted a 4–32px spacing scale across the shell, panels, and auth screen.
+  The sidebar scrolls independently and keeps the profile footer visible.
+  Rationale: the flat eleven-item list was hard to scan, and mixed spacing made
+  related screens feel uneven. The logo asset was trimmed and displayed at
+  consistent widths on auth and in the sidebar.

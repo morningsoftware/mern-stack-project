@@ -34,18 +34,36 @@ function readSidebarWidth(): number {
   return DEFAULT_SIDEBAR_WIDTH;
 }
 
-export const PROJECT_VIEWS: ReadonlyArray<readonly [ProjectView, string]> = [
-  ["tasks", "Task board"],
-  ["my-work", "My work"],
-  ["overview", "Overview"],
-  ["milestones", "Milestones"],
-  ["bugs", "Bug reports"],
-  ["builds", "Builds"],
-  ["feedback", "Playtest feedback"],
-  ["sessions", "Playtest sessions"],
-  ["activity", "Activity"],
-  ["notifications", "Notifications"],
-  ["github", "GitHub"],
+const PROJECT_NAV_GROUPS: ReadonlyArray<{
+  label: string;
+  views: ReadonlyArray<readonly [ProjectView, string]>;
+}> = [
+  {
+    label: "Plan",
+    views: [
+      ["tasks", "Task board"],
+      ["overview", "Overview"],
+      ["milestones", "Milestones"],
+      ["my-work", "My work"],
+    ],
+  },
+  {
+    label: "Playtest",
+    views: [
+      ["builds", "Builds"],
+      ["sessions", "Playtest sessions"],
+      ["feedback", "Playtest feedback"],
+      ["bugs", "Bug reports"],
+    ],
+  },
+  {
+    label: "Project",
+    views: [
+      ["activity", "Activity"],
+      ["notifications", "Notifications"],
+      ["github", "GitHub"],
+    ],
+  },
 ];
 
 function SignOutIcon() {
@@ -206,8 +224,8 @@ export function AppShell({
             className="brand-logo"
             src="/brand/checkpoint-logo.png"
             alt="checkpoint"
-            width="190"
-            height="64"
+            width="210"
+            height="67"
           />
         </div>
         <p className="nav-label">Workspace</p>
@@ -217,7 +235,7 @@ export function AppShell({
             aria-current={!accountOpen && !team ? "page" : undefined}
             onClick={onTeams}
           >
-            <span aria-hidden="true">◇</span>Teams
+            Teams
           </button>
           {team && (
             <button
@@ -227,26 +245,39 @@ export function AppShell({
               }
               onClick={onTeam}
             >
-              <span aria-hidden="true">▦</span>
               {team.name}
             </button>
           )}
         </nav>
         {project && (
           <>
-            <p className="nav-label">Project / {project.name}</p>
             <nav aria-label="Project navigation" className="workspace-nav">
-              {PROJECT_VIEWS.map(([key, label]) => (
-                <button
-                  key={key}
-                  className="nav-item"
-                  aria-current={
-                    !accountOpen && view === key ? "page" : undefined
-                  }
-                  onClick={() => onViewChange(key)}
+              {PROJECT_NAV_GROUPS.map((group) => (
+                <div
+                  key={group.label}
+                  className="nav-group"
+                  role="group"
+                  aria-labelledby={`nav-group-${group.label.toLowerCase()}`}
                 >
-                  {label}
-                </button>
+                  <p
+                    className="nav-group-label"
+                    id={`nav-group-${group.label.toLowerCase()}`}
+                  >
+                    {group.label}
+                  </p>
+                  {group.views.map(([key, label]) => (
+                    <button
+                      key={key}
+                      className="nav-item"
+                      aria-current={
+                        !accountOpen && view === key ? "page" : undefined
+                      }
+                      onClick={() => onViewChange(key)}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
               ))}
             </nav>
           </>

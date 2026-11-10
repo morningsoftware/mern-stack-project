@@ -114,8 +114,8 @@ export function AuthScreen({
         <img
           src="/brand/checkpoint-logo.png"
           alt="checkpoint"
-          width="360"
-          height="120"
+          width="320"
+          height="102"
         />
       </h1>
       <p>
