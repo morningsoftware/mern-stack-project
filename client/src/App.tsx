@@ -72,13 +72,19 @@ function Workspace({
     index: window.history.state?.checkpointIndex || 0,
   });
   const restoring = useRef(false);
+  const oauthFragmentAtMount = useRef(
+    window.location.hash.startsWith("#oauth_"),
+  ).current;
 
   useEffect(() => {
-    window.history.replaceState(
-      { ...window.history.state, checkpointIndex: location.current.index },
-      "",
-      location.current.hash,
-    );
+    // Keep the OAuth handoff fragment intact until the auth effect consumes it.
+    if (!oauthFragmentAtMount) {
+      window.history.replaceState(
+        { ...window.history.state, checkpointIndex: location.current.index },
+        "",
+        location.current.hash,
+      );
+    }
     const onPop = () => {
       if (restoring.current) {
         restoring.current = false;
@@ -117,7 +123,7 @@ function Workspace({
     return () => {
       window.removeEventListener("popstate", onPop);
     };
-  }, [guard]);
+  }, [guard, oauthFragmentAtMount]);
 
   function navigate(
     nextTeam: Team | null,

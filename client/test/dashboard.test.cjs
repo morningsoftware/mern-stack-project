@@ -192,6 +192,7 @@ global.fetch = async (path, options = {}) => {
   } else if (p === "auth/me") data = { user };
   else if (p === "auth/login") data = { user, token: "fixture" };
   else if (p === "auth/logout") data = { ok: true };
+  else if (p === "auth/oauth/exchange") data = { user };
   else if (p === "auth/oauth/providers") data = { providers: [] };
   else if (p === "users") data = [user, { _id: "u2", displayName: "Sam Chen" }];
   else if (p === "github/repositories")
@@ -1552,6 +1553,30 @@ test("github repository control prompts to connect when GitHub is not linked", a
     assert.equal(document.querySelector(".github-view select"), null);
   } finally {
     githubConnected = true;
+    await act(async () => root.unmount());
+  }
+});
+
+test("oauth handoff fragments are exchanged before routing normalizes the URL", async () => {
+  window.history.replaceState({ checkpointIndex: 0 }, "", "#oauth_code=test-code");
+  root = createRoot(document.getElementById("root"));
+  try {
+    await act(async () => {
+      root.render(
+        React.createElement(React.StrictMode, null, React.createElement(App)),
+      );
+      await tick();
+      await tick();
+    });
+    const exchanges = calls.filter(
+      (call) => call.path === "/api/auth/oauth/exchange",
+    );
+    assert.equal(exchanges.length, 1);
+    assert.equal(JSON.parse(exchanges[0].options.body).code, "test-code");
+    assert(document.body.textContent.includes("Development teams"));
+    assert.notEqual(window.location.hash, "#oauth_code=test-code");
+  } finally {
+    window.history.replaceState({ checkpointIndex: 0 }, "", "#/teams");
     await act(async () => root.unmount());
   }
 });
