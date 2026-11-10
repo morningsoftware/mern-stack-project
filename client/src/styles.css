@@ -640,7 +640,7 @@ textarea {
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  padding: 15px 0;
+  padding: var(--space-3);
   transition: background-color 120ms ease;
 }
 .list li > span,
