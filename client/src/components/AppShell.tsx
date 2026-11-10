@@ -1,7 +1,38 @@
-import { useEffect, useRef } from "react";
-import type { ReactNode } from "react";
+import { useEffect, useRef, useState } from "react";
+import type {
+  CSSProperties,
+  KeyboardEvent as ReactKeyboardEvent,
+  PointerEvent as ReactPointerEvent,
+  ReactNode,
+} from "react";
 import type { ProjectView } from "../constants";
 import type { Project, Team, User } from "../types";
+
+const SIDEBAR_WIDTH_KEY = "mern_sidebar_width";
+const DEFAULT_SIDEBAR_WIDTH = 234;
+const MIN_SIDEBAR_WIDTH = 200;
+const MAX_SIDEBAR_WIDTH = 420;
+const SIDEBAR_STEP = 16;
+
+function clampSidebarWidth(width: number): number {
+  return Math.min(
+    MAX_SIDEBAR_WIDTH,
+    Math.max(MIN_SIDEBAR_WIDTH, Math.round(width))
+  );
+}
+
+function readSidebarWidth(): number {
+  if (typeof window === "undefined") return DEFAULT_SIDEBAR_WIDTH;
+  try {
+    const stored = Number(window.localStorage.getItem(SIDEBAR_WIDTH_KEY));
+    if (Number.isFinite(stored) && stored > 0) {
+      return clampSidebarWidth(stored);
+    }
+  } catch {
+    // Ignore storage access failures and use the default width.
+  }
+  return DEFAULT_SIDEBAR_WIDTH;
+}
 
 export const PROJECT_VIEWS: ReadonlyArray<readonly [ProjectView, string]> = [
   ["tasks", "Task board"],
@@ -60,19 +91,97 @@ export function AppShell({
 }) {
   const main = useRef<HTMLElement>(null);
   const previousLocation = useRef<string | null>(null);
+  const resizeStart = useRef<{ x: number; width: number } | null>(null);
+  const [sidebarWidth, setSidebarWidth] = useState(readSidebarWidth);
+  const [resizingSidebar, setResizingSidebar] = useState(false);
   const location = accountOpen
     ? "account"
     : `${team?._id || "teams"}/${project?._id || ""}/${view}`;
+
   useEffect(() => {
     if (previousLocation.current !== null) main.current?.focus();
     previousLocation.current = location;
   }, [location]);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(SIDEBAR_WIDTH_KEY, String(sidebarWidth));
+    } catch {
+      // Ignore storage access failures; the width still applies this session.
+    }
+  }, [sidebarWidth]);
+
+  useEffect(() => {
+    if (!resizingSidebar) return;
+    const previousCursor = document.body.style.cursor;
+    const previousUserSelect = document.body.style.userSelect;
+    document.body.style.cursor = "col-resize";
+    document.body.style.userSelect = "none";
+
+    function handleMove(event: PointerEvent): void {
+      const start = resizeStart.current;
+      if (!start) return;
+      setSidebarWidth(
+        clampSidebarWidth(start.width + event.clientX - start.x)
+      );
+    }
+
+    function stopResize(): void {
+      resizeStart.current = null;
+      setResizingSidebar(false);
+    }
+
+    window.addEventListener("pointermove", handleMove);
+    window.addEventListener("pointerup", stopResize);
+    window.addEventListener("pointercancel", stopResize);
+    return () => {
+      document.body.style.cursor = previousCursor;
+      document.body.style.userSelect = previousUserSelect;
+      window.removeEventListener("pointermove", handleMove);
+      window.removeEventListener("pointerup", stopResize);
+      window.removeEventListener("pointercancel", stopResize);
+    };
+  }, [resizingSidebar]);
+
+  function startSidebarResize(event: ReactPointerEvent<HTMLDivElement>): void {
+    event.preventDefault();
+    resizeStart.current = { x: event.clientX, width: sidebarWidth };
+    setResizingSidebar(true);
+  }
+
+  function resizeSidebarWithKeyboard(
+    event: ReactKeyboardEvent<HTMLDivElement>
+  ): void {
+    let next: number;
+    switch (event.key) {
+      case "ArrowLeft":
+        next = sidebarWidth - SIDEBAR_STEP;
+        break;
+      case "ArrowRight":
+        next = sidebarWidth + SIDEBAR_STEP;
+        break;
+      case "Home":
+        next = MIN_SIDEBAR_WIDTH;
+        break;
+      case "End":
+        next = MAX_SIDEBAR_WIDTH;
+        break;
+      default:
+        return;
+    }
+    event.preventDefault();
+    setSidebarWidth(clampSidebarWidth(next));
+  }
+
   return (
-    <div className="app-shell">
+    <div
+      className="app-shell"
+      style={{ "--sidebar-width": `${sidebarWidth}px` } as CSSProperties}
+    >
       <a className="skip-link" href="#main-content">
         Skip to content
       </a>
-      <aside className="sidebar">
+      <aside className="sidebar" id="sidebar">
         <div className="brand">
           <span className="brand-mark" aria-hidden="true">
             M
@@ -148,6 +257,20 @@ export function AppShell({
             <SignOutIcon />
           </button>
         </div>
+        <div
+          className={`sidebar-resizer${resizingSidebar ? " is-resizing" : ""}`}
+          role="separator"
+          aria-orientation="vertical"
+          aria-label="Resize sidebar"
+          aria-controls="sidebar"
+          aria-valuemin={MIN_SIDEBAR_WIDTH}
+          aria-valuemax={MAX_SIDEBAR_WIDTH}
+          aria-valuenow={sidebarWidth}
+          title="Drag or use arrow keys to resize the sidebar"
+          tabIndex={0}
+          onPointerDown={startSidebarResize}
+          onKeyDown={resizeSidebarWithKeyboard}
+        />
       </aside>
       <div className="main-column">
         <header className="workspace-bar">

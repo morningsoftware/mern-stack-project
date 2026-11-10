@@ -164,6 +164,7 @@ async function change(label, value) {
   });
 }
 test("dashboard navigation, data updates, and failed status regression", async () => {
+  window.localStorage.removeItem("mern_sidebar_width");
   await act(async () => {
     root.render(
       React.createElement(React.StrictMode, null, React.createElement(App)),
@@ -171,6 +172,23 @@ test("dashboard navigation, data updates, and failed status regression", async (
     await tick();
   });
   assert(document.body.textContent.includes("Development teams"));
+  const resizer = document.querySelector('[role="separator"]');
+  assert.equal(resizer.getAttribute("aria-valuenow"), "234");
+  await act(async () => {
+    resizer.dispatchEvent(
+      new window.KeyboardEvent("keydown", {
+        key: "ArrowRight",
+        bubbles: true,
+        cancelable: true,
+      }),
+    );
+    await tick();
+  });
+  assert.equal(
+    document.querySelector('[role="separator"]').getAttribute("aria-valuenow"),
+    "250",
+  );
+  assert.equal(window.localStorage.getItem("mern_sidebar_width"), "250");
   await click("Open");
   await click("Open");
   assert(document.body.textContent.includes("Task board"));

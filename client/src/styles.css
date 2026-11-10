@@ -109,10 +109,11 @@ hr {
 }
 .app-shell {
   display: grid;
-  grid-template-columns: 234px minmax(0, 1fr);
+  grid-template-columns: var(--sidebar-width, 234px) minmax(0, 1fr);
   min-height: 100dvh;
 }
 .sidebar {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -120,6 +121,40 @@ hr {
   background: var(--forest);
   color: #eeefe1;
   border-right: 1px solid #203229;
+}
+.sidebar-resizer {
+  position: absolute;
+  top: 0;
+  right: -4px;
+  z-index: 2;
+  width: 8px;
+  height: 100%;
+  cursor: col-resize;
+  touch-action: none;
+}
+.sidebar-resizer::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 3px;
+  width: 2px;
+  height: 100%;
+  background: transparent;
+  transition: background-color 120ms ease;
+}
+.sidebar-resizer:hover::after,
+.sidebar-resizer:focus-visible::after,
+.sidebar-resizer.is-resizing::after {
+  background: #f6dfa5;
+}
+.sidebar-resizer:focus-visible {
+  outline: 2px solid #f6dfa5;
+  outline-offset: 1px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .sidebar-resizer::after {
+    transition: none;
+  }
 }
 .brand {
   display: flex;
@@ -833,6 +868,9 @@ button.card-title:hover {
   }
   .sidebar {
     padding: 16px;
+  }
+  .sidebar-resizer {
+    display: none;
   }
   .brand {
     margin-bottom: 6px;

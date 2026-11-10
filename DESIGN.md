@@ -39,10 +39,13 @@ large matching KPI cards, arbitrary numbered menus, and oversized uppercase copy
 
 ## Layout
 
-Desktop: a 234px sidebar with a flexible work area. The board uses three status
-columns: To do, In progress, Done. Under 1150px, columns stack; under 760px,
-navigation moves above content and wraps. Filters wrap and inputs retain usable
-width. Detail drawers occupy the right edge on desktop and the screen on mobile.
+Desktop: a sidebar that defaults to 234px and can be resized between 200px and
+420px by dragging its right edge or using the arrow, Home, and End keys while
+the separator is focused. The chosen width persists in local storage. The board
+uses three status columns: To do, In progress, Done. Under 1150px, columns
+stack; under 760px, navigation moves above content and wraps. Filters wrap and
+inputs retain usable width. Detail drawers occupy the right edge on desktop and
+the screen on mobile.
 
 Overview totals form a compact ledger rather than four decorative cards. Use
 16–24px spacing and thin separators. Artwork and logos require separate approval.
@@ -162,3 +165,7 @@ team membership; build reads use the existing authenticated project model.
   navigation is no longer highlighted while they are open. Rationale: keep the
   footer compact, make the profile area obviously interactive, and avoid
   implying the user is still in the selected team or project view.
+- **2026-11-10 — Resizable sidebar:** Added a draggable separator on the
+  sidebar's right edge with keyboard support and a persisted width. Rationale:
+  long team and project names need more room without forcing a global layout
+  change, while the default stays compact for the board.
