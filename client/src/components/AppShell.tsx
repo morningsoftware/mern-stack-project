@@ -12,11 +12,54 @@ export const PROJECT_VIEWS: ReadonlyArray<readonly [ProjectView, string]> = [
   ["feedback", "Playtest feedback"],
 ];
 
+function SettingsIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      width="18"
+      height="18"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <path d="M4 7h16M4 12h16M4 17h16" />
+      <circle cx="9" cy="7" r="2.2" fill="currentColor" stroke="none" />
+      <circle cx="15" cy="12" r="2.2" fill="currentColor" stroke="none" />
+      <circle cx="8" cy="17" r="2.2" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
+function SignOutIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      width="18"
+      height="18"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+      <path d="m16 17 5-5-5-5" />
+      <path d="M21 12H9" />
+    </svg>
+  );
+}
+
 export function AppShell({
   user,
   team,
   project,
   view,
+  accountOpen,
   onViewChange,
   onTeams,
   onTeam,
@@ -28,6 +71,7 @@ export function AppShell({
   team: Team | null;
   project: Project | null;
   view: ProjectView;
+  accountOpen: boolean;
   onViewChange: (view: ProjectView) => void;
   onTeams: () => void;
   onTeam: () => void;
@@ -37,7 +81,9 @@ export function AppShell({
 }) {
   const main = useRef<HTMLElement>(null);
   const previousLocation = useRef<string | null>(null);
-  const location = `${team?._id || "teams"}/${project?._id || ""}/${view}`;
+  const location = accountOpen
+    ? "account"
+    : `${team?._id || "teams"}/${project?._id || ""}/${view}`;
   useEffect(() => {
     if (previousLocation.current !== null) main.current?.focus();
     previousLocation.current = location;
@@ -60,7 +106,7 @@ export function AppShell({
         <nav aria-label="Workspace navigation" className="workspace-nav">
           <button
             className="nav-item"
-            aria-current={!team ? "page" : undefined}
+            aria-current={!accountOpen && !team ? "page" : undefined}
             onClick={onTeams}
           >
             <span aria-hidden="true">◇</span>Teams
@@ -68,7 +114,9 @@ export function AppShell({
           {team && (
             <button
               className="nav-item"
-              aria-current={!project ? "page" : undefined}
+              aria-current={
+                !accountOpen && !project ? "page" : undefined
+              }
               onClick={onTeam}
             >
               <span aria-hidden="true">▦</span>
@@ -84,7 +132,9 @@ export function AppShell({
                 <button
                   key={key}
                   className="nav-item"
-                  aria-current={view === key ? "page" : undefined}
+                  aria-current={
+                    !accountOpen && view === key ? "page" : undefined
+                  }
                   onClick={() => onViewChange(key)}
                 >
                   {label}
@@ -94,19 +144,35 @@ export function AppShell({
           </>
         )}
         <div className="sidebar-footer">
-          <span className="avatar" aria-hidden="true">
-            {user.displayName.slice(0, 1).toUpperCase()}
-          </span>
-          <div>
-            <strong>{user.displayName}</strong>
-            <small>{user.role}</small>
+          <div className="sidebar-user">
+            <span className="avatar" aria-hidden="true">
+              {user.displayName.slice(0, 1).toUpperCase()}
+            </span>
+            <div>
+              <strong>{user.displayName}</strong>
+              <small>{user.role}</small>
+            </div>
           </div>
-          <button className="text-button" onClick={onAccount}>
-            Account
-          </button>
-          <button className="text-button" onClick={onSignOut}>
-            Sign out
-          </button>
+          <div className="sidebar-actions">
+            <button
+              type="button"
+              className="icon-button"
+              aria-label="Account settings"
+              title="Account settings"
+              onClick={onAccount}
+            >
+              <SettingsIcon />
+            </button>
+            <button
+              type="button"
+              className="icon-button"
+              aria-label="Sign out"
+              title="Sign out"
+              onClick={onSignOut}
+            >
+              <SignOutIcon />
+            </button>
+          </div>
         </div>
       </aside>
       <div className="main-column">
@@ -118,17 +184,25 @@ export function AppShell({
                   Teams
                 </button>
               </li>
-              {team && (
-                <li>
-                  <button className="text-button" onClick={onTeam}>
-                    {team.name}
-                  </button>
-                </li>
+              {accountOpen ? (
+                <li>Account</li>
+              ) : (
+                <>
+                  {team && (
+                    <li>
+                      <button className="text-button" onClick={onTeam}>
+                        {team.name}
+                      </button>
+                    </li>
+                  )}
+                  {project && <li>{project.name}</li>}
+                </>
               )}
-              {project && <li>{project.name}</li>}
             </ol>
           </nav>
-          <span className="workspace-label">Team workspace</span>
+          <span className="workspace-label">
+            {accountOpen ? "Account settings" : "Team workspace"}
+          </span>
         </header>
         <main
           id="main-content"

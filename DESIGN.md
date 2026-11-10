@@ -95,7 +95,10 @@ team membership; build reads use the existing authenticated project model.
   existing password form, and let signed-in users manage their sign-in methods.
 - Placement: OAuth provider links sit inside the existing auth panel below the
   password form, preceded by “Or continue with”. Account settings open from the
-  **Account** action in the workspace sidebar.
+  settings icon in the workspace sidebar.
+- Sidebar actions: account settings and sign out are icon-only buttons with
+  accessible labels and tooltips. While account settings are open, no workspace
+  or project navigation item is marked as the current page.
 - Treatment: text-only provider links using the secondary button-link treatment.
   Provider logos are intentionally omitted for now to avoid unofficial
   branding; add official assets only with the provider’s current brand guidance.
@@ -152,3 +155,9 @@ team membership; build reads use the existing authenticated project model.
 - **2026-11-09 — Account entry point:** Account settings open from the workspace
   sidebar rather than the teams header so they remain reachable from every
   project view. Rationale: the app shell owns global account actions.
+- **2026-11-10 — Sidebar account and sign-out icons:** Replaced the text actions
+  with icon-only settings and sign-out buttons, each with an accessible label
+  and tooltip. Account settings count as a separate location, so sidebar
+  navigation is no longer highlighted while they are open. Rationale: keep the
+  footer compact and avoid implying the user is still in the selected team or
+  project view.

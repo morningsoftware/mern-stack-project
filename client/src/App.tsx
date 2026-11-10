@@ -230,6 +230,7 @@ export function App() {
       team={team}
       project={project}
       view={view}
+      accountOpen={accountOpen}
       onViewChange={(next) => {
         setAccountOpen(false);
         setView(next);

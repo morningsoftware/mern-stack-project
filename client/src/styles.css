@@ -190,12 +190,23 @@ hr {
 .sidebar-footer {
   display: flex;
   flex-wrap: wrap;
-  gap: 9px;
+  gap: 12px;
   align-items: center;
   border-top: 1px solid #526651;
   margin-top: auto;
   padding-top: 18px;
   font-size: 0.75rem;
+}
+.sidebar-user {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+  flex: 1 1 120px;
+}
+.sidebar-user strong,
+.sidebar-user small {
+  overflow-wrap: anywhere;
 }
 .sidebar-footer strong {
   font-weight: 500;
@@ -203,8 +214,28 @@ hr {
 .sidebar-footer small {
   color: #bccab6;
 }
-.sidebar-footer .text-button {
-  color: #f2d7ad;
+.sidebar-actions {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+}
+.sidebar-footer .icon-button {
+  display: grid;
+  place-items: center;
+  flex: 1;
+  min-height: 42px;
+  padding: 0;
+  border: 1px solid #526651;
+  border-radius: 4px;
+  background: transparent;
+  color: #e6ecdf;
+}
+.sidebar-footer .icon-button:hover {
+  background: #344c3d;
+  color: #f6dfa5;
+}
+.sidebar-footer .icon-button:focus-visible {
+  outline-color: #f6dfa5;
 }
 .avatar {
   display: grid;
@@ -808,9 +839,6 @@ button.card-title:hover {
   .sidebar-footer {
     padding-top: 12px;
     margin-top: 12px;
-  }
-  .sidebar-footer .text-button {
-    margin-left: auto;
   }
   .workspace-content {
     padding: 22px 16px 40px;

@@ -124,7 +124,10 @@ let root = createRoot(document.getElementById("root"));
 const tick = () => new Promise((r) => setTimeout(r, 0));
 const buttons = () => [...document.querySelectorAll("button")];
 const findButton = (text) => {
-  const b = buttons().find((b) => b.textContent.trim() === text);
+  const b = buttons().find(
+    (b) =>
+      b.textContent.trim() === text || b.getAttribute("aria-label") === text,
+  );
   assert(b, "Missing button " + text);
   return b;
 };
