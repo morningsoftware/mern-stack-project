@@ -89,7 +89,6 @@ export function AuthScreen({
 
   return (
     <main id="main-content" className="auth-wrap">
-      <p className="eyebrow">Studio sign in</p>
       <h1>Checkpoint</h1>
       <p>
         Sign in to manage teams, projects, tasks, bugs, and playtest feedback.
