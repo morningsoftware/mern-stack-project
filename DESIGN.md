@@ -61,6 +61,16 @@ content and the groups flow into compact columns. Spacing follows a 4/8/12/16/24
 scale. Filters wrap and inputs retain usable width. Detail drawers occupy the
 right edge on desktop and the screen on mobile.
 
+Sidebar visibility follows the current context:
+
+- **Teams** is always present while signed in.
+- The **team name** appears once a team is open and returns to the team home.
+- **Plan**, **Playtest**, and **Project** groups appear only inside a project.
+  They fade/slide in over 160–170ms, with a short stagger between groups.
+- The profile card, theme toggle, and sign out stay in the footer at all times.
+- Account settings keep navigation visible for a quick return but mark no
+  workspace or project item as current.
+
 The desktop sidebar stays pinned to the viewport with its own scroll area, and
 the profile/sign-out block remains anchored at its bottom regardless of page
 length. The workspace bar also stays visible while the work area scrolls.
@@ -392,3 +402,10 @@ Lighthouse repairs reserve logo dimensions, preload that asset, defer the full a
   Rationale: the flat eleven-item list was hard to scan, and mixed spacing made
   related screens feel uneven. The logo asset was trimmed and displayed at
   consistent widths on auth and in the sidebar.
+- **2026-11-10 — Sidebar context and motion:** Teams stays visible while signed
+  in; the team button appears inside a team; project groups appear only inside a
+  project; profile, theme, and sign out remain in the footer. Project groups
+  enter with a 160–170ms fade/slide and a small stagger. Rationale: the sidebar
+  should reveal only the navigation available at the current level, and the
+  entrance motion makes a project switch feel intentional without slowing it
+  down. Reduced-motion users keep the same visibility with animation collapsed.

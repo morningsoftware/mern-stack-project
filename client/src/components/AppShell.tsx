@@ -260,6 +260,7 @@ export function AppShell({
           </button>
           {team && (
             <button
+              key={team._id}
               className="nav-item"
               aria-current={
                 !accountOpen && !project ? "page" : undefined
@@ -272,7 +273,11 @@ export function AppShell({
         </nav>
         {project && (
           <>
-            <nav aria-label="Project navigation" className="workspace-nav">
+            <nav
+              key={project._id}
+              aria-label="Project navigation"
+              className="workspace-nav"
+            >
               {PROJECT_NAV_GROUPS.map((group) => (
                 <div
                   key={group.label}
