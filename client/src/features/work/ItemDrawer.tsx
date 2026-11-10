@@ -16,6 +16,7 @@ import type {
   User,
 } from "../../types";
 import { ErrorNote, Field } from "../../components/Forms";
+import { formatStatus } from "../../format";
 import {
   TASK_STATUSES,
   PRIORITIES,
@@ -30,6 +31,8 @@ import type {
 } from "../../constants";
 
 type DrawerRecord = Task | BugReport;
+
+const DRAWER_CLOSE_MS = 160;
 
 export function ItemDrawer({
   kind,
@@ -51,11 +54,13 @@ export function ItemDrawer({
   const dialog = useRef<HTMLDialogElement>(null);
   const title = useRef<HTMLHeadingElement>(null);
   const lock = useRef(false);
+  const closeTimer = useRef<number | null>(null);
   const [record, setRecord] = useState<DrawerRecord | null>(null);
   const [loading, setLoading] = useState(true);
   const [pending, setPending] = useState(false);
   const [discussionBusy, setDiscussionBusy] = useState(false);
   const [discussionDirty, setDiscussionDirty] = useState(false);
+  const [closing, setClosing] = useState(false);
   const baseline = useRef<string | null>(null);
   const [error, setError] = useState("");
   const [attempt, setAttempt] = useState(0);
@@ -64,7 +69,7 @@ export function ItemDrawer({
   useUnsavedChanges(Boolean(dirty), pending);
   function close() {
     if (!pending && !discussionBusy && confirmDiscard(dirty || discussionDirty))
-      onClose();
+      requestClose();
   }
   useEffect(() => {
     const previous = document.activeElement;
@@ -105,7 +110,25 @@ export function ItemDrawer({
     setRecord((old) =>
       old ? ({ ...old, [key]: value } as DrawerRecord) : old,
     );
-  async function save(event: FormEvent<HTMLFormElement>) {
+  useEffect(
+    () => () => {
+      if (closeTimer.current !== null) {
+        window.clearTimeout(closeTimer.current);
+      }
+    },
+    []
+  );
+  function requestClose(force = false): void {
+    if (closing || (!force && (pending || discussionBusy))) return;
+    setClosing(true);
+    const reduceMotion =
+      window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
+    closeTimer.current = window.setTimeout(
+      onClose,
+      reduceMotion ? 0 : DRAWER_CLOSE_MS
+    );
+  }
+  async function save(event: FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault();
     if (!record || lock.current || discussionBusy) return;
     if (
@@ -151,7 +174,7 @@ export function ItemDrawer({
       });
       onSaved(updated);
       baseline.current = JSON.stringify(record);
-      onClose();
+      requestClose(true);
     } catch (err) {
       setError(errorMessage(err));
     } finally {
@@ -162,7 +185,7 @@ export function ItemDrawer({
   return (
     <dialog
       ref={dialog}
-      className="item-drawer"
+      className={`item-drawer${closing ? " is-closing" : ""}`}
       aria-labelledby="drawer-title"
       onCancel={(event) => {
         event.preventDefault();
@@ -183,7 +206,7 @@ export function ItemDrawer({
           type="button"
           className="secondary"
           onClick={close}
-          disabled={pending || discussionBusy}
+          disabled={pending || discussionBusy || closing}
         >
           Close
         </button>
@@ -218,7 +241,7 @@ export function ItemDrawer({
                 {(kind === "task" ? TASK_STATUSES : BUG_STATUSES).map(
                   (status) => (
                     <option key={status} value={status}>
-                      {status.replaceAll("_", " ")}
+                      {formatStatus(status)}
                     </option>
                   ),
                 )}
@@ -321,7 +344,12 @@ export function ItemDrawer({
               <button type="submit">
                 {pending ? "Saving…" : "Save changes"}
               </button>
-              <button type="button" className="secondary" onClick={close}>
+              <button
+                type="button"
+                className="secondary"
+                onClick={close}
+                disabled={pending || discussionBusy || closing}
+              >
                 Cancel
               </button>
             </div>

@@ -6,6 +6,8 @@ import type {
   ReactNode,
 } from "react";
 import type { ProjectView } from "../constants";
+import { ThemeToggle } from "./ThemeToggle";
+import type { Theme } from "../theme";
 import type { Project, Team, User } from "../types";
 
 const SIDEBAR_WIDTH_KEY = "mern_sidebar_width";
@@ -93,6 +95,8 @@ export function AppShell({
   project,
   view,
   accountOpen,
+  theme,
+  onToggleTheme,
   onViewChange,
   onTeams,
   onTeam,
@@ -105,6 +109,8 @@ export function AppShell({
   project: Project | null;
   view: ProjectView;
   accountOpen: boolean;
+  theme: Theme;
+  onToggleTheme: () => void;
   onViewChange: (view: ProjectView) => void;
   onTeams: () => void;
   onTeam: () => void;
@@ -123,12 +129,15 @@ export function AppShell({
     : `${team?._id || "teams"}/${project?._id || ""}/${view}`;
 
   useEffect(() => {
-    const active = document.activeElement;
-    const hasVisibleFocus = Boolean(
-      active && main.current?.contains(active) && !active.closest("[hidden]"),
-    );
-    if (previousLocation.current !== null && !hasVisibleFocus)
-      main.current?.focus();
+    if (previousLocation.current !== null) {
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+      const active = document.activeElement;
+      const hasVisibleFocus = Boolean(
+        active && main.current?.contains(active) && !active.closest("[hidden]"),
+      );
+      if (!hasVisibleFocus) main.current?.focus({ preventScroll: true });
+    }
     previousLocation.current = location;
     setLinkNotice("");
   }, [location]);
@@ -202,6 +211,18 @@ export function AppShell({
     event.preventDefault();
     setSidebarWidth(clampSidebarWidth(next));
   }
+
+  useEffect(() => {
+    const nextTitle = project
+      ? `${project.name} · Checkpoint`
+      : team
+        ? `${team.name} · Checkpoint`
+        : "Checkpoint";
+    document.title = nextTitle;
+    return () => {
+      if (document.title === nextTitle) document.title = "Checkpoint";
+    };
+  }, [team, project]);
 
   return (
     <div
@@ -298,6 +319,11 @@ export function AppShell({
               <small>{user.role}</small>
             </span>
           </button>
+          <ThemeToggle
+            theme={theme}
+            onToggle={onToggleTheme}
+            className="sidebar-theme"
+          />
           <button
             type="button"
             className="icon-button sidebar-signout"

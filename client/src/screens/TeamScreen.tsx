@@ -127,11 +127,17 @@ export function TeamScreen({
               </li>
             ))}
           </ul>
-          {canManage ? (
+          {!canManage ? (
+            <p className="meta">Team owners manage membership.</p>
+          ) : availableUsers.length === 0 ? (
+            <p className="meta">
+              Everyone in the workspace is already on this team.
+            </p>
+          ) : (
             <form onSubmit={addMember}>
               <fieldset
                 className="stack"
-                disabled={loading || pending || !availableUsers.length}
+                disabled={loading || pending}
               >
                 <Field label="User">
                   <select
@@ -172,8 +178,6 @@ export function TeamScreen({
                 </button>
               </fieldset>
             </form>
-          ) : (
-            <p className="meta">Team owners manage membership.</p>
           )}
         </section>
         <section className="panel">

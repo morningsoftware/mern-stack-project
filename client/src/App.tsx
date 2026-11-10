@@ -11,6 +11,8 @@ import { TeamsScreen } from "./screens/TeamsScreen";
 import { TeamScreen } from "./screens/TeamScreen";
 import { ProjectScreen } from "./screens/ProjectScreen";
 import type { ProjectView } from "./constants";
+import { useTheme } from "./theme";
+import type { Theme } from "./theme";
 import type { Project, Team, User } from "./types";
 import { UnsavedChanges, useLeaveGuard } from "./navigation/UnsavedChanges";
 import { parseRoute, routeHash, routeContext } from "./navigation/routes";
@@ -24,9 +26,10 @@ import {
 import type { OAuthFlow } from "./oauth";
 
 export function App() {
+  const { theme, toggleTheme } = useTheme();
   return (
     <UnsavedChanges>
-      <Workspace />
+      <Workspace theme={theme} onToggleTheme={toggleTheme} />
     </UnsavedChanges>
   );
 }
@@ -37,7 +40,13 @@ function errorStatus(err: unknown): number | undefined {
     : undefined;
 }
 
-function Workspace() {
+function Workspace({
+  theme,
+  onToggleTheme,
+}: {
+  theme: Theme;
+  onToggleTheme: () => void;
+}) {
   const [user, setUser] = useState<User | null>(null);
   const [ready, setReady] = useState(false);
   const [sessionError, setSessionError] = useState("");
@@ -370,6 +379,8 @@ function Workspace() {
         }}
         initialError={authError}
         onClearError={() => setAuthError("")}
+        theme={theme}
+        onToggleTheme={onToggleTheme}
       />
     );
   }
@@ -401,6 +412,8 @@ function Workspace() {
       project={project}
       view={view}
       accountOpen={accountOpen}
+      theme={theme}
+      onToggleTheme={onToggleTheme}
       onTeams={() => {
         setAccountOpen(false);
         navigate(null, null, "overview");

@@ -85,6 +85,7 @@ export function TeamsScreen({
                   <button
                     type="button"
                     className="secondary"
+                    aria-label={`Open ${team.name}`}
                     onClick={() => onOpenTeam(team)}
                   >
                     Open

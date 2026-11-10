@@ -178,6 +178,18 @@ priority, milestone, and My work. Use each card's status selector to move work
 between columns. Select a task title or bug title to open its editable detail
 drawer. These features use existing task/bug endpoints.
 
+## Themes and the signed-out backdrop
+
+The workspace supports a persisted light/dark theme. It follows the system
+preference on first visit, can be toggled from the sidebar brand or the
+top-right of the sign-in screen, and stores the choice in `localStorage`.
+
+The signed-out screen lazy-loads a three.js canvas scaffold. It is code-split
+from the main workspace bundle, pauses while the tab is hidden, and renders a
+static frame when reduced motion is requested. Scene authoring happens in
+`client/src/components/AuthBackdrop.tsx`; `three` is the only approved runtime
+UI dependency, scoped to this screen.
+
 The Builds view adds HTTPS download links, version/platform labels, and release
 notes. It does not upload or host game files. Publish/edit requires team
 membership. The API never fetches the supplied download URL. New endpoints:
@@ -221,6 +233,9 @@ API. This does not substitute for visual browser testing or Lighthouse.
 - Create milestones, assigned tasks, bug reports, and playtest feedback.
 - Navigate between project tools; verify record counts update on Overview.
 - Check keyboard navigation, the skip link, focus, and a 390px mobile viewport.
+- Check both light and dark themes, including a reload to confirm persistence.
+- Check the reduced-motion setting: UI transitions should settle instantly and
+  the signed-out backdrop should render a static frame.
 
 Frontend changes are reviewed in a feature branch before merge and deployment.
 

@@ -29,6 +29,7 @@ buildSync({
   format: "cjs",
   external: ["react"],
   jsx: "automatic",
+  loader: { ".glsl": "text" },
 });
 // jsdom does not implement the browser's modal focus/top-layer behavior.
 window.HTMLDialogElement.prototype.showModal = function () {
@@ -60,6 +61,7 @@ let rejectNotification = false;
 let discussion = [];
 let db = {
   teams: [{ _id: "t1", name: "Pixel Forge", description: "An indie studio" }],
+  members: [{ _id: "tm1", userId: "u1", role: "owner" }],
   projects: [
     {
       _id: "p1",
@@ -291,8 +293,7 @@ global.fetch = async (path, options = {}) => {
         },
       ],
     };
-  else if (p === "teams/t1/members")
-    data = [{ _id: "tm1", userId: "u1", role: "owner" }];
+  else if (p === "teams/t1/members") data = db.members;
   else if (options.method === "PATCH") {
     if (rejectStatus) {
       status = 500;
@@ -322,6 +323,7 @@ global.fetch = async (path, options = {}) => {
 };
 let root = createRoot(document.getElementById("root"));
 const tick = () => new Promise((r) => setTimeout(r, 0));
+const waitForMotion = () => new Promise((r) => setTimeout(r, 200));
 const buttons = () => [...document.querySelectorAll("button")];
 const findButton = (text) => {
   const b = buttons().find(
@@ -392,6 +394,18 @@ test("dashboard navigation, data updates, and failed status regression", async (
   await click("Open");
   await click("Open");
   assert(document.body.textContent.includes("Task board"));
+  assert.equal(document.documentElement.dataset.theme, "light");
+  await act(async () => {
+    document.querySelector(".sidebar-theme").click();
+    await tick();
+  });
+  assert.equal(document.documentElement.dataset.theme, "dark");
+  assert.equal(window.localStorage.getItem("checkpoint_theme"), "dark");
+  await act(async () => {
+    document.querySelector(".sidebar-theme").click();
+    await tick();
+  });
+  assert.equal(document.documentElement.dataset.theme, "light");
   await click("Overview");
   assert.equal(document.querySelectorAll(".project-ledger > div").length, 4);
   assert.equal(document.querySelector("progress").value, 1);
@@ -522,6 +536,7 @@ test("board filters, task and bug detail drawers, and linked build feedback", as
       new window.Event("submit", { bubbles: true, cancelable: true }),
     );
     await tick();
+    await waitForMotion();
   });
   assert.equal(document.querySelector("dialog"), null);
   assert.equal(db.tasks[0].title, "Movement revised");
@@ -530,6 +545,7 @@ test("board filters, task and bug detail drawers, and linked build feedback", as
     const e = new window.Event("cancel", { cancelable: true });
     document.querySelector("dialog").dispatchEvent(e);
     await tick();
+    await waitForMotion();
   });
   assert.equal(document.querySelector("dialog"), null);
   await click("Bug reports");
@@ -540,6 +556,7 @@ test("board filters, task and bug detail drawers, and linked build feedback", as
       new window.Event("submit", { bubbles: true, cancelable: true }),
     );
     await tick();
+    await waitForMotion();
   });
   assert.equal(db["bug-reports"][0].severity, "low");
   await click("Builds");
@@ -567,6 +584,57 @@ test("board filters, task and bug detail drawers, and linked build feedback", as
     await tick();
   });
   assert.equal(db["playtest-feedback"].at(-1).buildId, db.builds[0]._id);
+  await click("Milestones");
+  assert.equal(
+    document
+      .querySelector('select[aria-label="Status for Playable prototype"]')
+      .selectedOptions[0].textContent.trim(),
+    "In progress",
+  );
+  assert.equal(document.title, "Starfall · Checkpoint");
+  await act(async () => root.unmount());
+});
+
+test("empty project guidance and completed team membership", async () => {
+  db.projects = [
+    {
+      _id: "p1",
+      name: "Starfall",
+      description: "A 2D adventure",
+      status: "active",
+      teamId: "t1",
+    },
+  ];
+  db.milestones = [];
+  db.tasks = [];
+  db.members = [
+    { _id: "tm1", userId: "u1", role: "owner" },
+    { _id: "tm2", userId: "u2", role: "developer" },
+  ];
+  sessionStorage.setItem("mern_token", "fixture");
+  root = createRoot(document.getElementById("root"));
+  await act(async () => {
+    root.render(React.createElement(App));
+    await tick();
+  });
+  await click("Open");
+  assert(
+    document.body.textContent.includes(
+      "Everyone in the workspace is already on this team.",
+    ),
+  );
+  assert.equal(document.title, "Pixel Forge · Checkpoint");
+  await click("Open");
+  assert.equal(document.title, "Starfall · Checkpoint");
+  assert(document.body.textContent.includes("Start with a milestone"));
+  assert(document.body.textContent.includes("Tasks belong to milestones"));
+  await click("Create first milestone");
+  assert.equal(
+    document
+      .querySelector('.sidebar button[aria-current="page"]')
+      .textContent.trim(),
+    "Milestones",
+  );
   await act(async () => root.unmount());
 });
 
@@ -783,6 +851,7 @@ test("feedback triage, structured bug creation, source links, and unsent-draft p
         new window.Event("submit", { bubbles: true, cancelable: true }),
       );
       await tick();
+      await waitForMotion();
     });
     assert.equal(db["bug-reports"][0].actualResult, "Only on the left edge");
     await click("Bug reports");
@@ -1031,6 +1100,7 @@ test("first milestone guidance, drawer protection, and project navigation preser
     assert(document.querySelector("dialog[open]"));
     window.confirm = () => true;
     await click("Close");
+    await waitForMotion();
     await click("Test guards");
     await change("Add a comment", "Unsent comment");
     window.confirm = () => false;
@@ -1040,6 +1110,7 @@ test("first milestone guidance, drawer protection, and project navigation preser
     assert(document.querySelector("dialog[open]"));
     window.confirm = () => true;
     await click("Close");
+    await waitForMotion();
     await click("Milestones");
     assert.equal(field("Milestone name").value, "Unsent goal");
     window.confirm = () => false;

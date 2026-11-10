@@ -39,6 +39,16 @@ small overview totals, and system monospace for short record identifiers. No
 remote font downloads. Use 3–4px corner radii and minimal shadows. Avoid gradients,
 large matching KPI cards, arbitrary numbered menus, and oversized uppercase copy.
 
+### Dark theme
+
+A persisted light/dark theme is supported. The initial theme follows the
+operating system; the toggle in the sidebar brand (and top-right of the sign-in
+screen) overrides it and stores the choice. Dark mode keeps the same forest/rust
+personality rather than switching to neutral gray: canvas `#171d19`, surfaces
+`#212923`, borders `#465246`, ink `#eee9dc`, muted text `#a7b1a2`, accent
+`#c06a45`, and navigation `#101712`. The selected navigation color, status
+meanings, and focus treatments stay consistent between themes.
+
 ## Layout
 
 Desktop: a sidebar that defaults to 234px and can be resized between 200px and
@@ -50,6 +60,14 @@ visible. Under 1150px, board columns stack; under 760px, navigation moves above
 content and the groups flow into compact columns. Spacing follows a 4/8/12/16/24/32
 scale. Filters wrap and inputs retain usable width. Detail drawers occupy the
 right edge on desktop and the screen on mobile.
+
+The desktop sidebar stays pinned to the viewport with its own scroll area, and
+the profile/sign-out block remains anchored at its bottom regardless of page
+length. The workspace bar also stays visible while the work area scrolls.
+Changing teams, projects, or project views returns the work area to the top and
+focuses the main landmark. The task board shares the standard panel frame with
+the milestones, bugs, and feedback tabs so their headings begin at the same
+inset.
 
 Overview totals form a compact ledger rather than four decorative cards. Use
 16–24px spacing and thin separators. Artwork and logos require separate approval.
@@ -69,8 +87,13 @@ Overview totals form a compact ledger rather than four decorative cards. Use
   Feedback can optionally reference a build in the same project.
 - Hash URLs identify the team, project, and selected view. React state hydrates
   from authenticated API records; drawer deep links remain separate scope.
-- No new runtime UI libraries. Existing API contracts remain compatible; build
-  endpoints and optional feedback buildId are additive.
+- `components/AuthBackdrop.tsx`: a lazy-loaded three.js canvas for the
+  signed-out screen. It ships as scene boilerplate — renderer, camera, resize,
+  reduced-motion, visibility pausing, pointer hooks, and cleanup — for
+  authoring a custom scene. It must not enter the signed-in bundle.
+- No new runtime UI libraries except `three`, explicitly approved for the
+  lazy-loaded auth backdrop only. Existing API contracts remain compatible;
+  build endpoints and optional feedback buildId are additive.
 
 ## Accessibility and errors
 
@@ -81,6 +104,24 @@ because DOM fixtures do not simulate top-layer or layout behavior. Disable
 submissions during mutations. Never move a card on a failed server response.
 Respect reduced motion. WCAG AA and Lighthouse >=95 remain acceptance targets,
 not claimed scores.
+
+Dropdowns size to the selected value, and their chevron is inset by the same
+spacing used above and below it so it does not hug the control edge. Text inputs
+may still use the full form width. Values shown to people use readable labels
+such as "In progress" and "macOS" while API values remain unchanged. Empty
+states say what to do next and offer the relevant action when one exists.
+
+## Motion
+
+Use restrained, standard expressiveness rather than decorative looping
+animation. Screens and tabs fade in with a 3–7px rise over 140–240ms; drawers
+slide in from the right and fade out before unmounting; controls transition
+background, border, and color; focused inputs transition their border color;
+list rows fade their background on hover; work cards lift 1px on hover. The
+three.js auth backdrop is the only ambient animation and provides scene
+boilerplate for a custom signed-out scene. All CSS motion and the backdrop
+respect reduced-motion preferences, and the backdrop pauses while the tab is
+hidden.
 
 ## Approved decisions and remaining scope
 
@@ -93,6 +134,9 @@ not claimed scores.
 | Optional build-specific feedback     | Existing general feedback stays compatible |
 | Grouped project navigation           | Eleven tools stay scannable in the sidebar |
 | 4–32px spacing scale                 | Keeps layouts and actions on one rhythm    |
+| Dark theme                           | User requested it for the studio workspace |
+| Standard motion with reduced-motion  | Adds dimension without distracting from work |
+| three.js auth backdrop (exception)   | User approved a procedural signed-out scene |
 
 Screenshots, activity history, and in-app notifications are now implemented below.
 Account verification/recovery, device push, and private-project visibility remain
