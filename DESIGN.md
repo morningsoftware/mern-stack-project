@@ -68,6 +68,8 @@ Sidebar visibility follows the current context:
 - **Plan**, **Playtest**, and **Project** groups appear only inside a project.
   They fade/slide in over 160–170ms, with a short stagger between groups.
 - The profile card, theme toggle, and sign out stay in the footer at all times.
+  Long profile names and roles truncate with an ellipsis; the full name remains
+  in the accessible label and tooltip.
 - Account settings keep navigation visible for a quick return but mark no
   workspace or project item as current.
 

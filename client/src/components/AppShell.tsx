@@ -313,7 +313,7 @@ export function AppShell({
             type="button"
             className="sidebar-profile"
             aria-label={`Account settings for ${user.displayName}`}
-            title="Account settings"
+            title={`${user.displayName} — Account settings`}
             onClick={onAccount}
           >
             <span className="avatar" aria-hidden="true">

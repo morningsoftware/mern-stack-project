@@ -382,9 +382,12 @@ hr {
 }
 .sidebar-profile-name {
   min-width: 0;
+  overflow: hidden;
 }
 .sidebar-profile-name strong,
 .sidebar-profile-name small {
+  display: block;
+  width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
