@@ -189,23 +189,38 @@ hr {
 }
 .sidebar-footer {
   display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
+  gap: 8px;
   align-items: center;
   border-top: 1px solid #526651;
   margin-top: auto;
   padding-top: 18px;
   font-size: 0.75rem;
 }
-.sidebar-user {
+.sidebar-profile {
   display: flex;
   align-items: center;
   gap: 9px;
+  flex: 1;
   min-width: 0;
-  flex: 1 1 120px;
+  min-height: 42px;
+  padding: 4px 6px;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  background: transparent;
+  color: #e6ecdf;
+  text-align: left;
 }
-.sidebar-user strong,
-.sidebar-user small {
+.sidebar-profile:hover {
+  background: #344c3d;
+}
+.sidebar-profile:focus-visible {
+  outline-color: #f6dfa5;
+}
+.sidebar-profile-name {
+  min-width: 0;
+}
+.sidebar-profile-name strong,
+.sidebar-profile-name small {
   overflow-wrap: anywhere;
 }
 .sidebar-footer strong {
@@ -214,15 +229,11 @@ hr {
 .sidebar-footer small {
   color: #bccab6;
 }
-.sidebar-actions {
-  display: flex;
-  gap: 8px;
-  width: 100%;
-}
 .sidebar-footer .icon-button {
   display: grid;
   place-items: center;
-  flex: 1;
+  flex: 0 0 42px;
+  width: 42px;
   min-height: 42px;
   padding: 0;
   border: 1px solid #526651;
