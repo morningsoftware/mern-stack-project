@@ -132,9 +132,10 @@ background, border, and color; text fields and selects transition border and
 background on hover and focus; list rows fade their background on hover; work
 cards lift 1px on hover. The
 three.js auth backdrop is the only ambient animation and provides scene
-boilerplate for a custom signed-out scene. All CSS motion and the backdrop
-respect reduced-motion preferences, and the backdrop pauses while the tab is
-hidden.
+boilerplate for a custom signed-out scene. It fades in over 700ms after the
+signed-out form paints so the WebGL canvas does not pop into place. All CSS
+motion and the backdrop respect reduced-motion preferences, and the backdrop
+pauses while the tab is hidden.
 
 ## Approved decisions and remaining scope
 
@@ -445,3 +446,7 @@ Lighthouse repairs reserve logo dimensions, preload that asset, defer the full a
   sidebar shows the picture when present and truncates long names. Rationale:
   identity management belongs beside password and provider settings without
   exposing arbitrary image URLs.
+- **2026-11-10 — Backdrop fade:** The lazy three.js backdrop now fades in over
+  700ms after the signed-out form paints. Rationale: the canvas and its first
+  render should blend into the page rather than appearing abruptly; reduced
+  motion keeps the instant reveal.

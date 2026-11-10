@@ -1166,6 +1166,7 @@ button.card-title:hover {
   z-index: 0;
   overflow: hidden;
   pointer-events: none;
+  animation: backdrop-enter 700ms ease-out both;
 }
 .auth-backdrop canvas {
   display: block;
