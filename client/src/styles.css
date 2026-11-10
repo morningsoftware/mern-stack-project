@@ -1740,12 +1740,14 @@ button.milestone-title {
   border-radius: 4px;
 }
 .auth-brand {
-  margin: 0 0 var(--space-2);
+  display: flex;
+  justify-content: center;
+  margin: 0 0 var(--space-3);
   line-height: 0;
 }
 .auth-brand img {
   display: block;
-  width: min(240px, 100%);
+  width: min(220px, 100%);
   height: auto;
   padding: var(--space-2);
   background: #fcfaf4;
@@ -1755,6 +1757,7 @@ button.milestone-title {
   margin: 0 0 var(--space-4);
   color: var(--muted);
   font-size: 0.9rem;
+  text-align: center;
 }
 .auth-wrap .stack {
   gap: var(--space-3);
