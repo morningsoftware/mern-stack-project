@@ -97,7 +97,7 @@ team membership; build reads use the existing authenticated project model.
 - Purpose: offer an alternate way to authenticate without replacing the
   existing password form, and let signed-in users manage their sign-in methods.
 - Placement: OAuth provider links sit inside the existing auth panel below the
-  password form, preceded by “Or continue with”. Account settings open by
+  password form, separated by a horizontal rule. Account settings open by
   selecting the profile card (avatar, name, and role) in the workspace sidebar.
 - Sidebar actions: the profile card is a button with an accessible label. Sign
   out is an icon-only button with an accessible label and tooltip beside the

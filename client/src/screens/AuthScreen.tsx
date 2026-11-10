@@ -180,18 +180,20 @@ export function AuthScreen({
           </fieldset>
         </form>
         {providers.length > 0 && (
-          <div className="oauth-links">
-            <p className="meta">Or continue with</p>
-            {providers.map((provider) => (
-              <a
-                key={provider.id}
-                className="button-link secondary"
-                href={`/api/auth/oauth/${provider.id}`}
-              >
-                Continue with {provider.label}
-              </a>
-            ))}
-          </div>
+          <>
+            <hr className="auth-divider" />
+            <div className="oauth-links">
+              {providers.map((provider) => (
+                <a
+                  key={provider.id}
+                  className="button-link secondary"
+                  href={`/api/auth/oauth/${provider.id}`}
+                >
+                  Continue with {provider.label}
+                </a>
+              ))}
+            </div>
+          </>
         )}
       </div>
     </main>
