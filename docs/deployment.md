@@ -14,11 +14,37 @@ deploy.
 2. Run database/API/client type checks, the frontend interaction tests, and the API test suite.
 3. Build the client with `npm run build`.
 4. `rsync` the `server/` tree and `client/dist/` to `DEPLOY_PATH` on the droplet.
-5. Run `npm ci --omit=dev` on the droplet and restart the PM2 process.
+5. Run `npm ci --omit=dev`, validate startup configuration, restart PM2, and wait
+   for a valid JSON health response on the configured loopback port before saving PM2.
 6. Call `https://checkpoint.morning.codes/api/health` and fail the workflow if it
    does not return successfully.
 
 The droplet's `.env` is never uploaded or overwritten; it stays on the server.
+
+### Startup compatibility and diagnostics
+
+The deploy passes the trusted `PRODUCTION_URL` as `CHECKPOINT_PUBLIC_URL` to PM2.
+The server uses its origin only when `CLIENT_ORIGIN` or `OAUTH_CALLBACK_BASE_URL`
+is absent. Explicit settings in the droplet environment remain authoritative.
+No origin is inferred from a request's Host header.
+
+Older releases used `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET` for the GitHub
+**App** repository connection. When no sign-in callback base or explicit App
+credential pair is configured, and `GITHUB_APP_ID` (or the old App callback URL)
+identifies that legacy setup, startup moves those values to `GITHUB_APP_CLIENT_*`
+in memory. It does not enable GitHub sign-in with repository App credentials or
+rewrite the `.env`. Migrate the old variable names when maintaining the server.
+To configure independent GitHub sign-in, explicitly set `OAUTH_CALLBACK_BASE_URL`
+and the sign-in credential pair separately from the App credential pair.
+Incomplete provider credentials still fail validation.
+
+`node --import tsx scripts/check-startup.ts` checks configuration before PM2
+reload. With `--wait`, it waits up to roughly a minute for loopback health and,
+on failure, reports the selected PM2 process state and recent stderr with known
+credential values redacted. This distinguishes application startup failure from
+a reverse-proxy failure. The deployment still checks public HTTPS afterward.
+This workflow updates the existing deployment directory; it does not implement
+atomic releases or an automatic rollback.
 
 ## Current droplet layout
 

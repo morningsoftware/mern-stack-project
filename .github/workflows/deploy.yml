@@ -113,7 +113,10 @@ jobs:
             "set -euo pipefail
              cd '$DEPLOY_PATH/server'
              npm ci --omit=dev
-             PM2_APP_NAME='$PM2_APP_NAME' pm2 startOrReload ecosystem.config.cjs --update-env
+             export CHECKPOINT_PUBLIC_URL='$PRODUCTION_URL' PM2_APP_NAME='$PM2_APP_NAME'
+             node --import tsx scripts/check-startup.ts
+             pm2 startOrReload ecosystem.config.cjs --update-env
+             node --import tsx scripts/check-startup.ts --wait
              pm2 save"
 
       - name: Verify deployment
@@ -121,7 +124,7 @@ jobs:
           set -euo pipefail
           for attempt in {1..10}; do
             echo "Health check attempt $attempt"
-            if curl --fail --silent --show-error "$PRODUCTION_URL/api/health"; then
+            if curl --fail --silent --show-error --connect-timeout 5 --max-time 10 "$PRODUCTION_URL/api/health"; then
               exit 0
             fi
             sleep 3
