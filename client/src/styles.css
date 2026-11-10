@@ -1307,6 +1307,14 @@ select:focus,
 textarea:focus {
   border-color: var(--focus);
 }
+@media (hover: hover) {
+  input:hover:not(:disabled):not([readonly]):not(:focus),
+  textarea:hover:not(:disabled):not([readonly]):not(:focus),
+  select:hover:not(:disabled):not(:focus) {
+    border-color: var(--border-strong);
+    background-color: var(--surface-muted);
+  }
+}
 .work-card {
   transition:
     border-color 160ms ease,
