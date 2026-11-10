@@ -45,7 +45,7 @@ Reproduce:
 npm test --prefix client
 npm run build --prefix client
 npm test --prefix server
-node server/scripts/endpoint-evidence.js
+node server/scripts/endpoint-evidence.ts
 ```
 
 The last command reruns the API tests and fails if an inventoried route has no

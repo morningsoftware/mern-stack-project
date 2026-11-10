@@ -1,5 +1,11 @@
 import type { Db } from "mongodb";
-import type { PublicUser } from "../schema.js";
+import type {
+  BugReportDocument,
+  PlaytestSessionDocument,
+  ProjectDocument,
+  PublicUser,
+  TaskDocument,
+} from "../schema.js";
 
 declare global {
   namespace Express {
@@ -9,6 +15,10 @@ declare global {
 
     interface Request {
       user?: PublicUser;
+      bug?: BugReportDocument;
+      commentTask?: TaskDocument;
+      project?: ProjectDocument;
+      session?: PlaytestSessionDocument;
     }
   }
 }

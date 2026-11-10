@@ -67,7 +67,7 @@ jobs:
 
       - name: Run API tests and audit every endpoint
         working-directory: server
-        run: node --import tsx scripts/endpoint-evidence.js
+        run: node --import tsx scripts/endpoint-evidence.ts
 
       - name: Build client
         working-directory: client

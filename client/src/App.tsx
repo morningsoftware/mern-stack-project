@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { api, getToken, setToken } from "./api";
+import type { Project, Team, User } from "./types";
+import type { ProjectView } from "./constants";
 import { AppShell } from "./components/AppShell";
 import { AuthScreen } from "./screens/AuthScreen";
 import { TeamsScreen } from "./screens/TeamsScreen";
@@ -7,7 +9,7 @@ import { TeamScreen } from "./screens/TeamScreen";
 import { ProjectScreen } from "./screens/ProjectScreen";
 
 import { UnsavedChanges, useLeaveGuard } from "./navigation/UnsavedChanges";
-import { parseRoute, routeHash, routeContext } from "./navigation/routes.js";
+import { parseRoute, routeHash, routeContext } from "./navigation/routes";
 
 export function App() {
   return (
@@ -16,7 +18,6 @@ export function App() {
     </UnsavedChanges>
   );
 }
-type WorkspaceRecord = { _id: string; teamId?: string };
 
 function errorStatus(err: unknown): number | undefined {
   return typeof err === "object" && err !== null && "status" in err
@@ -29,14 +30,14 @@ function errorMessage(err: unknown): string {
 }
 
 function Workspace() {
-  const [user, setUser] = useState<WorkspaceRecord | null>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [ready, setReady] = useState(false);
   const [sessionError, setSessionError] = useState("");
   const [attempt, setAttempt] = useState(0);
-  const [team, setTeam] = useState<WorkspaceRecord | null>(null);
-  const [project, setProject] = useState<WorkspaceRecord | null>(null);
-  const [view, setView] = useState("overview");
-  const guard = useLeaveGuard() as unknown as { canLeave: () => boolean };
+  const [team, setTeam] = useState<Team | null>(null);
+  const [project, setProject] = useState<Project | null>(null);
+  const [view, setView] = useState<ProjectView>("overview");
+  const guard = useLeaveGuard();
   const [hash, setHash] = useState(() => window.location.hash || "#/teams");
   const [routeError, setRouteError] = useState("");
   const [routing, setRouting] = useState(false);
@@ -61,7 +62,7 @@ function Workspace() {
       const index = window.history.state?.checkpointIndex;
       if (
         routeContext(nextHash) !== routeContext(location.current.hash) &&
-        !guard.canLeave()
+        !(guard?.canLeave() ?? true)
       ) {
         if (Number.isInteger(index) && index !== location.current.index) {
           restoring.current = true;
@@ -92,15 +93,15 @@ function Workspace() {
     };
   }, [guard]);
   function navigate(
-    nextTeam: WorkspaceRecord | null,
-    nextProject: WorkspaceRecord | null,
-    nextView = "tasks",
+    nextTeam: Team | null,
+    nextProject: Project | null,
+    nextView: ProjectView = "tasks",
   ) {
     const nextHash = routeHash(nextTeam, nextProject, nextView);
     if (nextHash === location.current.hash) return;
     if (
       routeContext(nextHash) !== routeContext(location.current.hash) &&
-      !guard.canLeave()
+      !(guard?.canLeave() ?? true)
     )
       return;
     const index = location.current.index + 1;
@@ -135,13 +136,12 @@ function Workspace() {
     setRouting(true);
     (async () => {
       const nextTeam = route.teamId
-        ? await api<WorkspaceRecord>(
-            `/api/teams/${encodeURIComponent(route.teamId)}`,
-            { signal: controller.signal },
-          )
+        ? await api<Team>(`/api/teams/${encodeURIComponent(route.teamId)}`, {
+            signal: controller.signal,
+          })
         : null;
       const nextProject = route.projectId
-        ? await api<WorkspaceRecord>(
+        ? await api<Project>(
             `/api/projects/${encodeURIComponent(route.projectId)}`,
             { signal: controller.signal },
           )
@@ -177,7 +177,7 @@ function Workspace() {
       return () => controller.abort();
     }
     setReady(false);
-    api<{ user: WorkspaceRecord }>("/api/auth/me", {
+    api<{ user: User }>("/api/auth/me", {
       signal: controller.signal,
     })
       .then((result) => {
@@ -217,11 +217,18 @@ function Workspace() {
   let awaitingRoute = false;
   try {
     const requested = parseRoute(hash);
-    awaitingRoute = requested.teamId !== (team?._id || null) ||
+    awaitingRoute =
+      requested.teamId !== (team?._id || null) ||
       requested.projectId !== (project?._id || null);
-  } catch { /* The route effect renders the explicit invalid-link error. */ }
+  } catch {
+    /* The route effect renders the explicit invalid-link error. */
+  }
   if (awaitingRoute && !routeError)
-    return <main id="main-content" className="auth-wrap"><p role="status">Opening workspace…</p></main>;
+    return (
+      <main id="main-content" className="auth-wrap">
+        <p role="status">Opening workspace…</p>
+      </main>
+    );
   return (
     <AppShell
       user={user}
@@ -230,9 +237,9 @@ function Workspace() {
       view={view}
       onTeams={() => navigate(null, null, "overview")}
       onTeam={() => navigate(team, null, "overview")}
-      onViewChange={(next: string) => navigate(team, project, next)}
+      onViewChange={(next) => navigate(team, project, next)}
       onSignOut={() => {
-        if (!guard.canLeave()) return;
+        if (!(guard?.canLeave() ?? true)) return;
         setToken(null);
         setUser(null);
         setTeam(null);
@@ -269,20 +276,18 @@ function Workspace() {
           currentUserId={user._id}
           onProjectChange={setProject}
           view={view}
-          onViewChange={(next: string) => navigate(team, project, next)}
+          onViewChange={(next) => navigate(team, project, next)}
         />
       ) : team ? (
         <TeamScreen
           key={team._id}
           team={team}
           currentUserId={user._id}
-          onOpenProject={(next: WorkspaceRecord) => navigate(team, next)}
+          onOpenProject={(next) => navigate(team, next)}
         />
       ) : (
         <TeamsScreen
-          onOpenTeam={(next: WorkspaceRecord) =>
-            navigate(next, null, "overview")
-          }
+          onOpenTeam={(next) => navigate(next, null, "overview")}
         />
       )}
     </AppShell>

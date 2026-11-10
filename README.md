@@ -159,7 +159,7 @@ credentials. The demo never reads `.env` and never connects to the team's databa
 Restarting resets its sample data. The example build URL is intentionally not a
 hosted game. Use the real domain for the graded presentation.
 
-Run `node server/scripts/endpoint-evidence.js` to rerun the API integration suite
+Run `node server/scripts/endpoint-evidence.ts` to rerun the API integration suite
 and regenerate [endpoint evidence](docs/endpoint-test-evidence.json). A missing
 successful route response fails that command. No Lighthouse score or browser
 visual check is implied by these tests.
@@ -186,7 +186,7 @@ npm run typecheck --prefix client
 npm test --prefix client
 npm test --prefix server
 npm run build --prefix client
-node --import tsx server/scripts/endpoint-evidence.js
+node --import tsx server/scripts/endpoint-evidence.ts
 ```
 
-The route inventory now includes multiple routers from the GitHub module and both JavaScript and TypeScript tests. It counts observed 2xx/3xx responses, including redirects; it is not unit/branch coverage. `docs/openapi.json` is a draft route catalogue, not evidence of completed SwaggerHub publication or fully specified schemas.
+The route inventory now includes multiple routers from the GitHub module and the TypeScript test suite. It counts observed 2xx/3xx responses, including redirects; it is not unit/branch coverage. `docs/openapi.json` is a draft route catalogue, not evidence of completed SwaggerHub publication or fully specified schemas.

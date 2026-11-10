@@ -131,7 +131,7 @@ bugReportsRouter.patch(
   "/:id",
   asyncRoute(async (req, res) => {
     const id = parseObjectId(req.params.id, "id");
-    const bugs = req.app.locals.db.collection("bugReports");
+    const bugs = req.app.locals.db.collection<BugReportDocument>("bugReports");
     const existing = await requireDoc(bugs, id, "Bug report");
     await requireBugAccess(req.app.locals.db, existing, actorId(req));
     const update: Partial<BugReportDocument> = {};
@@ -167,7 +167,7 @@ bugReportsRouter.patch(
       throw httpError(400, "No updatable fields were provided");
     }
     await bugs.updateOne({ _id: id }, { $set: update });
-    const updated = await bugs.findOne({ _id: id });
+    const updated = (await bugs.findOne({ _id: id }))!;
     await recordActivity(req, res, "bug", updated, "updated", existing);
     res.json(updated);
   }),
@@ -177,7 +177,7 @@ bugReportsRouter.delete(
   "/:id",
   asyncRoute(async (req, res) => {
     const id = parseObjectId(req.params.id, "id");
-    const bugs = req.app.locals.db.collection("bugReports");
+    const bugs = req.app.locals.db.collection<BugReportDocument>("bugReports");
     const existing = await requireDoc(bugs, id, "Bug report");
     await requireBugAccess(req.app.locals.db, existing, actorId(req));
     await bugs.deleteOne({ _id: id });

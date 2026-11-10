@@ -1,6 +1,6 @@
 const { test } = require("node:test");
 const assert = require("node:assert/strict");
-const helpers = import("../src/features/planning/milestoneData.js");
+const helpers = import("../src/features/planning/milestoneData.ts");
 
 test("calendar dates retain their UTC-selected day and tolerate absent/invalid dates", async () => {
   const { dueDateKey, localDayKey, formatDueDate } = await helpers;

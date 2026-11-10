@@ -160,7 +160,7 @@ playtestFeedbackRouter.patch(
       throw httpError(400, "No updatable fields were provided");
     }
     await feedback.updateOne({ _id: id }, { $set: update });
-    const updated = await feedback.findOne({ _id: id });
+    const updated = (await feedback.findOne({ _id: id }))!;
     await recordActivity(req, res, "feedback", updated, "updated", existing);
     res.json(updated);
   }),

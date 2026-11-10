@@ -163,7 +163,7 @@ tasksRouter.patch(
       throw httpError(400, "No updatable fields were provided");
     }
     await tasks.updateOne({ _id: id }, { $set: update });
-    const updated = await tasks.findOne({ _id: id });
+    const updated = (await tasks.findOne({ _id: id }))!;
     await recordActivity(req, res, "task", updated, "updated", existing);
     res.json(updated);
   }),

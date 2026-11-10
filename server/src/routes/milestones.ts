@@ -87,7 +87,8 @@ milestonesRouter.patch(
   "/:id",
   asyncRoute(async (req, res) => {
     const id = parseObjectId(req.params.id, "id");
-    const milestones = req.app.locals.db.collection("milestones");
+    const milestones =
+      req.app.locals.db.collection<MilestoneDocument>("milestones");
     const existing = await requireDoc(milestones, id, "Milestone");
     await requireProjectTeamMember(
       req.app.locals.db,
@@ -111,7 +112,7 @@ milestonesRouter.patch(
       throw httpError(400, "No updatable fields were provided");
     }
     await milestones.updateOne({ _id: id }, { $set: update });
-    const updated = await milestones.findOne({ _id: id });
+    const updated = (await milestones.findOne({ _id: id }))!;
     await recordActivity(req, res, "milestone", updated, "updated", existing);
     res.json(updated);
   }),
