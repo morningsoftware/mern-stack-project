@@ -984,7 +984,15 @@ button.card-title:hover {
   max-width: 540px;
   margin: 8vh auto;
   padding: 24px;
-  background: var(--paper);
+  background: color-mix(in srgb, var(--surface) 70%, transparent);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+}
+.auth-wrap .panel {
+  background: transparent;
+  border: 0;
 }
 .auth-backdrop {
   position: fixed;
