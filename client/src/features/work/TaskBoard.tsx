@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { Field } from "../../components/Forms";
 import type { TaskStatus } from "../../constants";
 import type { Milestone, Task, User } from "../../types";
+import { Field } from "../../components/Forms";
 
 const columns: ReadonlyArray<readonly [TaskStatus, string]> = [
   ["todo", "To do"],
@@ -9,21 +9,13 @@ const columns: ReadonlyArray<readonly [TaskStatus, string]> = [
   ["done", "Done"],
 ];
 
-interface Filters {
+interface TaskFilters {
   query: string;
   assignee: string;
   priority: string;
   milestone: string;
   mine: boolean;
 }
-
-const emptyFilters: Filters = {
-  query: "",
-  assignee: "",
-  priority: "",
-  milestone: "",
-  mine: false,
-};
 
 export function TaskBoard({
   tasks,
@@ -33,6 +25,7 @@ export function TaskBoard({
   onStatusChange,
   onOpen,
   currentUserId,
+  onCreate,
 }: {
   tasks: Task[];
   users: User[];
@@ -41,10 +34,19 @@ export function TaskBoard({
   onStatusChange: (id: string, status: TaskStatus) => void;
   onOpen: (id: string) => void;
   currentUserId: string;
+  onCreate: () => void;
 }) {
-  const [filters, setFilters] = useState<Filters>(emptyFilters);
-  const update = <K extends keyof Filters>(key: K, value: Filters[K]): void =>
-    setFilters((old) => ({ ...old, [key]: value }));
+  const [filters, setFilters] = useState<TaskFilters>({
+    query: "",
+    assignee: "",
+    priority: "",
+    milestone: "",
+    mine: false,
+  });
+  const update = <K extends keyof TaskFilters>(
+    key: K,
+    value: TaskFilters[K],
+  ) => setFilters((old) => ({ ...old, [key]: value }));
   const visible = tasks.filter(
     (task) =>
       (!filters.query ||
@@ -54,11 +56,11 @@ export function TaskBoard({
       (!filters.assignee || task.assigneeId === filters.assignee) &&
       (!filters.priority || task.priority === filters.priority) &&
       (!filters.milestone || task.milestoneId === filters.milestone) &&
-      (!filters.mine || task.assigneeId === currentUserId)
+      (!filters.mine || task.assigneeId === currentUserId),
   );
-  const userName = (id: string): string =>
+  const userName = (id: string) =>
     users.find((user) => user._id === id)?.displayName || "Unassigned";
-  const milestoneName = (id: string): string =>
+  const milestoneName = (id: string) =>
     milestones.find((item) => item._id === id)?.name || "No milestone";
   return (
     <section aria-labelledby="task-board-title" className="work-board">
@@ -66,17 +68,23 @@ export function TaskBoard({
         <div>
           <h2 id="task-board-title">Task board</h2>
           <p className="meta">
-            {visible.length} of {tasks.length} tasks
+            {visible.length} of {tasks.length}{" "}
+            {tasks.length === 1 ? "task" : "tasks"}
           </p>
         </div>
-        <label className="toggle-filter">
-          <input
-            type="checkbox"
-            checked={filters.mine}
-            onChange={(event) => update("mine", event.target.checked)}
-          />
-          My work
-        </label>
+        <div className="board-actions">
+          <button type="button" disabled={pending} onClick={onCreate}>
+            New task
+          </button>
+          <label className="toggle-filter">
+            <input
+              type="checkbox"
+              checked={filters.mine}
+              onChange={(event) => update("mine", event.target.checked)}
+            />
+            My work
+          </label>
+        </div>
       </div>
       <div className="board-filters" aria-label="Task filters">
         <Field label="Search tasks">
@@ -129,7 +137,15 @@ export function TaskBoard({
         <button
           type="button"
           className="text-button"
-          onClick={() => setFilters(emptyFilters)}
+          onClick={() =>
+            setFilters({
+              query: "",
+              assignee: "",
+              priority: "",
+              milestone: "",
+              mine: false,
+            })
+          }
         >
           Clear filters
         </button>
@@ -189,7 +205,7 @@ export function TaskBoard({
                         onChange={(event) =>
                           onStatusChange(
                             task._id,
-                            event.target.value as TaskStatus
+                            event.target.value as TaskStatus,
                           )
                         }
                       >

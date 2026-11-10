@@ -1,0 +1,17 @@
+{
+  // Treat .vert/.frag files as GLSL so they get highlighting and the
+  // GLSL language server (provided by the Zed GLSL extension).
+  "file_types": {
+    "GLSL": ["vert", "frag"]
+  },
+
+  // Point Zed at the glsl_analyzer binary. Zed launches from the macOS GUI
+  // with a minimal PATH, so ~/.local/bin is not visible to it.
+  "lsp": {
+    "glsl_analyzer": {
+      "binary": {
+        "path": "/Users/troybedworth/.local/bin/glsl_analyzer"
+      }
+    }
+  }
+}

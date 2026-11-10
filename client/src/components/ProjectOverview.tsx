@@ -1,4 +1,9 @@
 import type { ProjectView } from "../constants";
+import {
+  BUILD_PLATFORM_LABELS,
+  countLabel,
+  formatStatus,
+} from "../format";
 import type {
   Build,
   BugReport,
@@ -9,9 +14,7 @@ import type {
 
 export function StatusBadge({ status }: { status: string }) {
   return (
-    <span className={`badge badge-${status}`}>
-      {status.replaceAll("_", " ")}
-    </span>
+    <span className={`badge badge-${status}`}>{formatStatus(status)}</span>
   );
 }
 
@@ -37,7 +40,7 @@ export function ProjectOverview({
     .sort(
       (a, b) =>
         (a.dueDate ? Date.parse(a.dueDate) : Infinity) -
-        (b.dueDate ? Date.parse(b.dueDate) : Infinity)
+        (b.dueDate ? Date.parse(b.dueDate) : Infinity),
     );
   const rating = feedback.length
     ? (
@@ -140,7 +143,9 @@ export function ProjectOverview({
             <>
               <h3>
                 {builds[0].version}{" "}
-                <span className="badge">{builds[0].platform}</span>
+                <span className="badge">
+                  {BUILD_PLATFORM_LABELS[builds[0].platform]}
+                </span>
               </h3>
               <p className="release-notes">
                 {builds[0].releaseNotes || "No release notes provided."}
@@ -151,8 +156,8 @@ export function ProjectOverview({
           )}
           <hr />
           <p className="meta">
-            {tasks.length - done} tasks remaining · {feedback.length} playtest
-            reports
+            {countLabel(tasks.length - done, "task")} remaining ·{" "}
+            {countLabel(feedback.length, "playtest report")}
           </p>
           <button className="secondary" onClick={() => onViewChange("tasks")}>
             Open task board

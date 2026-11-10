@@ -28,11 +28,9 @@ before(async () => {
   projectId = project.body._id;
   otherProjectId = other.body._id;
 });
-
 after(async () => {
   await ctx?.stop();
 });
-
 const build = (version: string) => ({
   projectId,
   version,
@@ -44,15 +42,15 @@ const build = (version: string) => ({
 test("build routes require authentication", async () => {
   assert.equal(
     (await ctx.api.get(`/api/builds?projectId=${projectId}`)).status,
-    401
+    401,
   );
   assert.equal(
     (await ctx.api.post("/api/builds").send(build("unauthorized"))).status,
-    401
+    401,
   );
   assert.equal(
     (await ctx.api.get("/api/builds/64b000000000000000000000")).status,
-    401
+    401,
   );
   assert.equal(
     (
@@ -60,10 +58,9 @@ test("build routes require authentication", async () => {
         .patch("/api/builds/64b000000000000000000000")
         .send({ version: "x" })
     ).status,
-    401
+    401,
   );
 });
-
 test("publish, list, fetch, and edit a build without moving its project", async () => {
   const created = await ctx.api
     .post("/api/builds")
@@ -76,7 +73,7 @@ test("publish, list, fetch, and edit a build without moving its project", async 
     .get(`/api/builds?projectId=${projectId}`)
     .set(auth(outsider.token));
   assert.equal(list.status, 200);
-  assert(list.body.some((item: { _id: string }) => item._id === id));
+  assert(list.body.some((item: any) => item._id === id));
   const fetched = await ctx.api.get(`/api/builds/${id}`).set(auth(owner.token));
   assert.equal(fetched.status, 200);
   assert.equal(fetched.body.downloadUrl, "https://example.com/game.zip");
@@ -99,10 +96,9 @@ test("publish, list, fetch, and edit a build without moving its project", async 
         .set(auth(owner.token))
         .send(build("0.1.1"))
     ).status,
-    409
+    409,
   );
 });
-
 test("nonmembers cannot publish or edit build links", async () => {
   assert.equal(
     (
@@ -111,7 +107,7 @@ test("nonmembers cannot publish or edit build links", async () => {
         .set(auth(outsider.token))
         .send(build("outsider"))
     ).status,
-    403
+    403,
   );
   const created = await ctx.api
     .post("/api/builds")
@@ -124,10 +120,9 @@ test("nonmembers cannot publish or edit build links", async () => {
         .set(auth(outsider.token))
         .send({ releaseNotes: "overwrite" })
     ).status,
-    403
+    403,
   );
 });
-
 test("reject unsafe URLs, invalid platforms, empty edits, and invalid identifiers", async () => {
   for (const downloadUrl of [
     "http://example.com/game",
@@ -142,7 +137,7 @@ test("reject unsafe URLs, invalid platforms, empty edits, and invalid identifier
           .set(auth(owner.token))
           .send({ ...build("bad-url"), downloadUrl })
       ).status,
-      400
+      400,
     );
   }
   assert.equal(
@@ -152,15 +147,15 @@ test("reject unsafe URLs, invalid platforms, empty edits, and invalid identifier
         .set(auth(owner.token))
         .send({ ...build("platform"), platform: "console" })
     ).status,
-    400
+    400,
   );
   assert.equal(
     (await ctx.api.get("/api/builds").set(auth(owner.token))).status,
-    400
+    400,
   );
   assert.equal(
     (await ctx.api.get("/api/builds/nope").set(auth(owner.token))).status,
-    400
+    400,
   );
   assert.equal(
     (
@@ -168,7 +163,7 @@ test("reject unsafe URLs, invalid platforms, empty edits, and invalid identifier
         .get("/api/builds/64b000000000000000000000")
         .set(auth(owner.token))
     ).status,
-    404
+    404,
   );
   const created = await ctx.api
     .post("/api/builds")
@@ -181,7 +176,7 @@ test("reject unsafe URLs, invalid platforms, empty edits, and invalid identifier
         .set(auth(owner.token))
         .send({})
     ).status,
-    400
+    400,
   );
   assert.equal(
     (
@@ -190,10 +185,9 @@ test("reject unsafe URLs, invalid platforms, empty edits, and invalid identifier
         .set(auth(owner.token))
         .send({ downloadUrl: "http://example.com" })
     ).status,
-    400
+    400,
   );
 });
-
 test("feedback can target a build only in the same project; general feedback remains compatible", async () => {
   const created = await ctx.api
     .post("/api/builds")
@@ -218,7 +212,7 @@ test("feedback can target a build only in the same project; general feedback rem
         .set(auth(outsider.token))
         .send({ ...body, projectId: otherProjectId })
     ).status,
-    400
+    400,
   );
   assert.equal(
     (
@@ -227,7 +221,7 @@ test("feedback can target a build only in the same project; general feedback rem
         .set(auth(outsider.token))
         .send({ ...body, buildId: "64b000000000000000000000" })
     ).status,
-    404
+    404,
   );
   const updated = await ctx.api
     .patch(`/api/playtest-feedback/${feedback.body._id}`)

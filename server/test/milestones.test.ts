@@ -11,7 +11,10 @@ before(async () => {
   ctx = await startApi();
   const user = await registerUser(ctx.api);
   token = user.token;
-  const team = await ctx.api.post("/api/teams").set(auth(token)).send({ name: "Pixel Forge" });
+  const team = await ctx.api
+    .post("/api/teams")
+    .set(auth(token))
+    .send({ name: "Pixel Forge" });
   const project = await ctx.api.post("/api/projects").set(auth(token)).send({
     teamId: team.body._id,
     name: "Starfall",
@@ -49,6 +52,9 @@ test("GET, PATCH, and DELETE /api/milestones/:id", async () => {
     name: "Alpha",
   });
   const id = created.body._id;
+  const fetched = await ctx.api.get(`/api/milestones/${id}`).set(auth(token));
+  assert.equal(fetched.status, 200);
+  assert.equal(fetched.body._id, id);
   assert.equal(created.body.status, "todo");
 
   const listed = await ctx.api
@@ -56,13 +62,18 @@ test("GET, PATCH, and DELETE /api/milestones/:id", async () => {
     .set(auth(token));
   assert.ok(listed.body.some((milestone: any) => milestone._id === id));
 
-  const updated = await ctx.api.patch(`/api/milestones/${id}`).set(auth(token)).send({
-    status: "completed",
-  });
+  const updated = await ctx.api
+    .patch(`/api/milestones/${id}`)
+    .set(auth(token))
+    .send({
+      status: "completed",
+    });
   assert.equal(updated.status, 200);
   assert.equal(updated.body.status, "completed");
 
-  const removed = await ctx.api.delete(`/api/milestones/${id}`).set(auth(token));
+  const removed = await ctx.api
+    .delete(`/api/milestones/${id}`)
+    .set(auth(token));
   assert.equal(removed.status, 204);
   const missing = await ctx.api.get(`/api/milestones/${id}`).set(auth(token));
   assert.equal(missing.status, 404);

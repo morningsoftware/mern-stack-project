@@ -1,0 +1,29 @@
+flowchart TD
+    A(["Open checkpoint"])
+    B{"Valid session?"}
+    C["Register or sign in"]
+    D["Choose team and project"]
+    E{"Work action"}
+    F["Edit task or milestone; retain unsaved drafts"]
+    G["Choose build/session; submit feedback or bug"]
+    H["Read comments, activity, notifications or GitHub"]
+    I{"API authorization and validation pass?"}
+    J["Persist record in MongoDB"]
+    K["Return error and preserve entered values"]
+    L["Refresh workspace and show save result"]
+    A --> B
+    B -->|No| C
+    C --> B
+    B -->|Yes| D
+    D --> E
+    E --> F
+    E --> G
+    E --> H
+    F --> I
+    G --> I
+    H --> I
+    I -->|No| K
+    I -->|Yes| J
+    J --> L
+    K --> E
+    L --> E

@@ -1,35 +1,40 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { api } from "../api";
-import type { ApiError } from "../api";
-import {
-  PROJECT_STATUSES,
-  MILESTONE_STATUSES,
-  BUG_STATUSES,
-  BUG_SEVERITIES,
-  PRIORITIES,
-} from "../constants";
+import { useUnsavedChanges } from "../navigation/UnsavedChanges";
+import { api, errorMessage } from "../api";
+import type { ProjectView } from "../constants";
+import { PROJECT_STATUSES, PRIORITIES } from "../constants";
+import type { MilestoneStatus, TaskStatus } from "../constants";
 import type {
-  BugSeverity,
-  BugStatus,
-  MilestoneStatus,
-  ProjectView,
-  TaskPriority,
-  TaskStatus,
-} from "../constants";
+  BugDraft,
+  BugReport,
+  Build,
+  BuildForm,
+  Milestone,
+  MilestoneDraft,
+  PlaytestFeedback,
+  PlaytestNoteDraft,
+  PlaytestSession,
+  Project,
+  Task,
+  TaskDraft,
+  TeamMember,
+  User,
+} from "../types";
 import { ErrorNote, Field } from "../components/Forms";
+import { MilestonePlan } from "../features/planning/MilestonePlan";
+import { MilestoneEditor } from "../features/planning/MilestoneEditor";
+import { BugReports } from "../features/playtesting/BugReports";
+import { FeedbackTriage } from "../features/playtesting/FeedbackTriage";
+import { emptyBugDraft } from "../features/playtesting/BugDetailsFields";
+import { PlaytestSessions } from "../features/playtesting/PlaytestSessions";
+import { Notifications } from "../features/activity/Notifications";
+import { ActivityFeed } from "../features/activity/ActivityFeed";
+import { GithubDeliveries } from "../features/github/GithubDeliveries";
+import { MyWork } from "../features/work/MyWork";
 import { TaskBoard } from "../features/work/TaskBoard";
 import { ItemDrawer } from "../features/work/ItemDrawer";
 import { BuildLibrary } from "../features/work/BuildLibrary";
 import { ProjectOverview } from "../components/ProjectOverview";
-import type {
-  Build,
-  BugReport,
-  Milestone,
-  PlaytestFeedback,
-  Project,
-  Task,
-  User,
-} from "../types";
 
 type Drawer = { kind: "task" | "bug"; id: string };
 
@@ -55,30 +60,61 @@ export function ProjectScreen({
   const [bugs, setBugs] = useState<BugReport[]>([]);
   const [feedback, setFeedback] = useState<PlaytestFeedback[]>([]);
   const [builds, setBuilds] = useState<Build[]>([]);
+  const [members, setMembers] = useState<TeamMember[]>([]);
+  const [sessions, setSessions] = useState<PlaytestSession[]>([]);
+  const [queuedFeedback, setQueuedFeedback] =
+    useState<PlaytestFeedback | null>(null);
   const [drawer, setDrawer] = useState<Drawer | null>(null);
+  const [editingMilestone, setEditingMilestone] = useState<string | null>(null);
   const [error, setError] = useState("");
-  const [milestone, setMilestone] = useState({
+  const [notice, setNotice] = useState("");
+  const taskForm = useRef<HTMLDetailsElement>(null);
+  const milestoneForm = useRef<HTMLDetailsElement>(null);
+  const [taskTouched, setTaskTouched] = useState(false);
+  const [milestone, setMilestone] = useState<MilestoneDraft>({
     name: "",
     description: "",
     dueDate: "",
-    status: "todo" as MilestoneStatus,
+    status: "todo",
   });
-  const [task, setTask] = useState({
+  const [task, setTask] = useState<TaskDraft>({
     title: "",
     description: "",
     milestoneId: "",
     assigneeId: "",
-    status: "todo" as TaskStatus,
-    priority: "medium" as TaskPriority,
+    status: "todo",
+    priority: "medium",
   });
-  const [bug, setBug] = useState({
-    title: "",
-    description: "",
-    severity: "medium" as BugSeverity,
-    status: "open" as BugStatus,
+  const [bug, setBug] = useState<BugDraft>(emptyBugDraft);
+  const [note, setNote] = useState<PlaytestNoteDraft>({
+    rating: "4",
+    comments: "",
+    buildId: "",
+    sessionId: "",
   });
-  const [note, setNote] = useState({ rating: "4", comments: "", buildId: "" });
 
+  const emptyReport = emptyBugDraft();
+  const dirty =
+    taskTouched ||
+    milestone.name !== "" ||
+    milestone.description !== "" ||
+    milestone.dueDate !== "" ||
+    Object.keys(emptyReport).some(
+      (key) =>
+        bug[key as keyof BugDraft] !== emptyReport[key as keyof BugDraft],
+    ) ||
+    note.comments !== "" ||
+    note.rating !== "4" ||
+    note.buildId !== "" ||
+    Boolean(note.sessionId);
+  useUnsavedChanges(dirty, pending);
+  function startMilestone() {
+    onViewChange("milestones");
+    const form = milestoneForm.current;
+    if (!form) return;
+    form.open = true;
+    form.querySelector<HTMLInputElement>("input")?.focus();
+  }
   const load = useCallback(
     async (signal?: AbortSignal) => {
       const [
@@ -88,6 +124,7 @@ export function ProjectScreen({
         nextBugs,
         nextFeedback,
         nextBuilds,
+        nextMembers,
       ] = await Promise.all([
         api<User[]>("/api/users", { signal }),
         api<Milestone[]>(`/api/milestones?projectId=${project._id}`, {
@@ -99,9 +136,12 @@ export function ProjectScreen({
         }),
         api<PlaytestFeedback[]>(
           `/api/playtest-feedback?projectId=${project._id}`,
-          { signal }
+          { signal },
         ),
         api<Build[]>(`/api/builds?projectId=${project._id}`, { signal }),
+        api<TeamMember[]>(`/api/teams/${project.teamId}/members`, {
+          signal,
+        }),
       ]);
       if (signal?.aborted) return;
       setUsers(nextUsers);
@@ -110,20 +150,26 @@ export function ProjectScreen({
       setBugs(nextBugs);
       setFeedback(nextFeedback);
       setBuilds(nextBuilds);
+      setMembers(nextMembers);
       setTask((current) => ({
         ...current,
         milestoneId: current.milestoneId || nextMilestones[0]?._id || "",
-        assigneeId: current.assigneeId || nextUsers[0]?._id || "",
+        assigneeId:
+          current.assigneeId ||
+          nextUsers.find((user) =>
+            nextMembers.some((member) => member.userId === user._id),
+          )?._id ||
+          "",
       }));
     },
-    [project._id]
+    [project._id, project.teamId],
   );
 
   useEffect(() => {
     const controller = new AbortController();
     load(controller.signal)
-      .catch((err: ApiError) => {
-        if (!controller.signal.aborted) setError(err.message);
+      .catch((err) => {
+        if (!controller.signal.aborted) setError(errorMessage(err));
       })
       .finally(() => {
         if (!controller.signal.aborted) setLoading(false);
@@ -131,24 +177,64 @@ export function ProjectScreen({
     return () => controller.abort();
   }, [load]);
 
-  const nameFor = (id: string): string =>
-    users.find((user) => user._id === id)?.displayName || "Unknown user";
+  const assignableUsers = users.filter((user) =>
+    members.some((member) => member.userId === user._id),
+  );
+  const canReview = members.some(
+    (member) => member.userId === currentUserId,
+  );
+  function beginBugReport(entry: PlaytestFeedback) {
+    const build = builds.find((item) => item._id === entry.buildId);
+    setBug({
+      ...emptyBugDraft(),
+      title: build ? `Issue in ${build.version}` : "Playtest issue",
+      description: entry.comments || "",
+      buildId: entry.buildId || "",
+      sourceFeedbackId: entry._id,
+    });
+    setQueuedFeedback(null);
+  }
+  function reportFeedback(entry: PlaytestFeedback) {
+    onViewChange("bugs");
+    if (
+      bug.title ||
+      bug.description ||
+      bug.reproductionSteps ||
+      bug.expectedResult ||
+      bug.actualResult ||
+      bug.environment ||
+      bug.buildId ||
+      bug.sourceFeedbackId ||
+      bug.severity !== "medium" ||
+      bug.status !== "open"
+    )
+      setQueuedFeedback(entry);
+    else beginBugReport(entry);
+  }
 
   async function submit(
     path: string,
     body: unknown,
-    reset: () => void
+    reset: () => void,
   ): Promise<void> {
     if (mutationLock.current) return;
     mutationLock.current = true;
     setPending(true);
     setError("");
+    setNotice("");
     try {
       await api(path, { method: "POST", body: JSON.stringify(body) });
       reset();
-      await load();
+      setNotice("Created successfully.");
+      try {
+        await load();
+      } catch {
+        setError(
+          "Your item was created, but the workspace could not refresh. Reload to see the latest data.",
+        );
+      }
     } catch (err) {
-      setError((err as ApiError).message);
+      setError(errorMessage(err));
     } finally {
       mutationLock.current = false;
       setPending(false);
@@ -158,12 +244,13 @@ export function ProjectScreen({
   async function patch(
     path: string,
     body: unknown,
-    reset?: () => void
+    reset?: () => void,
   ): Promise<void> {
     if (mutationLock.current) return;
     mutationLock.current = true;
     setPending(true);
     setError("");
+    setNotice("");
     try {
       const updated = await api<Project>(path, {
         method: "PATCH",
@@ -171,9 +258,16 @@ export function ProjectScreen({
       });
       if (path === `/api/projects/${project._id}`) onProjectChange(updated);
       reset?.();
-      await load();
+      setNotice("Changes saved.");
+      try {
+        await load();
+      } catch {
+        setError(
+          "Your changes were saved, but the workspace could not refresh. Reload to see the latest data.",
+        );
+      }
     } catch (err) {
-      setError((err as ApiError).message);
+      setError(errorMessage(err));
     } finally {
       mutationLock.current = false;
       setPending(false);
@@ -210,6 +304,11 @@ export function ProjectScreen({
         </Field>
       </header>
       <ErrorNote error={error} />
+      {notice && (
+        <p role="status" className="workspace-notice">
+          {notice}
+        </p>
+      )}
       {loading && (
         <p role="status" className="loading">
           Loading project workspace…
@@ -227,99 +326,184 @@ export function ProjectScreen({
       )}
       <fieldset
         className="workspace-fields"
+        hidden={loading}
         disabled={pending || loading}
         aria-busy={pending}
       >
         <div className="grid workspace-grid">
+          <section hidden={view !== "sessions"}>
+            <PlaytestSessions
+              projectId={project._id}
+              builds={builds}
+              feedback={feedback}
+              canManage={canReview}
+              active={view === "sessions"}
+              onSessionsChange={setSessions}
+              onFeedback={(session) => {
+                setNote((old) => ({
+                  ...old,
+                  buildId: session.buildId,
+                  sessionId: session._id,
+                }));
+                onViewChange("feedback");
+              }}
+            />
+          </section>
+          <section hidden={view !== "notifications"}>
+            <Notifications
+              projectId={project._id}
+              active={view === "notifications"}
+              onViewChange={onViewChange}
+              onOpenTask={(id) => setDrawer({ kind: "task", id })}
+            />
+          </section>
+          <section hidden={view !== "activity"}>
+            <ActivityFeed
+              projectId={project._id}
+              active={view === "activity"}
+            />
+          </section>
+          <section hidden={view !== "github"}>
+            <GithubDeliveries
+              project={project}
+              active={view === "github"}
+              onProjectChange={onProjectChange}
+            />
+          </section>
+          <section hidden={view !== "my-work"}>
+            <MyWork
+              tasks={tasks}
+              milestones={milestones}
+              bugs={bugs}
+              currentUserId={currentUserId}
+              pending={pending || loading}
+              onOpenTask={(id) => setDrawer({ kind: "task", id })}
+              onOpenBug={(id) => setDrawer({ kind: "bug", id })}
+              onStatusChange={(id, status: TaskStatus) =>
+                patch(`/api/tasks/${id}`, { status })
+              }
+              onMilestones={() => onViewChange("milestones")}
+            />
+          </section>
           <section className="panel" hidden={view !== "milestones"}>
-            <h2>Milestones</h2>
-            <ul className="list">
-              {milestones.map((item) => (
-                <li key={item._id}>
-                  <span>{item.name}</span>
-                  <select
-                    aria-label={`Status for ${item.name}`}
-                    value={item.status}
+            <MilestonePlan
+              milestones={milestones}
+              tasks={tasks}
+              pending={pending || loading}
+              onEdit={setEditingMilestone}
+              onTaskOpen={(id) => setDrawer({ kind: "task", id })}
+              onStatusChange={(id, status: MilestoneStatus) =>
+                patch(`/api/milestones/${id}`, { status })
+              }
+            />
+            <details ref={milestoneForm} className="create-work">
+              <summary>Add a milestone</summary>
+              <form
+                className="stack"
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  submit(
+                    "/api/milestones",
+                    {
+                      ...milestone,
+                      projectId: project._id,
+                      dueDate: milestone.dueDate || null,
+                    },
+                    () =>
+                      setMilestone({
+                        name: "",
+                        description: "",
+                        dueDate: "",
+                        status: "todo",
+                      }),
+                  );
+                }}
+              >
+                <Field label="Milestone name">
+                  <input
+                    value={milestone.name}
                     onChange={(event) =>
-                      patch(`/api/milestones/${item._id}`, {
-                        status: event.target.value,
+                      setMilestone({ ...milestone, name: event.target.value })
+                    }
+                    required
+                  />
+                </Field>
+                <Field label="Milestone description">
+                  <textarea
+                    rows={3}
+                    value={milestone.description}
+                    onChange={(event) =>
+                      setMilestone({
+                        ...milestone,
+                        description: event.target.value,
                       })
                     }
-                  >
-                    {MILESTONE_STATUSES.map((status) => (
-                      <option key={status} value={status}>
-                        {status}
-                      </option>
-                    ))}
-                  </select>
-                </li>
-              ))}
-            </ul>
-            {milestones.length === 0 && <p>No milestones yet.</p>}
-            <form
-              className="stack"
-              onSubmit={(event) => {
-                event.preventDefault();
-                submit(
-                  "/api/milestones",
-                  {
-                    ...milestone,
-                    projectId: project._id,
-                    dueDate: milestone.dueDate || null,
-                  },
-                  () =>
-                    setMilestone({
-                      name: "",
-                      description: "",
-                      dueDate: "",
-                      status: "todo",
-                    })
-                );
-              }}
-            >
-              <Field label="Milestone name">
-                <input
-                  value={milestone.name}
-                  onChange={(event) =>
-                    setMilestone({ ...milestone, name: event.target.value })
-                  }
-                  required
-                />
-              </Field>
-              <Field label="Due date">
-                <input
-                  type="date"
-                  value={milestone.dueDate}
-                  onChange={(event) =>
-                    setMilestone({ ...milestone, dueDate: event.target.value })
-                  }
-                />
-              </Field>
-              <button type="submit">Add milestone</button>
-            </form>
+                  />
+                </Field>
+                <Field label="Due date">
+                  <input
+                    type="date"
+                    value={milestone.dueDate}
+                    onChange={(event) =>
+                      setMilestone({
+                        ...milestone,
+                        dueDate: event.target.value,
+                      })
+                    }
+                  />
+                </Field>
+                <button type="submit">Add milestone</button>
+              </form>
+            </details>
           </section>
           <section className="panel" hidden={view !== "tasks"}>
+            {!loading && milestones.length === 0 && (
+              <div className="source-notice">
+                <h3>Start with a milestone</h3>
+                <p>
+                  Tasks belong to milestones. Add your first goal, then break it
+                  into assigned work.
+                </p>
+                <button type="button" onClick={startMilestone}>
+                  Create first milestone
+                </button>
+              </div>
+            )}
             <TaskBoard
+              onCreate={() => {
+                if (!milestones.length) {
+                  startMilestone();
+                  return;
+                }
+                const form = taskForm.current;
+                if (!form) return;
+                form.open = true;
+                form.querySelector<HTMLInputElement>("input")?.focus();
+              }}
               tasks={tasks}
               users={users}
               milestones={milestones}
               pending={pending || loading}
               currentUserId={currentUserId}
               onOpen={(id) => setDrawer({ kind: "task", id })}
-              onStatusChange={(id, status) =>
+              onStatusChange={(id, status: TaskStatus) =>
                 patch(`/api/tasks/${id}`, { status })
               }
             />
-            <details className="create-work">
+            <details ref={taskForm} className="create-work">
               <summary>Add a task</summary>
               <form
+                onChange={() => setTaskTouched(true)}
                 className="stack"
                 onSubmit={(event) => {
                   event.preventDefault();
                   submit(
                     "/api/tasks",
                     { ...task, projectId: project._id },
-                    () => setTask({ ...task, title: "", description: "" })
+                    () => {
+                      setTask({ ...task, title: "", description: "" });
+                      setTaskTouched(false);
+                    },
                   );
                 }}
               >
@@ -330,6 +514,15 @@ export function ProjectScreen({
                       setTask({ ...task, title: event.target.value })
                     }
                     required
+                  />
+                </Field>
+                <Field label="Task description">
+                  <textarea
+                    rows={3}
+                    value={task.description}
+                    onChange={(event) =>
+                      setTask({ ...task, description: event.target.value })
+                    }
                   />
                 </Field>
                 <Field label="Milestone">
@@ -356,7 +549,7 @@ export function ProjectScreen({
                     }
                     required
                   >
-                    {users.map((user) => (
+                    {assignableUsers.map((user) => (
                       <option key={user._id} value={user._id}>
                         {user.displayName}
                       </option>
@@ -369,7 +562,8 @@ export function ProjectScreen({
                     onChange={(event) =>
                       setTask({
                         ...task,
-                        priority: event.target.value as TaskPriority,
+                        priority: event.target
+                          .value as TaskDraft["priority"],
                       })
                     }
                   >
@@ -385,138 +579,86 @@ export function ProjectScreen({
             </details>
           </section>
           <section className="panel" hidden={view !== "bugs"}>
-            <h2>Bug reports</h2>
-            <ul className="list">
-              {bugs.map((item) => (
-                <li key={item._id}>
-                  <span>
-                    <button
-                      type="button"
-                      className="item-title"
-                      onClick={() => setDrawer({ kind: "bug", id: item._id })}
-                    >
-                      {item.title}
-                    </button>{" "}
-                    <span className="badge">{item.severity}</span>
-                  </span>
-                  <select
-                    aria-label={`Status for ${item.title}`}
-                    value={item.status}
-                    onChange={(event) =>
-                      patch(`/api/bug-reports/${item._id}`, {
-                        status: event.target.value,
-                      })
-                    }
+            {queuedFeedback && (
+              <div className="source-notice" role="alert">
+                <p>
+                  You have an unsent bug report. Keep it or replace it with a
+                  report from the selected feedback.
+                </p>
+                <div className="build-actions">
+                  <button
+                    type="button"
+                    onClick={() => beginBugReport(queuedFeedback)}
                   >
-                    {BUG_STATUSES.map((status) => (
-                      <option key={status} value={status}>
-                        {status}
-                      </option>
-                    ))}
-                  </select>
-                </li>
-              ))}
-            </ul>
-            {bugs.length === 0 && <p>No bug reports yet.</p>}
-            <form
-              className="stack"
-              onSubmit={(event) => {
-                event.preventDefault();
+                    Replace draft
+                  </button>
+                  <button
+                    type="button"
+                    className="secondary"
+                    onClick={() => setQueuedFeedback(null)}
+                  >
+                    Keep current draft
+                  </button>
+                </div>
+              </div>
+            )}
+            <BugReports
+              bugs={bugs}
+              builds={builds}
+              pending={pending || loading}
+              draft={bug}
+              onDraftChange={setBug}
+              onSubmit={() =>
                 submit(
                   "/api/bug-reports",
                   { ...bug, projectId: project._id },
-                  () =>
-                    setBug({
-                      title: "",
-                      description: "",
-                      severity: "medium",
-                      status: "open",
-                    })
-                );
-              }}
-            >
-              <Field label="Bug title">
-                <input
-                  value={bug.title}
-                  onChange={(event) =>
-                    setBug({ ...bug, title: event.target.value })
-                  }
-                  required
-                />
-              </Field>
-              <Field label="Description">
-                <textarea
-                  value={bug.description}
-                  onChange={(event) =>
-                    setBug({ ...bug, description: event.target.value })
-                  }
-                />
-              </Field>
-              <Field label="Severity">
-                <select
-                  value={bug.severity}
-                  onChange={(event) =>
-                    setBug({
-                      ...bug,
-                      severity: event.target.value as BugSeverity,
-                    })
-                  }
-                >
-                  {BUG_SEVERITIES.map((severity) => (
-                    <option key={severity} value={severity}>
-                      {severity}
-                    </option>
-                  ))}
-                </select>
-              </Field>
-              <button type="submit">Report bug</button>
-            </form>
+                  () => setBug(emptyBugDraft()),
+                )
+              }
+              onOpen={(id) => setDrawer({ kind: "bug", id })}
+              onStatusChange={(id, status) =>
+                patch(`/api/bug-reports/${id}`, { status })
+              }
+            />
           </section>
           <section hidden={view !== "builds"}>
             <BuildLibrary
               builds={builds}
               feedback={feedback}
               pending={pending || loading}
-              onPublish={(body, reset) =>
+              onPublish={(body: BuildForm, reset) =>
                 submit(
                   "/api/builds",
                   { ...body, projectId: project._id },
-                  reset
+                  reset,
                 )
               }
               onUpdate={(id, body, reset) =>
                 patch(`/api/builds/${id}`, body, reset)
               }
               onFeedback={(buildId) => {
-                setNote((old) => ({ ...old, buildId }));
+                setNote((old) => ({ ...old, buildId, sessionId: "" }));
                 onViewChange("feedback");
               }}
             />
           </section>
           <section className="panel" hidden={view !== "feedback"}>
-            <h2>Playtest feedback</h2>
-            <ul className="list">
-              {feedback.map((item) => (
-                <li key={item._id}>
-                  <span>
-                    {nameFor(item.userId)}: {item.comments || "No comments"}
-                    {item.buildId && (
-                      <small className="meta">
-                        Build:{" "}
-                        {builds.find((build) => build._id === item.buildId)
-                          ?.version || "Unavailable build"}
-                      </small>
-                    )}
-                  </span>
-                  <span className="meta">Rating {item.rating} of 5</span>
-                </li>
-              ))}
-            </ul>
-            {feedback.length === 0 && <p>No feedback yet.</p>}
-            <form
-              className="stack"
-              onSubmit={(event) => {
-                event.preventDefault();
+            <FeedbackTriage
+              feedback={feedback}
+              builds={builds}
+              users={users}
+              bugs={bugs}
+              canReview={canReview}
+              pending={pending || loading}
+              onReview={(id, reviewStatus) =>
+                patch(`/api/playtest-feedback/${id}`, { reviewStatus })
+              }
+              onReportBug={reportFeedback}
+              onOpenBug={(id) => setDrawer({ kind: "bug", id })}
+              sessions={sessions}
+              note={note}
+              onNoteChange={setNote}
+              onSubmit={() =>
                 submit(
                   "/api/playtest-feedback",
                   {
@@ -524,72 +666,53 @@ export function ProjectScreen({
                     rating: Number(note.rating),
                     comments: note.comments,
                     ...(note.buildId ? { buildId: note.buildId } : {}),
+                    ...(note.sessionId ? { sessionId: note.sessionId } : {}),
                   },
-                  () => setNote({ rating: "4", comments: "", buildId: "" })
-                );
-              }}
-            >
-              <Field label="Build tested">
-                <select
-                  value={note.buildId}
-                  onChange={(event) =>
-                    setNote({ ...note, buildId: event.target.value })
-                  }
-                >
-                  <option value="">General project feedback</option>
-                  {builds.map((build) => (
-                    <option key={build._id} value={build._id}>
-                      {build.version} · {build.platform}
-                    </option>
-                  ))}
-                </select>
-              </Field>
-              <Field label="Rating">
-                <select
-                  value={note.rating}
-                  onChange={(event) =>
-                    setNote({ ...note, rating: event.target.value })
-                  }
-                >
-                  {[1, 2, 3, 4, 5].map((rating) => (
-                    <option key={rating} value={rating}>
-                      {rating}
-                    </option>
-                  ))}
-                </select>
-              </Field>
-              <Field label="Comments">
-                <textarea
-                  value={note.comments}
-                  onChange={(event) =>
-                    setNote({ ...note, comments: event.target.value })
-                  }
-                />
-              </Field>
-              <button type="submit">Add feedback</button>
-            </form>
+                  () =>
+                    setNote({
+                      rating: "4",
+                      comments: "",
+                      buildId: "",
+                      sessionId: "",
+                    }),
+                )
+              }
+            />
           </section>
         </div>
       </fieldset>
+      {editingMilestone && (
+        <MilestoneEditor
+          key={editingMilestone}
+          id={editingMilestone}
+          onClose={() => setEditingMilestone(null)}
+          onSaved={(updated) =>
+            setMilestones((items) =>
+              items.map((item) => (item._id === updated._id ? updated : item)),
+            )
+          }
+        />
+      )}
       {drawer && (
         <ItemDrawer
           key={`${drawer.kind}-${drawer.id}`}
           {...drawer}
-          users={users}
+          builds={builds}
+          users={assignableUsers}
           milestones={milestones}
           onClose={() => setDrawer(null)}
           onSaved={(updated) => {
             if (drawer.kind === "task")
               setTasks((items) =>
                 items.map((item) =>
-                  item._id === updated._id ? (updated as Task) : item
-                )
+                  item._id === updated._id ? (updated as Task) : item,
+                ),
               );
             else
               setBugs((items) =>
                 items.map((item) =>
-                  item._id === updated._id ? (updated as BugReport) : item
-                )
+                  item._id === updated._id ? (updated as BugReport) : item,
+                ),
               );
           }}
         />

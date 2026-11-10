@@ -1,17 +1,43 @@
-import { useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import type { ChangeEvent, FormEvent } from "react";
-import { api, setToken } from "../api";
-import type { ApiError } from "../api";
+import { api, errorMessage } from "../api";
+import type { AuthResponse, OAuthProvider, User } from "../types";
+import type { UserRole } from "../constants";
 import { USER_ROLES } from "../constants";
 import { ErrorNote, Field } from "../components/Forms";
-import type { AuthResponse, User } from "../types";
+import { ThemeToggle } from "../components/ThemeToggle";
+import type { Theme } from "../theme";
 
-export function AuthScreen({ onReady }: { onReady: (user: User) => void }) {
+const AuthBackdrop = lazy(() => import("../components/AuthBackdrop"));
+
+interface AuthForm {
+  username: string;
+  email: string;
+  displayName: string;
+  role: UserRole;
+  password: string;
+}
+
+export function AuthScreen({
+  onReady,
+  initialError = "",
+  onClearError,
+  theme,
+  onToggleTheme,
+}: {
+  onReady: (user: User) => void;
+  initialError?: string;
+  onClearError?: () => void;
+  theme: Theme;
+  onToggleTheme: () => void;
+}) {
   const submitLock = useRef(false);
   const [pending, setPending] = useState(false);
+  const [showBackdrop, setShowBackdrop] = useState(false);
   const [mode, setMode] = useState<"login" | "register">("login");
-  const [error, setError] = useState("");
-  const [form, setForm] = useState({
+  const [error, setError] = useState(initialError);
+  const [providers, setProviders] = useState<OAuthProvider[]>([]);
+  const [form, setForm] = useState<AuthForm>({
     username: "",
     email: "",
     displayName: "",
@@ -19,13 +45,55 @@ export function AuthScreen({ onReady }: { onReady: (user: User) => void }) {
     password: "",
   });
 
+  useEffect(() => {
+    if (initialError) setError(initialError);
+  }, [initialError]);
+
+  useEffect(() => {
+    let active = true;
+    api<{ providers: OAuthProvider[] }>("/api/auth/oauth/providers")
+      .then((result) => {
+        if (active) setProviders(result.providers || []);
+      })
+      .catch(() => {
+        if (active) setProviders([]);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => setShowBackdrop(true), 400);
+    return () => window.clearTimeout(timer);
+  }, []);
+
   function update(
-    event: ChangeEvent<HTMLInputElement | HTMLSelectElement>
+    event: ChangeEvent<HTMLInputElement | HTMLSelectElement>,
   ): void {
-    setForm((current) => ({
-      ...current,
-      [event.target.name]: event.target.value,
-    }));
+    const { name, value } = event.target;
+    setForm((current) => {
+      switch (name) {
+        case "username":
+          return { ...current, username: value };
+        case "email":
+          return { ...current, email: value };
+        case "displayName":
+          return { ...current, displayName: value };
+        case "role":
+          return { ...current, role: value as UserRole };
+        case "password":
+          return { ...current, password: value };
+        default:
+          return current;
+      }
+    });
+  }
+
+  function switchMode(nextMode: "login" | "register"): void {
+    setMode(nextMode);
+    setError("");
+    onClearError?.();
   }
 
   async function submit(event: FormEvent<HTMLFormElement>): Promise<void> {
@@ -34,6 +102,7 @@ export function AuthScreen({ onReady }: { onReady: (user: User) => void }) {
     submitLock.current = true;
     setPending(true);
     setError("");
+    onClearError?.();
     try {
       const path = mode === "login" ? "/api/auth/login" : "/api/auth/register";
       const body =
@@ -44,10 +113,9 @@ export function AuthScreen({ onReady }: { onReady: (user: User) => void }) {
         method: "POST",
         body: JSON.stringify(body),
       });
-      setToken(result.token);
       onReady(result.user);
     } catch (err) {
-      setError((err as ApiError).message);
+      setError(errorMessage(err));
     } finally {
       submitLock.current = false;
       setPending(false);
@@ -55,102 +123,138 @@ export function AuthScreen({ onReady }: { onReady: (user: User) => void }) {
   }
 
   return (
-    <main id="main-content" className="auth-wrap">
-      <p className="eyebrow">Studio sign in</p>
-      <h1>Checkpoint</h1>
-      <p>
-        Sign in to manage teams, projects, tasks, bugs, and playtest feedback.
-      </p>
-      <div className="panel">
-        <div className="auth-switch" aria-label="Account access">
-          <button
-            type="button"
-            className={mode === "login" ? "" : "secondary"}
-            disabled={pending}
-            onClick={() => {
-              setMode("login");
-              setError("");
-            }}
-          >
-            Sign in
-          </button>
-          <button
-            type="button"
-            className={mode === "register" ? "" : "secondary"}
-            disabled={pending}
-            onClick={() => {
-              setMode("register");
-              setError("");
-            }}
-          >
-            Create account
-          </button>
-        </div>
-        <ErrorNote error={error} />
-        <form onSubmit={submit}>
-          <fieldset className="stack" disabled={pending}>
-            <Field label="Username">
-              <input
-                name="username"
-                value={form.username}
-                onChange={update}
-                autoComplete="username"
-                required
-              />
-            </Field>
-            {mode === "register" && (
-              <>
-                <Field label="Email">
-                  <input
-                    name="email"
-                    type="email"
-                    value={form.email}
-                    onChange={update}
-                    autoComplete="email"
-                    required
-                  />
-                </Field>
-                <Field label="Display name">
-                  <input
-                    name="displayName"
-                    value={form.displayName}
-                    onChange={update}
-                    required
-                  />
-                </Field>
-                <Field label="Role">
-                  <select name="role" value={form.role} onChange={update}>
-                    {USER_ROLES.map((role) => (
-                      <option key={role} value={role}>
-                        {role}
-                      </option>
-                    ))}
-                  </select>
-                </Field>
-              </>
-            )}
-            <Field label="Password">
-              <input
-                name="password"
-                type="password"
-                value={form.password}
-                onChange={update}
-                autoComplete={
-                  mode === "login" ? "current-password" : "new-password"
-                }
-                required
-              />
-            </Field>
-            <button type="submit">
-              {pending
-                ? "Please wait…"
-                : mode === "login"
-                  ? "Sign in"
-                  : "Create account"}
+    <>
+      {showBackdrop && (
+        <Suspense fallback={null}>
+          <AuthBackdrop theme={theme} />
+        </Suspense>
+      )}
+      <ThemeToggle
+        theme={theme}
+        onToggle={onToggleTheme}
+        className="auth-theme-toggle"
+      />
+      <main id="main-content" className="auth-wrap">
+        <h1 className="auth-brand">
+          <img
+            className="auth-logo-dark"
+            src="/brand/checkpoint-logo.png"
+            alt="checkpoint"
+            width="220"
+            height="70"
+          />
+          <img
+            className="auth-logo-light"
+            src="/brand/checkpoint-logo-light.png"
+            alt="checkpoint"
+            width="220"
+            height="70"
+          />
+        </h1>
+        <p>Sign in to your studio workspace.</p>
+        <div className="panel">
+          <div className="auth-switch" role="group" aria-label="Account access">
+            <button
+              type="button"
+              className={mode === "login" ? "" : "secondary"}
+              aria-pressed={mode === "login"}
+              disabled={pending}
+              onClick={() => switchMode("login")}
+            >
+              Sign in
             </button>
-          </fieldset>
-        </form>
-      </div>
-    </main>
+            <button
+              type="button"
+              className={mode === "register" ? "" : "secondary"}
+              aria-pressed={mode === "register"}
+              disabled={pending}
+              onClick={() => switchMode("register")}
+            >
+              Create account
+            </button>
+          </div>
+          <ErrorNote error={error} />
+          <form onSubmit={submit}>
+            <fieldset className="stack" disabled={pending}>
+              <Field label="Username">
+                <input
+                  name="username"
+                  value={form.username}
+                  onChange={update}
+                  autoComplete="username"
+                  required
+                />
+              </Field>
+              {mode === "register" && (
+                <>
+                  <Field label="Email">
+                    <input
+                      name="email"
+                      type="email"
+                      value={form.email}
+                      onChange={update}
+                      autoComplete="email"
+                      required
+                    />
+                  </Field>
+                  <Field label="Display name">
+                    <input
+                      name="displayName"
+                      value={form.displayName}
+                      onChange={update}
+                      required
+                    />
+                  </Field>
+                  <Field label="Role">
+                    <select name="role" value={form.role} onChange={update}>
+                      {USER_ROLES.map((role) => (
+                        <option key={role} value={role}>
+                          {role}
+                        </option>
+                      ))}
+                    </select>
+                  </Field>
+                </>
+              )}
+              <Field label="Password">
+                <input
+                  name="password"
+                  type="password"
+                  value={form.password}
+                  onChange={update}
+                  autoComplete={
+                    mode === "login" ? "current-password" : "new-password"
+                  }
+                  required
+                />
+              </Field>
+              <button type="submit">
+                {pending
+                  ? "Please wait…"
+                  : mode === "login"
+                    ? "Sign in"
+                    : "Create account"}
+              </button>
+            </fieldset>
+          </form>
+          {providers.length > 0 && (
+            <>
+              <hr className="auth-divider" />
+              <div className="oauth-links">
+                {providers.map((provider) => (
+                  <a
+                    key={provider.id}
+                    className="button-link secondary"
+                    href={`/api/auth/oauth/${provider.id}`}
+                  >
+                    Continue with {provider.label}
+                  </a>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+      </main>
+    </>
   );
 }

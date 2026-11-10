@@ -1,8 +1,22 @@
 import { useEffect, useRef, useState } from "react";
 import type { FormEvent } from "react";
-import { api } from "../../api";
-import type { ApiError } from "../../api";
+import { BugDetailsFields } from "../playtesting/BugDetailsFields";
+import { BugScreenshots } from "../playtesting/BugScreenshots";
+import { TaskDiscussion } from "../discussions/TaskDiscussion";
+import {
+  useUnsavedChanges,
+  confirmDiscard,
+} from "../../navigation/UnsavedChanges";
+import { api, errorMessage } from "../../api";
+import type {
+  BugReport,
+  Build,
+  Milestone,
+  Task,
+  User,
+} from "../../types";
 import { ErrorNote, Field } from "../../components/Forms";
+import { formatStatus } from "../../format";
 import {
   TASK_STATUSES,
   PRIORITIES,
@@ -10,19 +24,22 @@ import {
   BUG_SEVERITIES,
 } from "../../constants";
 import type {
-  BugReport,
-  Milestone,
-  Task,
-  User,
-} from "../../types";
+  BugSeverity,
+  BugStatus,
+  TaskPriority,
+  TaskStatus,
+} from "../../constants";
 
 type DrawerRecord = Task | BugReport;
+
+const DRAWER_CLOSE_MS = 160;
 
 export function ItemDrawer({
   kind,
   id,
   users,
   milestones,
+  builds = [],
   onClose,
   onSaved,
 }: {
@@ -30,18 +47,30 @@ export function ItemDrawer({
   id: string;
   users: User[];
   milestones: Milestone[];
+  builds?: Build[];
   onClose: () => void;
   onSaved: (record: DrawerRecord) => void;
 }) {
   const dialog = useRef<HTMLDialogElement>(null);
   const title = useRef<HTMLHeadingElement>(null);
   const lock = useRef(false);
+  const closeTimer = useRef<number | null>(null);
   const [record, setRecord] = useState<DrawerRecord | null>(null);
   const [loading, setLoading] = useState(true);
   const [pending, setPending] = useState(false);
+  const [discussionBusy, setDiscussionBusy] = useState(false);
+  const [discussionDirty, setDiscussionDirty] = useState(false);
+  const [closing, setClosing] = useState(false);
+  const baseline = useRef<string | null>(null);
   const [error, setError] = useState("");
   const [attempt, setAttempt] = useState(0);
   const endpoint = kind === "task" ? "tasks" : "bug-reports";
+  const dirty = record !== null && JSON.stringify(record) !== baseline.current;
+  useUnsavedChanges(Boolean(dirty), pending);
+  function close() {
+    if (!pending && !discussionBusy && confirmDiscard(dirty || discussionDirty))
+      requestClose();
+  }
   useEffect(() => {
     const previous = document.activeElement;
     const node = dialog.current;
@@ -60,12 +89,17 @@ export function ItemDrawer({
     const controller = new AbortController();
     setLoading(true);
     setError("");
-    api<DrawerRecord>(`/api/${endpoint}/${id}`, { signal: controller.signal })
+    api<DrawerRecord>(`/api/${endpoint}/${id}`, {
+      signal: controller.signal,
+    })
       .then((data) => {
-        if (!controller.signal.aborted) setRecord(data);
+        if (!controller.signal.aborted) {
+          baseline.current = JSON.stringify(data);
+          setRecord(data);
+        }
       })
-      .catch((err: ApiError) => {
-        if (!controller.signal.aborted) setError(err.message);
+      .catch((err) => {
+        if (!controller.signal.aborted) setError(errorMessage(err));
       })
       .finally(() => {
         if (!controller.signal.aborted) setLoading(false);
@@ -74,11 +108,37 @@ export function ItemDrawer({
   }, [endpoint, id, attempt]);
   const update = (key: string, value: string): void =>
     setRecord((old) =>
-      old ? ({ ...old, [key]: value } as DrawerRecord) : old
+      old ? ({ ...old, [key]: value } as DrawerRecord) : old,
     );
+  useEffect(
+    () => () => {
+      if (closeTimer.current !== null) {
+        window.clearTimeout(closeTimer.current);
+      }
+    },
+    []
+  );
+  function requestClose(force = false): void {
+    if (closing || (!force && (pending || discussionBusy))) return;
+    setClosing(true);
+    const reduceMotion =
+      window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
+    closeTimer.current = window.setTimeout(
+      onClose,
+      reduceMotion ? 0 : DRAWER_CLOSE_MS
+    );
+  }
   async function save(event: FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault();
-    if (!record || lock.current) return;
+    if (!record || lock.current || discussionBusy) return;
+    if (
+      discussionDirty &&
+      !confirmDiscard(
+        true,
+        "Discard your unsent attachment or comment and save these changes? Choose Cancel to keep writing.",
+      )
+    )
+      return;
     lock.current = true;
     setPending(true);
     setError("");
@@ -92,7 +152,14 @@ export function ItemDrawer({
             assigneeId: (record as Task).assigneeId,
             milestoneId: (record as Task).milestoneId,
           }
-        : { severity: (record as BugReport).severity }),
+        : {
+            severity: (record as BugReport).severity,
+            buildId: (record as BugReport).buildId || null,
+            reproductionSteps: (record as BugReport).reproductionSteps || "",
+            expectedResult: (record as BugReport).expectedResult || "",
+            actualResult: (record as BugReport).actualResult || "",
+            environment: (record as BugReport).environment || "",
+          }),
     };
     if (!body.title) {
       setError("Enter a title before saving.");
@@ -106,9 +173,10 @@ export function ItemDrawer({
         body: JSON.stringify(body),
       });
       onSaved(updated);
-      onClose();
+      baseline.current = JSON.stringify(record);
+      requestClose(true);
     } catch (err) {
-      setError((err as ApiError).message);
+      setError(errorMessage(err));
     } finally {
       lock.current = false;
       setPending(false);
@@ -117,11 +185,11 @@ export function ItemDrawer({
   return (
     <dialog
       ref={dialog}
-      className="item-drawer"
+      className={`item-drawer${closing ? " is-closing" : ""}`}
       aria-labelledby="drawer-title"
       onCancel={(event) => {
         event.preventDefault();
-        if (!pending) onClose();
+        close();
       }}
     >
       <header className="drawer-header">
@@ -137,8 +205,8 @@ export function ItemDrawer({
         <button
           type="button"
           className="secondary"
-          onClick={onClose}
-          disabled={pending}
+          onClick={close}
+          disabled={pending || discussionBusy || closing}
         >
           Close
         </button>
@@ -150,7 +218,7 @@ export function ItemDrawer({
       )}
       {!loading && record && (
         <form onSubmit={save}>
-          <fieldset className="stack" disabled={pending}>
+          <fieldset className="stack" disabled={pending || discussionBusy}>
             <Field label="Title">
               <input
                 value={record.title}
@@ -162,9 +230,7 @@ export function ItemDrawer({
               <textarea
                 rows={7}
                 value={record.description || ""}
-                onChange={(event) =>
-                  update("description", event.target.value)
-                }
+                onChange={(event) => update("description", event.target.value)}
               />
             </Field>
             <Field label="Status">
@@ -175,9 +241,9 @@ export function ItemDrawer({
                 {(kind === "task" ? TASK_STATUSES : BUG_STATUSES).map(
                   (status) => (
                     <option key={status} value={status}>
-                      {status.replaceAll("_", " ")}
+                      {formatStatus(status)}
                     </option>
-                  )
+                  ),
                 )}
               </select>
             </Field>
@@ -186,7 +252,12 @@ export function ItemDrawer({
                 <Field label="Priority">
                   <select
                     value={(record as Task).priority}
-                    onChange={(event) => update("priority", event.target.value)}
+                    onChange={(event) =>
+                      update(
+                        "priority",
+                        event.target.value as TaskPriority,
+                      )
+                    }
                   >
                     {PRIORITIES.map((value) => (
                       <option key={value} value={value}>
@@ -204,7 +275,7 @@ export function ItemDrawer({
                     required
                   >
                     {!users.some(
-                      (user) => user._id === (record as Task).assigneeId
+                      (user) => user._id === (record as Task).assigneeId,
                     ) && (
                       <option value={(record as Task).assigneeId}>
                         Current assignee
@@ -226,7 +297,7 @@ export function ItemDrawer({
                     required
                   >
                     {!milestones.some(
-                      (item) => item._id === (record as Task).milestoneId
+                      (item) => item._id === (record as Task).milestoneId,
                     ) && (
                       <option value={(record as Task).milestoneId}>
                         Current milestone
@@ -241,29 +312,65 @@ export function ItemDrawer({
                 </Field>
               </>
             ) : (
-              <Field label="Severity">
-                <select
-                  value={(record as BugReport).severity}
-                  onChange={(event) => update("severity", event.target.value)}
-                >
-                  {BUG_SEVERITIES.map((value) => (
-                    <option key={value} value={value}>
-                      {value}
-                    </option>
-                  ))}
-                </select>
-              </Field>
+              <>
+                <Field label="Severity">
+                  <select
+                    value={(record as BugReport).severity}
+                    onChange={(event) =>
+                      update(
+                        "severity",
+                        event.target.value as BugSeverity,
+                      )
+                    }
+                  >
+                    {BUG_SEVERITIES.map((value) => (
+                      <option key={value} value={value}>
+                        {value}
+                      </option>
+                    ))}
+                  </select>
+                </Field>
+                <BugDetailsFields
+                  value={record as BugReport}
+                  builds={builds}
+                  onChange={update}
+                />
+                {(record as BugReport).sourceFeedbackId && (
+                  <p className="meta">Linked to playtest feedback.</p>
+                )}
+              </>
             )}
             <div className="drawer-actions">
               <button type="submit">
                 {pending ? "Saving…" : "Save changes"}
               </button>
-              <button type="button" className="secondary" onClick={onClose}>
+              <button
+                type="button"
+                className="secondary"
+                onClick={close}
+                disabled={pending || discussionBusy || closing}
+              >
                 Cancel
               </button>
             </div>
           </fieldset>
         </form>
+      )}
+      {kind === "bug" && record && !loading && (
+        <BugScreenshots
+          bugId={id}
+          disabled={pending}
+          onBusyChange={setDiscussionBusy}
+          onDraftChange={setDiscussionDirty}
+        />
+      )}
+      {kind === "task" && record && !loading && (
+        <TaskDiscussion
+          disabled={pending}
+          taskId={id}
+          onBusyChange={setDiscussionBusy}
+          onDraftChange={setDiscussionDirty}
+        />
       )}
     </dialog>
   );

@@ -1,0 +1,15 @@
+classDiagram
+    class Workspace { restoreRoute() ; guardUnsavedChanges() ; renderProject() }
+    class ApiClient { request() ; setToken() }
+    class ExpressApp { createApp(db) ; routeRequests() }
+    class Authorization { requireAuth() ; requireTeamOwner() ; requireProjectTeamMember() }
+    class MongoDatabase { connectDatabase(uri) ; ensureIndexes(db) }
+    class ActivityService { recordActivity() ; notifyForActivity() }
+    class GitHubService { safeReturnTarget() ; githubConnectState() ; loadRepositorySnapshot() }
+    Workspace --> ApiClient
+    ApiClient --> ExpressApp
+    ExpressApp --> Authorization
+    ExpressApp --> MongoDatabase
+    ExpressApp --> ActivityService
+    ExpressApp --> GitHubService
+    ActivityService --> MongoDatabase

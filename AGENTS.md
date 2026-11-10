@@ -11,7 +11,7 @@ says otherwise.
 
 ## Project
 
-Checkpoint (Group 9). The stack is MongoDB, Express, React, and Node.js.
+checkpoint (Group 9). The stack is MongoDB, Express, React, and Node.js.
 See [`README.md`](./README.md) for setup instructions.
 
 ## Git Workflow

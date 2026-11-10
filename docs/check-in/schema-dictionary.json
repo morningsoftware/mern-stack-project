@@ -1,0 +1,332 @@
+{
+  "scope": "Integrated repair branch; logical relationships, not MongoDB enforced foreign keys",
+  "commonAuditFields": "createdBy/createdOn where present; createdBy can refer to a user",
+  "githubRelationship": "githubDeliveries.repository matches projects.githubRepository by owner/name, not a Mongo ObjectId FK. Activity.resourceId and notifications.resourceId are polymorphic. MongoDB does not enforce these relations.",
+  "collections": {
+    "users": [
+      "ObjectId _id PK",
+      "string username UK",
+      "string email UK",
+      "string displayName",
+      "string role",
+      "string passwordHash",
+      "string githubLogin nullable",
+      "number githubUserId nullable",
+      "string githubAccessToken secret",
+      "string githubRefreshToken secret",
+      "date githubTokenExpiresAt nullable",
+      "date createdOn",
+      "ObjectId createdBy nullable"
+    ],
+    "teams": [
+      "ObjectId _id PK",
+      "string name",
+      "string description",
+      "date createdOn",
+      "ObjectId createdBy FK"
+    ],
+    "teamMembers": [
+      "ObjectId _id PK",
+      "ObjectId teamId FK",
+      "ObjectId userId FK",
+      "string role",
+      "date createdOn",
+      "ObjectId createdBy FK"
+    ],
+    "projects": [
+      "ObjectId _id PK",
+      "ObjectId teamId FK",
+      "string name",
+      "string description",
+      "string status",
+      "string githubRepository nullable",
+      "number githubInstallationId nullable",
+      "date createdOn",
+      "ObjectId createdBy FK"
+    ],
+    "milestones": [
+      "ObjectId _id PK",
+      "ObjectId projectId FK",
+      "string name",
+      "string description",
+      "string status",
+      "date dueDate nullable",
+      "date createdOn",
+      "ObjectId createdBy FK"
+    ],
+    "tasks": [
+      "ObjectId _id PK",
+      "ObjectId projectId FK",
+      "ObjectId milestoneId FK",
+      "ObjectId assigneeId FK",
+      "string title",
+      "string description",
+      "string status",
+      "string priority",
+      "date createdOn",
+      "ObjectId createdBy FK"
+    ],
+    "builds": [
+      "ObjectId _id PK",
+      "ObjectId projectId FK",
+      "string version",
+      "string platform",
+      "string downloadUrl",
+      "string releaseNotes",
+      "date createdOn",
+      "ObjectId createdBy FK"
+    ],
+    "bugReports": [
+      "ObjectId _id PK",
+      "ObjectId projectId FK",
+      "ObjectId reportedBy FK",
+      "ObjectId buildId FK \"optional\"",
+      "ObjectId sourceFeedbackId FK \"optional\"",
+      "string title",
+      "string description",
+      "string reproductionSteps optional",
+      "string expectedResult optional",
+      "string actualResult optional",
+      "string environment optional",
+      "string severity",
+      "string status",
+      "number screenshotCount optional",
+      "date createdOn",
+      "ObjectId createdBy FK"
+    ],
+    "bugScreenshots": [
+      "ObjectId _id PK",
+      "ObjectId bugId FK",
+      "ObjectId projectId FK",
+      "string contentType",
+      "number size",
+      "binary data",
+      "date createdOn",
+      "ObjectId createdBy FK"
+    ],
+    "playtestFeedback": [
+      "ObjectId _id PK",
+      "ObjectId projectId FK",
+      "ObjectId userId FK",
+      "ObjectId buildId FK \"optional\"",
+      "ObjectId sessionId FK \"optional\"",
+      "number rating",
+      "string comments",
+      "string reviewStatus optional",
+      "ObjectId reviewedBy FK \"optional\"",
+      "date reviewedOn nullable",
+      "date createdOn",
+      "ObjectId createdBy FK"
+    ],
+    "playtestSessions": [
+      "ObjectId _id PK",
+      "ObjectId projectId FK",
+      "ObjectId buildId FK",
+      "string title",
+      "string instructions",
+      "date deadline",
+      "string status",
+      "date createdOn",
+      "ObjectId createdBy FK"
+    ],
+    "taskComments": [
+      "ObjectId _id PK",
+      "ObjectId taskId FK",
+      "ObjectId projectId FK",
+      "ObjectId authorId FK",
+      "string body",
+      "date createdOn"
+    ],
+    "projectActivity": [
+      "ObjectId _id PK",
+      "ObjectId projectId FK",
+      "string resource",
+      "ObjectId resourceId \"polymorphic\"",
+      "string action",
+      "string label",
+      "object changes",
+      "ObjectId actorId FK",
+      "string actorName",
+      "date createdOn"
+    ],
+    "notifications": [
+      "ObjectId _id PK",
+      "ObjectId eventId FK",
+      "ObjectId userId FK",
+      "ObjectId projectId FK",
+      "string resource",
+      "ObjectId resourceId \"polymorphic\"",
+      "string message",
+      "date createdOn",
+      "date readOn nullable"
+    ],
+    "githubDeliveries": [
+      "ObjectId _id PK",
+      "string deliveryId UK",
+      "string event",
+      "string action nullable",
+      "string repository nullable",
+      "number installationId nullable",
+      "string detail nullable",
+      "date receivedOn"
+    ]
+  },
+  "relationships": [
+    [
+      "users",
+      "teams",
+      "creates",
+      "||--o{"
+    ],
+    [
+      "users",
+      "teamMembers",
+      "joins",
+      "||--o{"
+    ],
+    [
+      "teams",
+      "teamMembers",
+      "has",
+      "||--o{"
+    ],
+    [
+      "teams",
+      "projects",
+      "contains",
+      "||--o{"
+    ],
+    [
+      "projects",
+      "milestones",
+      "plans",
+      "||--o{"
+    ],
+    [
+      "projects",
+      "tasks",
+      "tracks",
+      "||--o{"
+    ],
+    [
+      "milestones",
+      "tasks",
+      "groups",
+      "||--o{"
+    ],
+    [
+      "users",
+      "tasks",
+      "assigned",
+      "||--o{"
+    ],
+    [
+      "projects",
+      "builds",
+      "publishes",
+      "||--o{"
+    ],
+    [
+      "projects",
+      "bugReports",
+      "receives",
+      "||--o{"
+    ],
+    [
+      "users",
+      "bugReports",
+      "reports",
+      "||--o{"
+    ],
+    [
+      "builds",
+      "bugReports",
+      "optional_build",
+      "o|--o{"
+    ],
+    [
+      "bugReports",
+      "bugScreenshots",
+      "attaches",
+      "||--o{"
+    ],
+    [
+      "projects",
+      "playtestFeedback",
+      "collects",
+      "||--o{"
+    ],
+    [
+      "users",
+      "playtestFeedback",
+      "authors",
+      "||--o{"
+    ],
+    [
+      "builds",
+      "playtestFeedback",
+      "optional_build",
+      "o|--o{"
+    ],
+    [
+      "playtestSessions",
+      "playtestFeedback",
+      "optional_session",
+      "o|--o{"
+    ],
+    [
+      "builds",
+      "playtestSessions",
+      "tested_in",
+      "||--o{"
+    ],
+    [
+      "projects",
+      "playtestSessions",
+      "organizes",
+      "||--o{"
+    ],
+    [
+      "tasks",
+      "taskComments",
+      "discussion",
+      "||--o{"
+    ],
+    [
+      "users",
+      "taskComments",
+      "writes",
+      "||--o{"
+    ],
+    [
+      "projects",
+      "projectActivity",
+      "records",
+      "||--o{"
+    ],
+    [
+      "users",
+      "projectActivity",
+      "performs",
+      "||--o{"
+    ],
+    [
+      "projectActivity",
+      "notifications",
+      "generates",
+      "||--o{"
+    ],
+    [
+      "users",
+      "notifications",
+      "receives",
+      "||--o{"
+    ],
+    [
+      "playtestFeedback",
+      "bugReports",
+      "optional_source_feedback",
+      "o|--o{"
+    ]
+  ]
+}

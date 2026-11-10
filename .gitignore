@@ -6,3 +6,10 @@ node_modules/
 
 # frontend build
 client/dist
+
+# Mobile native build output, generated platform folders, audit artifacts
+mobile/.expo/
+mobile/dist/
+mobile/ios/
+mobile/android/
+artifacts/

@@ -1,22 +1,13 @@
-import { useState } from "react";
+import {
+  useUnsavedChanges,
+  confirmDiscard,
+} from "../../navigation/UnsavedChanges";
+import { useRef, useState } from "react";
 import { Field } from "../../components/Forms";
 import { BUILD_PLATFORMS } from "../../constants";
 import type { BuildPlatform } from "../../constants";
-import type { Build, PlaytestFeedback } from "../../types";
-
-export interface BuildForm {
-  version: string;
-  platform: BuildPlatform;
-  downloadUrl: string;
-  releaseNotes: string;
-}
-
-const emptyForm: BuildForm = {
-  version: "",
-  platform: "windows",
-  downloadUrl: "",
-  releaseNotes: "",
-};
+import { BUILD_PLATFORM_LABELS, countLabel } from "../../format";
+import type { Build, BuildForm, PlaytestFeedback } from "../../types";
 
 export function BuildLibrary({
   builds,
@@ -33,12 +24,22 @@ export function BuildLibrary({
   onUpdate: (id: string, body: BuildForm, reset: () => void) => void;
   onFeedback: (buildId: string) => void;
 }) {
-  const [form, setForm] = useState<BuildForm>(emptyForm);
+  const empty: BuildForm = {
+    version: "",
+    platform: "windows",
+    downloadUrl: "",
+    releaseNotes: "",
+  };
+  const [form, setForm] = useState<BuildForm>(empty);
   const [editing, setEditing] = useState<string | null>(null);
+  const baseline = useRef(JSON.stringify(empty));
+  const dirty = JSON.stringify(form) !== baseline.current;
+  useUnsavedChanges(dirty, pending);
   const update = <K extends keyof BuildForm>(key: K, value: BuildForm[K]) =>
     setForm((old) => ({ ...old, [key]: value }));
-  const reset = (): void => {
-    setForm(emptyForm);
+  const reset = () => {
+    baseline.current = JSON.stringify(empty);
+    setForm(empty);
     setEditing(null);
   };
   return (
@@ -63,59 +64,75 @@ export function BuildLibrary({
               </p>
             </div>
           )}
-          {builds.map((build) => (
-            <article key={build._id} className="build-entry">
-              <header>
-                <h3>{build.version}</h3>
-                <span className="badge">{build.platform}</span>
-              </header>
-              <p className="release-notes">
-                {build.releaseNotes || "No release notes provided."}
-              </p>
-              <small className="meta">
-                {feedback.filter((entry) => entry.buildId === build._id).length}{" "}
-                feedback entries
-              </small>
-              <div className="build-actions">
-                {safeLink(build.downloadUrl) ? (
-                  <a
-                    className="button-link"
-                    href={build.downloadUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
+          {builds.map((build) => {
+            const feedbackCount = feedback.filter(
+              (entry) => entry.buildId === build._id
+            ).length;
+            return (
+              <article key={build._id} className="build-entry">
+                <header>
+                  <h3>{build.version}</h3>
+                  <span className="badge">
+                    {BUILD_PLATFORM_LABELS[build.platform]}
+                  </span>
+                </header>
+                <p className="release-notes">
+                  {build.releaseNotes || "No release notes provided."}
+                </p>
+                <small className="meta">
+                  {countLabel(
+                    feedbackCount,
+                    "feedback entry",
+                    "feedback entries"
+                  )}
+                </small>
+                <div className="build-actions">
+                  {safeLink(build.downloadUrl) ? (
+                    <a
+                      className="button-link"
+                      href={build.downloadUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      aria-label={`Open build ${build.version} in a new tab`}
+                    >
+                      Open build ↗
+                    </a>
+                  ) : (
+                    <span className="meta">Download link unavailable</span>
+                  )}
+                  <button
+                    type="button"
+                    className="secondary"
+                    disabled={pending}
+                    aria-label={`Give feedback on ${build.version}`}
+                    onClick={() => onFeedback(build._id)}
                   >
-                    Open build ↗
-                  </a>
-                ) : (
-                  <span className="meta">Download link unavailable</span>
-                )}
-                <button
-                  type="button"
-                  className="secondary"
-                  disabled={pending}
-                  onClick={() => onFeedback(build._id)}
-                >
-                  Give feedback
-                </button>
-                <button
-                  type="button"
-                  className="text-button"
-                  disabled={pending}
-                  onClick={() => {
-                    setEditing(build._id);
-                    setForm({
-                      version: build.version,
-                      platform: build.platform,
-                      downloadUrl: build.downloadUrl,
-                      releaseNotes: build.releaseNotes || "",
-                    });
-                  }}
-                >
-                  Edit build
-                </button>
-              </div>
-            </article>
-          ))}
+                    Give feedback
+                  </button>
+                  <button
+                    type="button"
+                    className="text-button"
+                    disabled={pending}
+                    aria-label={`Edit ${build.version}`}
+                    onClick={() => {
+                      if (!confirmDiscard(dirty)) return;
+                      const next = {
+                        version: build.version,
+                        platform: build.platform,
+                        downloadUrl: build.downloadUrl,
+                        releaseNotes: build.releaseNotes || "",
+                      };
+                      baseline.current = JSON.stringify(next);
+                      setEditing(build._id);
+                      setForm(next);
+                    }}
+                  >
+                    Edit build
+                  </button>
+                </div>
+              </article>
+            );
+          })}
         </div>
         <section className="panel">
           <h3>{editing ? "Edit build" : "Publish a build link"}</h3>
@@ -145,7 +162,7 @@ export function BuildLibrary({
                 >
                   {BUILD_PLATFORMS.map((platform) => (
                     <option key={platform} value={platform}>
-                      {platform}
+                      {BUILD_PLATFORM_LABELS[platform]}
                     </option>
                   ))}
                 </select>
@@ -179,7 +196,13 @@ export function BuildLibrary({
                     : "Publish build link"}
               </button>
               {editing && (
-                <button type="button" className="secondary" onClick={reset}>
+                <button
+                  type="button"
+                  className="secondary"
+                  onClick={() => {
+                    if (confirmDiscard(dirty)) reset();
+                  }}
+                >
                   Cancel edit
                 </button>
               )}
@@ -190,7 +213,6 @@ export function BuildLibrary({
     </section>
   );
 }
-
 function safeLink(value: string): boolean {
   try {
     const url = new URL(value);

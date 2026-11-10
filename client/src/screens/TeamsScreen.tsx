@@ -1,3 +1,4 @@
+import { useUnsavedChanges } from "../navigation/UnsavedChanges";
 import { useState } from "react";
 import type { FormEvent } from "react";
 import { ErrorNote, Field } from "../components/Forms";
@@ -16,8 +17,9 @@ export function TeamsScreen({
     "/api/teams",
   ]);
   const teams = data?.[0] || [];
+  useUnsavedChanges(Boolean(name || description), pending);
 
-  async function createTeam(event: FormEvent<HTMLFormElement>): Promise<void> {
+  async function createTeam(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     await mutate("/api/teams", { name, description }, () => {
       setName("");
@@ -40,7 +42,7 @@ export function TeamsScreen({
           Loading teams…
         </p>
       )}
-      <div className="team-layout">
+      <div className="team-layout" hidden={loading}>
         <section className="panel create-panel">
           <p className="eyebrow">New studio</p>
           <h2>Create a team</h2>
@@ -83,6 +85,7 @@ export function TeamsScreen({
                   <button
                     type="button"
                     className="secondary"
+                    aria-label={`Open ${team.name}`}
                     onClick={() => onOpenTeam(team)}
                   >
                     Open

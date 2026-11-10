@@ -24,10 +24,22 @@ export type BugSeverity = (typeof BUG_SEVERITIES)[number];
 export type BugStatus = (typeof BUG_STATUSES)[number];
 export type BuildPlatform = (typeof BUILD_PLATFORMS)[number];
 
-export type ProjectView =
-  | "tasks"
-  | "overview"
-  | "milestones"
-  | "bugs"
-  | "builds"
-  | "feedback";
+export const PROJECT_VIEWS = [
+  "tasks",
+  "my-work",
+  "overview",
+  "milestones",
+  "bugs",
+  "builds",
+  "feedback",
+  "sessions",
+  "activity",
+  "notifications",
+  "github",
+] as const;
+
+export type ProjectView = (typeof PROJECT_VIEWS)[number];
+
+export type PlaytestSessionStatus = "open" | "closed";
+export type ReviewStatus = "new" | "reviewed";
+export type GithubCheckStatus = "queued" | "in_progress" | "completed";

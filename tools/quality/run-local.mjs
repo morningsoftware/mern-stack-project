@@ -1,0 +1,12 @@
+import { spawn } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
+const root = fileURLToPath(new URL('../../', import.meta.url));
+const npm = process.platform === 'win32' ? 'npm.cmd' : 'npm';
+const build = spawn(npm, ['run', 'build', '--prefix', 'client'], { cwd: root, stdio: 'inherit' });
+const code = await new Promise(resolve => { build.on('exit', resolve); build.on('error', err => { console.error(err.message); resolve(1); }); });
+if (code !== 0) process.exit(Number(code) || 1);
+console.log('\nOpen http://localhost:4002 after the demo-ready message. Sign in as demo, sam or tester / checkpoint-demo.\n');
+const server = spawn(process.execPath, ['--import', 'tsx', 'server/scripts/demo.js'], { cwd: root, stdio: 'inherit', env: { ...process.env, CHECKPOINT_DEMO_PORT: process.env.CHECKPOINT_DEMO_PORT || '4002' } });
+server.on('error', err => { console.error(err.message); process.exitCode = 1; });
+for (const signal of ['SIGINT', 'SIGTERM']) process.on(signal, () => server.kill(signal));
+server.on('exit', code => { process.exitCode = code || 0; });

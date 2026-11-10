@@ -9,6 +9,35 @@ export function requireString(value: unknown, label: string): string {
   return value.trim();
 }
 
+// Passwords are not trimmed: leading and trailing characters are significant.
+export function passwordValue(value: unknown, label = "password"): string {
+  if (typeof value !== "string" || value.length === 0) {
+    throw httpError(400, `${label} is required`);
+  }
+  return value;
+}
+
+export function requirePassword(value: unknown, label = "password"): string {
+  const password = passwordValue(value, label);
+  if (password.length < 8) {
+    throw httpError(400, `${label} must be at least 8 characters`);
+  }
+  // bcrypt only considers the first 72 bytes, so reject longer inputs instead
+  // of silently truncating them.
+  if (Buffer.byteLength(password, "utf8") > 72) {
+    throw httpError(400, `${label} must be at most 72 bytes`);
+  }
+  return password;
+}
+
+export function optionalPassword(
+  value: unknown,
+  label = "password"
+): string | undefined {
+  if (value === undefined || value === null || value === "") return undefined;
+  return passwordValue(value, label);
+}
+
 export function optionalString(
   value: unknown,
   label: string

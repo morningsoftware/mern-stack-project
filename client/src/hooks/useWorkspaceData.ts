@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { api } from "../api";
-import type { ApiError } from "../api";
+import { api, errorMessage } from "../api";
 
 export function useWorkspaceData<T extends unknown[]>(paths: string[]) {
   const key = JSON.stringify(paths);
@@ -14,12 +13,12 @@ export function useWorkspaceData<T extends unknown[]>(paths: string[]) {
     async (signal?: AbortSignal) => {
       const result = await Promise.all(
         (JSON.parse(key) as string[]).map((path) =>
-          api(path, { signal })
-        )
+          api(path, { signal }),
+        ),
       );
       if (!signal?.aborted && mounted.current) setData(result as T);
     },
-    [key]
+    [key],
   );
   useEffect(() => {
     mounted.current = true;
@@ -27,8 +26,8 @@ export function useWorkspaceData<T extends unknown[]>(paths: string[]) {
     setLoading(true);
     setError("");
     refresh(controller.signal)
-      .catch((err: ApiError) => {
-        if (!controller.signal.aborted) setError(err.message);
+      .catch((err) => {
+        if (!controller.signal.aborted) setError(errorMessage(err));
       })
       .finally(() => {
         if (!controller.signal.aborted) setLoading(false);
@@ -41,7 +40,7 @@ export function useWorkspaceData<T extends unknown[]>(paths: string[]) {
   async function mutate(
     path: string,
     body: unknown,
-    reset: () => void
+    reset: () => void,
   ): Promise<void> {
     if (mutationLock.current) return;
     mutationLock.current = true;
@@ -53,7 +52,7 @@ export function useWorkspaceData<T extends unknown[]>(paths: string[]) {
       reset();
       await refresh();
     } catch (err) {
-      if (mounted.current) setError((err as ApiError).message);
+      if (mounted.current) setError(errorMessage(err));
     } finally {
       mutationLock.current = false;
       if (mounted.current) setPending(false);

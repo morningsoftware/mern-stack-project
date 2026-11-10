@@ -3,7 +3,11 @@
     "db:setup": "tsx database/setup.ts",
     "db:seed": "tsx database/data.ts",
     "db:migrate-user": "tsx database/migrateMongoUser.ts",
-    "typecheck": "tsc --noEmit"
+    "db:migrate-schema": "tsx database/migrateDropletSchema.ts",
+    "typecheck": "tsc --noEmit",
+    "demo:local": "node tools/quality/run-local.mjs",
+    "audit:web": "node tools/quality/run-isolated.mjs lighthouse",
+    "test:mobile:e2e": "node tools/quality/run-isolated.mjs mobile-smoke"
   },
   "dependencies": {
     "dotenv": "^18.0.9",
@@ -13,5 +17,6 @@
     "@types/node": "^26.6.6",
     "tsx": "^4.23.15",
     "typescript": "^7.0.2"
-  }
+  },
+  "type": "module"
 }

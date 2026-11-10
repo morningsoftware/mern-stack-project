@@ -1,0 +1,854 @@
+{
+  "generatedAt": "2026-11-10T12:37:56.202Z",
+  "kind": "Observed isolated API integration requests, not unit or branch coverage; 2xx/3xx HTTP responses include redirects",
+  "routeCount": 82,
+  "successfulRouteCount": 82,
+  "routes": [
+    {
+      "method": "GET",
+      "path": "/api/health",
+      "routeSource": "server/src/app.ts",
+      "successfulResponses": 1,
+      "statuses": [
+        200
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/github/webhook",
+      "routeSource": "server/src/routes/github.ts",
+      "successfulResponses": 4,
+      "statuses": [
+        204,
+        400,
+        401
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/auth/register",
+      "routeSource": "server/src/routes/auth.ts",
+      "successfulResponses": 45,
+      "statuses": [
+        201,
+        400,
+        409
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/auth/login",
+      "routeSource": "server/src/routes/auth.ts",
+      "successfulResponses": 4,
+      "statuses": [
+        200,
+        401,
+        403
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/auth/logout",
+      "routeSource": "server/src/routes/auth.ts",
+      "successfulResponses": 1,
+      "statuses": [
+        204
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/auth/me",
+      "routeSource": "server/src/routes/auth.ts",
+      "successfulResponses": 5,
+      "statuses": [
+        200,
+        401
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/auth/account",
+      "routeSource": "server/src/routes/auth.ts",
+      "successfulResponses": 3,
+      "statuses": [
+        200
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/auth/password",
+      "routeSource": "server/src/routes/auth.ts",
+      "successfulResponses": 2,
+      "statuses": [
+        200,
+        401
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/auth/oauth/providers",
+      "routeSource": "server/src/routes/oauth.ts",
+      "successfulResponses": 2,
+      "statuses": [
+        200
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/auth/oauth/exchange",
+      "routeSource": "server/src/routes/oauth.ts",
+      "successfulResponses": 1,
+      "statuses": [
+        200,
+        401
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/auth/oauth/registration/inspect",
+      "routeSource": "server/src/routes/oauth.ts",
+      "successfulResponses": 1,
+      "statuses": [
+        200
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/auth/oauth/registration/complete",
+      "routeSource": "server/src/routes/oauth.ts",
+      "successfulResponses": 1,
+      "statuses": [
+        200,
+        400,
+        401
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/auth/oauth/link/complete",
+      "routeSource": "server/src/routes/oauth.ts",
+      "successfulResponses": 1,
+      "statuses": [
+        200,
+        401
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/auth/oauth/:id/callback",
+      "routeSource": "server/src/routes/oauth.ts",
+      "successfulResponses": 1,
+      "statuses": [
+        302
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/auth/oauth/:id",
+      "routeSource": "server/src/routes/oauth.ts",
+      "successfulResponses": 5,
+      "statuses": [
+        302,
+        503
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/auth/oauth/:id",
+      "routeSource": "server/src/routes/oauth.ts",
+      "successfulResponses": 2,
+      "statuses": [
+        200,
+        409
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/users/:id/avatar",
+      "routeSource": "server/src/routes/users.ts",
+      "successfulResponses": 1,
+      "statuses": [
+        200,
+        401,
+        404
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/users/:id/avatar",
+      "routeSource": "server/src/routes/users.ts",
+      "successfulResponses": 1,
+      "statuses": [
+        201,
+        400,
+        403
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/users/:id/avatar",
+      "routeSource": "server/src/routes/users.ts",
+      "successfulResponses": 1,
+      "statuses": [
+        200
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/users",
+      "routeSource": "server/src/routes/users.ts",
+      "successfulResponses": 1,
+      "statuses": [
+        200,
+        401
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/users/:id",
+      "routeSource": "server/src/routes/users.ts",
+      "successfulResponses": 1,
+      "statuses": [
+        200,
+        404
+      ]
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/users/:id",
+      "routeSource": "server/src/routes/users.ts",
+      "successfulResponses": 2,
+      "statuses": [
+        200,
+        400,
+        403
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/teams",
+      "routeSource": "server/src/routes/teams.ts",
+      "successfulResponses": 1,
+      "statuses": [
+        200,
+        401
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/teams",
+      "routeSource": "server/src/routes/teams.ts",
+      "successfulResponses": 19,
+      "statuses": [
+        201,
+        400,
+        403
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/teams/:id",
+      "routeSource": "server/src/routes/teams.ts",
+      "successfulResponses": 1,
+      "statuses": [
+        200,
+        404
+      ]
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/teams/:id",
+      "routeSource": "server/src/routes/teams.ts",
+      "successfulResponses": 1,
+      "statuses": [
+        200
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/teams/:id",
+      "routeSource": "server/src/routes/teams.ts",
+      "successfulResponses": 1,
+      "statuses": [
+        204,
+        403
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/teams/:id/members",
+      "routeSource": "server/src/routes/teams.ts",
+      "successfulResponses": 1,
+      "statuses": [
+        200,
+        404
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/teams/:id/members",
+      "routeSource": "server/src/routes/teams.ts",
+      "successfulResponses": 3,
+      "statuses": [
+        201,
+        400,
+        403,
+        409
+      ]
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/teams/:id/members/:id",
+      "routeSource": "server/src/routes/teams.ts",
+      "successfulResponses": 1,
+      "statuses": [
+        200,
+        403
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/teams/:id/members/:id",
+      "routeSource": "server/src/routes/teams.ts",
+      "successfulResponses": 1,
+      "statuses": [
+        204,
+        403,
+        404
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/projects",
+      "routeSource": "server/src/routes/projects.ts",
+      "successfulResponses": 1,
+      "statuses": [
+        200
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/projects",
+      "routeSource": "server/src/routes/projects.ts",
+      "successfulResponses": 19,
+      "statuses": [
+        201,
+        400,
+        401,
+        403,
+        404
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/projects/:id",
+      "routeSource": "server/src/routes/projects.ts",
+      "successfulResponses": 1,
+      "statuses": [
+        200,
+        404
+      ]
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/projects/:id",
+      "routeSource": "server/src/routes/projects.ts",
+      "successfulResponses": 2,
+      "statuses": [
+        200,
+        400,
+        403
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/projects/:id",
+      "routeSource": "server/src/routes/projects.ts",
+      "successfulResponses": 1,
+      "statuses": [
+        204,
+        403
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/milestones",
+      "routeSource": "server/src/routes/milestones.ts",
+      "successfulResponses": 1,
+      "statuses": [
+        200
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/milestones",
+      "routeSource": "server/src/routes/milestones.ts",
+      "successfulResponses": 6,
+      "statuses": [
+        201,
+        401,
+        403
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/milestones/:id",
+      "routeSource": "server/src/routes/milestones.ts",
+      "successfulResponses": 1,
+      "statuses": [
+        200,
+        404
+      ]
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/milestones/:id",
+      "routeSource": "server/src/routes/milestones.ts",
+      "successfulResponses": 2,
+      "statuses": [
+        200,
+        403
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/milestones/:id",
+      "routeSource": "server/src/routes/milestones.ts",
+      "successfulResponses": 1,
+      "statuses": [
+        204,
+        403
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/tasks/:id/comments",
+      "routeSource": "server/src/routes/taskComments.ts",
+      "successfulResponses": 4,
+      "statuses": [
+        200,
+        400,
+        401,
+        403,
+        404
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/tasks/:id/comments",
+      "routeSource": "server/src/routes/taskComments.ts",
+      "successfulResponses": 1,
+      "statuses": [
+        201,
+        400,
+        401,
+        403
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/tasks",
+      "routeSource": "server/src/routes/tasks.ts",
+      "successfulResponses": 1,
+      "statuses": [
+        200
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/tasks",
+      "routeSource": "server/src/routes/tasks.ts",
+      "successfulResponses": 6,
+      "statuses": [
+        201,
+        401,
+        403
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/tasks/:id",
+      "routeSource": "server/src/routes/tasks.ts",
+      "successfulResponses": 1,
+      "statuses": [
+        200,
+        404
+      ]
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/tasks/:id",
+      "routeSource": "server/src/routes/tasks.ts",
+      "successfulResponses": 5,
+      "statuses": [
+        200,
+        400,
+        403
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/tasks/:id",
+      "routeSource": "server/src/routes/tasks.ts",
+      "successfulResponses": 1,
+      "statuses": [
+        204,
+        403
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/playtest-sessions",
+      "routeSource": "server/src/routes/playtestSessions.ts",
+      "successfulResponses": 1,
+      "statuses": [
+        200
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/playtest-sessions",
+      "routeSource": "server/src/routes/playtestSessions.ts",
+      "successfulResponses": 1,
+      "statuses": [
+        201,
+        400,
+        401,
+        403
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/playtest-sessions/:id",
+      "routeSource": "server/src/routes/playtestSessions.ts",
+      "successfulResponses": 1,
+      "statuses": [
+        200
+      ]
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/playtest-sessions/:id",
+      "routeSource": "server/src/routes/playtestSessions.ts",
+      "successfulResponses": 2,
+      "statuses": [
+        200,
+        400,
+        403
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/notifications",
+      "routeSource": "server/src/routes/notifications.ts",
+      "successfulResponses": 6,
+      "statuses": [
+        200,
+        400,
+        401,
+        403
+      ]
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/notifications/:id",
+      "routeSource": "server/src/routes/notifications.ts",
+      "successfulResponses": 2,
+      "statuses": [
+        200,
+        400,
+        404
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/activity",
+      "routeSource": "server/src/routes/activity.ts",
+      "successfulResponses": 3,
+      "statuses": [
+        200,
+        400,
+        401,
+        403
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/builds",
+      "routeSource": "server/src/routes/builds.ts",
+      "successfulResponses": 1,
+      "statuses": [
+        200,
+        400,
+        401
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/builds",
+      "routeSource": "server/src/routes/builds.ts",
+      "successfulResponses": 9,
+      "statuses": [
+        201,
+        400,
+        401,
+        403,
+        409
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/builds/:id",
+      "routeSource": "server/src/routes/builds.ts",
+      "successfulResponses": 1,
+      "statuses": [
+        200,
+        401,
+        404
+      ]
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/builds/:id",
+      "routeSource": "server/src/routes/builds.ts",
+      "successfulResponses": 1,
+      "statuses": [
+        200,
+        400,
+        401,
+        403
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/bug-reports/:id/screenshots",
+      "routeSource": "server/src/routes/bugScreenshots.ts",
+      "successfulResponses": 1,
+      "statuses": [
+        200,
+        401,
+        403
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/bug-reports/:id/screenshots",
+      "routeSource": "server/src/routes/bugScreenshots.ts",
+      "successfulResponses": 5,
+      "statuses": [
+        201,
+        400,
+        401,
+        403,
+        409,
+        413
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/bug-reports/:id/screenshots/:id",
+      "routeSource": "server/src/routes/bugScreenshots.ts",
+      "successfulResponses": 1,
+      "statuses": [
+        200,
+        404
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/bug-reports/:id/screenshots/:id",
+      "routeSource": "server/src/routes/bugScreenshots.ts",
+      "successfulResponses": 2,
+      "statuses": [
+        204,
+        403
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/bug-reports",
+      "routeSource": "server/src/routes/bugReports.ts",
+      "successfulResponses": 3,
+      "statuses": [
+        200
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/bug-reports",
+      "routeSource": "server/src/routes/bugReports.ts",
+      "successfulResponses": 9,
+      "statuses": [
+        201,
+        400,
+        401,
+        404
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/bug-reports/:id",
+      "routeSource": "server/src/routes/bugReports.ts",
+      "successfulResponses": 2,
+      "statuses": [
+        200,
+        404
+      ]
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/bug-reports/:id",
+      "routeSource": "server/src/routes/bugReports.ts",
+      "successfulResponses": 3,
+      "statuses": [
+        200,
+        400,
+        403
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/bug-reports/:id",
+      "routeSource": "server/src/routes/bugReports.ts",
+      "successfulResponses": 1,
+      "statuses": [
+        204,
+        403
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/playtest-feedback",
+      "routeSource": "server/src/routes/playtestFeedback.ts",
+      "successfulResponses": 1,
+      "statuses": [
+        200
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/playtest-feedback",
+      "routeSource": "server/src/routes/playtestFeedback.ts",
+      "successfulResponses": 10,
+      "statuses": [
+        201,
+        400,
+        404,
+        409
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/playtest-feedback/:id",
+      "routeSource": "server/src/routes/playtestFeedback.ts",
+      "successfulResponses": 1,
+      "statuses": [
+        200,
+        404
+      ]
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/playtest-feedback/:id",
+      "routeSource": "server/src/routes/playtestFeedback.ts",
+      "successfulResponses": 6,
+      "statuses": [
+        200,
+        400,
+        403
+      ]
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/playtest-feedback/:id",
+      "routeSource": "server/src/routes/playtestFeedback.ts",
+      "successfulResponses": 1,
+      "statuses": [
+        204
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/github/callback",
+      "routeSource": "server/src/routes/github.ts",
+      "successfulResponses": 1,
+      "statuses": [
+        302
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/github/connect",
+      "routeSource": "server/src/routes/github.ts",
+      "successfulResponses": 1,
+      "statuses": [
+        200
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/github/repositories",
+      "routeSource": "server/src/routes/github.ts",
+      "successfulResponses": 2,
+      "statuses": [
+        200
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/github/events",
+      "routeSource": "server/src/routes/github.ts",
+      "successfulResponses": 1,
+      "statuses": [
+        200
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/github/repository",
+      "routeSource": "server/src/routes/github.ts",
+      "successfulResponses": 1,
+      "statuses": [
+        200,
+        400
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/github/deliveries",
+      "routeSource": "server/src/routes/github.ts",
+      "successfulResponses": 3,
+      "statuses": [
+        200,
+        401
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/github/pulls",
+      "routeSource": "server/src/routes/github.ts",
+      "successfulResponses": 1,
+      "statuses": [
+        200
+      ]
+    },
+    {
+      "method": "GET",
+      "path": "/api/github/checks",
+      "routeSource": "server/src/routes/github.ts",
+      "successfulResponses": 1,
+      "statuses": [
+        200
+      ]
+    },
+    {
+      "method": "POST",
+      "path": "/api/github/checks",
+      "routeSource": "server/src/routes/github.ts",
+      "successfulResponses": 1,
+      "statuses": [
+        201
+      ]
+    }
+  ]
+}

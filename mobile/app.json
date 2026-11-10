@@ -1,0 +1,35 @@
+{
+  "expo": {
+    "name": "checkpoint",
+    "slug": "checkpoint-playtest",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/checkpoint-icon.png",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "codes.morning.checkpoint"
+    },
+    "android": {
+      "package": "codes.morning.checkpoint"
+    },
+    "web": {
+      "favicon": "./assets/checkpoint-icon.png"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Choose a screenshot to attach to your bug report.",
+          "cameraPermission": false,
+          "microphonePermission": false
+        }
+      ],
+      "expo-font"
+    ],
+    "scheme": "checkpoint",
+    "backgroundColor": "#f3f0e7"
+  }
+}

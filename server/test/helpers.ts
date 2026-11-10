@@ -1,3 +1,5 @@
+import express from "express";
+import { appendFileSync } from "node:fs";
 import { MongoMemoryServer } from "mongodb-memory-server";
 import { MongoClient } from "mongodb";
 import type { Db } from "mongodb";
@@ -6,9 +8,11 @@ import request from "supertest";
 type ApiClient = ReturnType<typeof request>;
 import { createApp } from "../src/app.js";
 import { ensureIndexes } from "../src/db.js";
+import { OAUTH_PROVIDERS } from "../src/oauth.js";
 import type { UserRole } from "../src/schema.js";
 
 process.env.JWT_SECRET = process.env.JWT_SECRET || "test-secret";
+const oauthProviderPattern = Object.keys(OAUTH_PROVIDERS).join("|");
 
 export interface TestContext {
   db: Db;
@@ -45,18 +49,45 @@ export interface RegisteredUser {
 }
 
 export async function startApi(): Promise<TestContext> {
-  // TCP is sufficient for the isolated test client; do not create a Unix socket.
-  const mongod = await MongoMemoryServer.create({
-    instance: { args: ["--nounixsocket"] },
-  });
+  const mongod = await MongoMemoryServer.create(
+    process.platform === "win32"
+      ? {}
+      : { instance: { args: ["--nounixsocket"] } }
+  );
   const client = new MongoClient(mongod.getUri());
   await client.connect();
   const db = client.db("mern");
   await ensureIndexes(db);
   const app = createApp(db);
+  const observed = express();
+  const routeLog = process.env.CHECKPOINT_ROUTE_LOG;
+  if (routeLog) {
+    observed.use((req, res, next) => {
+      const requestPath = req.path
+        .replace(/\/[a-f0-9]{24}(?=\/|$)/gi, "/:id")
+        .replace(
+          new RegExp(
+            `^/api/auth/oauth/(?:${oauthProviderPattern})(?=/|$)`
+          ),
+          "/api/auth/oauth/:id"
+        );
+      res.once("finish", () =>
+        appendFileSync(
+          routeLog,
+          JSON.stringify({
+            method: req.method,
+            path: requestPath,
+            status: res.statusCode,
+          }) + "\n"
+        )
+      );
+      next();
+    });
+  }
+  observed.use(app);
   return {
     db,
-    api: request(app),
+    api: request(observed),
     async stop() {
       await client.close();
       await mongod.stop();
@@ -66,6 +97,29 @@ export async function startApi(): Promise<TestContext> {
 
 export function auth(token: string): { Authorization: string } {
   return { Authorization: `Bearer ${token}` };
+}
+
+export function setCookies(response: any): string[] {
+  const raw = response.headers?.["set-cookie"];
+  if (!raw) return [];
+  return Array.isArray(raw) ? raw : [raw];
+}
+
+export function cookieHeader(response: any): string {
+  return setCookies(response)
+    .map((cookie) => cookie.split(";")[0])
+    .join("; ");
+}
+
+export function cookieValue(response: any, name: string): string | undefined {
+  const prefix = `${name}=`;
+  for (const cookie of setCookies(response)) {
+    const pair = cookie.split(";")[0];
+    if (pair.startsWith(prefix)) {
+      return decodeURIComponent(pair.slice(prefix.length));
+    }
+  }
+  return undefined;
 }
 
 export async function registerUser(

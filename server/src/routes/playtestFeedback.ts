@@ -1,14 +1,18 @@
 import { Router } from "express";
 import { ObjectId } from "mongodb";
-import type { Db, Filter } from "mongodb";
+import type { Filter } from "mongodb";
+import { validateSessionReference } from "../sessionReference.js";
+import { recordActivity } from "../activity.js";
+import { validateBuildReference } from "../buildReference.js";
+import { requireProjectTeamMember } from "../projectAccess.js";
 import { asyncRoute, httpError } from "../errors.js";
 import { actorId, requireAuth } from "../middleware/auth.js";
 import type {
-  BuildDocument,
   PlaytestFeedbackDocument,
   ProjectDocument,
 } from "../schema.js";
 import {
+  oneOf,
   optionalObjectId,
   optionalString,
   parseObjectId,
@@ -18,23 +22,6 @@ import {
 
 export const playtestFeedbackRouter = Router();
 playtestFeedbackRouter.use(requireAuth);
-
-async function validateBuild(
-  db: Db,
-  value: unknown,
-  projectId: ObjectId
-): Promise<ObjectId | null> {
-  const buildId = optionalObjectId(value, "buildId");
-  if (!buildId) return null;
-  const build = await requireDoc(
-    db.collection<BuildDocument>("builds"),
-    buildId,
-    "Build"
-  );
-  if (build.projectId.toString() !== projectId.toString())
-    throw httpError(400, "build does not belong to that project");
-  return buildId;
-}
 
 playtestFeedbackRouter.get(
   "/",
@@ -48,7 +35,7 @@ playtestFeedbackRouter.get(
       .sort({ createdOn: -1 })
       .toArray();
     res.json(feedback);
-  })
+  }),
 );
 
 playtestFeedbackRouter.post(
@@ -58,31 +45,46 @@ playtestFeedbackRouter.post(
     const rating = parseRating(req.body?.rating);
     const comments = optionalString(req.body?.comments, "comments") ?? "";
     await requireDoc(
-      req.app.locals.db.collection<ProjectDocument>("projects"),
+      req.app.locals.db.collection("projects"),
       projectId,
-      "Project"
+      "Project",
     );
-    const buildId = await validateBuild(
+    const buildId = await validateBuildReference(
       req.app.locals.db,
       req.body?.buildId,
-      projectId
+      projectId,
+    );
+    const sessionId = await validateSessionReference(
+      req.app.locals.db,
+      req.body?.sessionId,
+      projectId,
+      buildId,
     );
     const userId = actorId(req);
     const doc: PlaytestFeedbackDocument = {
       _id: new ObjectId(),
       projectId,
       ...(buildId ? { buildId } : {}),
+      ...(sessionId ? { sessionId } : {}),
       userId,
       rating,
       comments,
+      reviewStatus: "new",
       createdOn: new Date(),
       createdBy: userId,
     };
-    await req.app.locals.db
-      .collection<PlaytestFeedbackDocument>("playtestFeedback")
+    const result = await req.app.locals.db
+      .collection("playtestFeedback")
       .insertOne(doc);
-    res.status(201).json(doc);
-  })
+    await recordActivity(
+      req,
+      res,
+      "feedback",
+      { ...doc, _id: result.insertedId },
+      "created",
+    );
+    res.status(201).json({ ...doc, _id: result.insertedId });
+  }),
 );
 
 playtestFeedbackRouter.get(
@@ -93,10 +95,10 @@ playtestFeedbackRouter.get(
       await requireDoc(
         req.app.locals.db.collection<PlaytestFeedbackDocument>("playtestFeedback"),
         id,
-        "Playtest feedback"
-      )
+        "Playtest feedback",
+      ),
     );
-  })
+  }),
 );
 
 playtestFeedbackRouter.patch(
@@ -107,15 +109,47 @@ playtestFeedbackRouter.patch(
       "playtestFeedback"
     );
     const existing = await requireDoc(feedback, id, "Playtest feedback");
-    if (existing.userId.toString() !== actorId(req).toString()) {
-      throw httpError(403, "You can only update your own feedback");
+    if (req.body?.sessionId !== undefined)
+      throw httpError(
+        400,
+        "Session association cannot be changed after submission",
+      );
+    if (
+      existing.sessionId &&
+      req.body?.buildId !== undefined &&
+      existing.buildId?.toString() !== req.body.buildId
+    )
+      throw httpError(400, "Session feedback must keep its original build");
+    const isAuthor = existing.userId.toString() === actorId(req).toString();
+    const hasReview = req.body?.reviewStatus !== undefined;
+    const hasContent = ["rating", "comments", "buildId"].some(
+      (field) => req.body?.[field] !== undefined,
+    );
+    if (!isAuthor && (!hasReview || hasContent)) {
+      throw httpError(403, "You can only update your own feedback content");
     }
     const update: Partial<PlaytestFeedbackDocument> = {};
+    if (hasReview) {
+      await requireProjectTeamMember(
+        req.app.locals.db,
+        existing.projectId,
+        actorId(req),
+      );
+      update.reviewStatus = oneOf(
+        req.body.reviewStatus,
+        ["new", "reviewed"],
+        "reviewStatus",
+      );
+      update.reviewedBy =
+        update.reviewStatus === "reviewed" ? actorId(req) : null;
+      update.reviewedOn =
+        update.reviewStatus === "reviewed" ? new Date() : null;
+    }
     if (req.body?.buildId !== undefined)
-      update.buildId = await validateBuild(
+      update.buildId = await validateBuildReference(
         req.app.locals.db,
         req.body.buildId,
-        existing.projectId
+        existing.projectId,
       );
     if (req.body?.rating !== undefined)
       update.rating = parseRating(req.body.rating);
@@ -126,8 +160,10 @@ playtestFeedbackRouter.patch(
       throw httpError(400, "No updatable fields were provided");
     }
     await feedback.updateOne({ _id: id }, { $set: update });
-    res.json(await feedback.findOne({ _id: id }));
-  })
+    const updated = (await feedback.findOne({ _id: id }))!;
+    await recordActivity(req, res, "feedback", updated, "updated", existing);
+    res.json(updated);
+  }),
 );
 
 playtestFeedbackRouter.delete(
@@ -143,5 +179,5 @@ playtestFeedbackRouter.delete(
     }
     await feedback.deleteOne({ _id: id });
     res.status(204).end();
-  })
+  }),
 );
