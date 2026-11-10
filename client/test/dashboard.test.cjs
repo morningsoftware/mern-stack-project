@@ -189,6 +189,8 @@ global.fetch = async (path, options = {}) => {
       data = { comments: [...discussion], hasMore: false, nextBefore: null };
   } else if (p === "auth/me") data = { user };
   else if (p === "auth/login") data = { user, token: "fixture" };
+  else if (p === "auth/logout") data = { ok: true };
+  else if (p === "auth/oauth/providers") data = { providers: [] };
   else if (p === "users") data = [user, { _id: "u2", displayName: "Sam Chen" }];
   else if (p === "github/repositories")
     data = {
@@ -322,7 +324,10 @@ let root = createRoot(document.getElementById("root"));
 const tick = () => new Promise((r) => setTimeout(r, 0));
 const buttons = () => [...document.querySelectorAll("button")];
 const findButton = (text) => {
-  const b = buttons().find((b) => b.textContent.trim() === text);
+  const b = buttons().find(
+    (b) =>
+      b.textContent.trim() === text || b.getAttribute("aria-label") === text,
+  );
   assert(b, "Missing button " + text);
   return b;
 };
@@ -359,7 +364,7 @@ async function change(label, value) {
   });
 }
 test("dashboard navigation, data updates, and failed status regression", async () => {
-  sessionStorage.setItem("mern_token", "fixture");
+  window.localStorage.removeItem("mern_sidebar_width");
   await act(async () => {
     root.render(
       React.createElement(React.StrictMode, null, React.createElement(App)),
@@ -367,6 +372,23 @@ test("dashboard navigation, data updates, and failed status regression", async (
     await tick();
   });
   assert(document.body.textContent.includes("Development teams"));
+  const resizer = document.querySelector('[role="separator"]');
+  assert.equal(resizer.getAttribute("aria-valuenow"), "234");
+  await act(async () => {
+    resizer.dispatchEvent(
+      new window.KeyboardEvent("keydown", {
+        key: "ArrowRight",
+        bubbles: true,
+        cancelable: true,
+      }),
+    );
+    await tick();
+  });
+  assert.equal(
+    document.querySelector('[role="separator"]').getAttribute("aria-valuenow"),
+    "250",
+  );
+  assert.equal(window.localStorage.getItem("mern_sidebar_width"), "250");
   await click("Open");
   await click("Open");
   assert(document.body.textContent.includes("Task board"));
@@ -405,13 +427,11 @@ test("dashboard navigation, data updates, and failed status regression", async (
   await click("Overview");
   assert.equal(document.querySelector("progress").max, 2);
   await click("Sign out");
-  assert.equal(sessionStorage.getItem("mern_token"), null);
   assert(field("Username"));
   await act(async () => root.unmount());
   db.tasks = [];
   db.milestones = [];
   db["playtest-feedback"] = [];
-  sessionStorage.setItem("mern_token", "fixture");
   root = createRoot(document.getElementById("root"));
   await act(async () => {
     root.render(React.createElement(App));
@@ -453,7 +473,6 @@ test("board filters, task and bug detail drawers, and linked build feedback", as
     { _id: "m1", name: "Playable prototype", status: "in_progress" },
   ];
   db.builds = [];
-  sessionStorage.setItem("mern_token", "fixture");
   root = createRoot(document.getElementById("root"));
   await act(async () => {
     root.render(
@@ -577,7 +596,6 @@ test("Checkpoint milestone roadmap, editing, failed save, date clearing, and cre
       priority: "high",
     },
   ];
-  sessionStorage.setItem("mern_token", "fixture");
   root = createRoot(document.getElementById("root"));
   try {
     await act(async () => {
@@ -695,7 +713,6 @@ test("feedback triage, structured bug creation, source links, and unsent-draft p
     },
   ];
   db["bug-reports"] = [];
-  sessionStorage.setItem("mern_token", "fixture");
   root = createRoot(document.getElementById("root"));
   try {
     await act(async () => {
@@ -788,7 +805,6 @@ test("feedback triage, structured bug creation, source links, and unsent-draft p
 
 test("task discussions retain failed drafts, persist posts, and task creation is discoverable", async () => {
   root = createRoot(document.getElementById("root"));
-  sessionStorage.setItem("mern_token", "fixture");
   discussion = [];
   try {
     await act(async () => {
@@ -859,7 +875,6 @@ test("workspace links restore project views and reject mismatched and unknown li
     "",
     "#/teams/t1/projects/p1/feedback",
   );
-  sessionStorage.setItem("mern_token", "fixture");
   root = createRoot(document.getElementById("root"));
   try {
     await act(async () => {
@@ -963,7 +978,6 @@ test("first milestone guidance, drawer protection, and project navigation preser
       milestoneId: "m1",
     },
   ];
-  sessionStorage.setItem("mern_token", "fixture");
   root = createRoot(document.getElementById("root"));
   let prompts = 0;
   window.confirm = () => {
@@ -1030,10 +1044,10 @@ test("first milestone guidance, drawer protection, and project navigation preser
     assert.equal(field("Milestone name").value, "Unsent goal");
     window.confirm = () => false;
     await click("Sign out");
-    assert(sessionStorage.getItem("mern_token"));
+    assert(document.body.textContent.includes("Starfall"));
     window.confirm = () => true;
     await click("Sign out");
-    assert.equal(sessionStorage.getItem("mern_token"), null);
+    assert(field("Username"));
     const clean = new window.Event("beforeunload", { cancelable: true });
     window.dispatchEvent(clean);
     assert.equal(clean.defaultPrevented, false);
@@ -1087,7 +1101,6 @@ test("My work isolates assignments, optional completed tasks, personal reports, 
       severity: "high",
     },
   ];
-  sessionStorage.setItem("mern_token", "fixture");
   root = createRoot(document.getElementById("root"));
   try {
     await act(async () => {
@@ -1137,7 +1150,6 @@ test("bug screenshots validate selection, retain failed uploads, preview and rem
       severity: "medium",
     },
   ];
-  sessionStorage.setItem("mern_token", "fixture");
   root = createRoot(document.getElementById("root"));
   const selectFile = async (file) => {
     await act(async () => {
@@ -1215,7 +1227,6 @@ test("activity shows server-recorded changes, older pages, and recoverable error
       changes: {},
     },
   ];
-  sessionStorage.setItem("mern_token", "fixture");
   root = createRoot(document.getElementById("root"));
   try {
     await act(async () => {
@@ -1263,7 +1274,6 @@ test("notifications persist read state, keep failed changes, filter unread, and 
       milestoneId: "m1",
     },
   ];
-  sessionStorage.setItem("mern_token", "fixture");
   root = createRoot(document.getElementById("root"));
   try {
     await act(async () => {
@@ -1322,7 +1332,6 @@ test("playtest sessions create and edit instructions, link feedback, and handle 
     },
   ];
   db["playtest-feedback"] = [];
-  sessionStorage.setItem("mern_token", "fixture");
   root = createRoot(document.getElementById("root"));
   try {
     await act(async () => {
@@ -1399,7 +1408,6 @@ test("github project tabs show repository details, branches, commits, events, an
   const savedInstallation = project.githubInstallationId;
   project.githubRepository = "morningsoftware/mern-stack-project";
   project.githubInstallationId = 7;
-  sessionStorage.setItem("mern_token", "fixture");
   root = createRoot(document.getElementById("root"));
   try {
     await act(async () => {
@@ -1455,7 +1463,6 @@ test("github project tabs show repository details, branches, commits, events, an
 
 test("github repository control prompts to connect when GitHub is not linked", async () => {
   githubConnected = false;
-  sessionStorage.setItem("mern_token", "fixture");
   root = createRoot(document.getElementById("root"));
   try {
     await act(async () => {
@@ -1480,7 +1487,6 @@ test("github repository control prompts to connect when GitHub is not linked", a
 
 test("a slow saved project link keeps unrelated team controls out of the first paint", async () => {
   window.history.replaceState({ checkpointIndex: 0 }, "", "#/teams/t1/projects/p1/tasks");
-  sessionStorage.setItem("mern_token", "fixture");
   const originalFetch = global.fetch;
   let release;
   const gate = new Promise(resolve => { release = resolve; });

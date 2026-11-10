@@ -1,7 +1,7 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { ChangeEvent, FormEvent } from "react";
-import { api, errorMessage, setToken } from "../api";
-import type { AuthResponse, User } from "../types";
+import { api, errorMessage } from "../api";
+import type { AuthResponse, OAuthProvider, User } from "../types";
 import type { UserRole } from "../constants";
 import { USER_ROLES } from "../constants";
 import { ErrorNote, Field } from "../components/Forms";
@@ -14,11 +14,20 @@ interface AuthForm {
   password: string;
 }
 
-export function AuthScreen({ onReady }: { onReady: (user: User) => void }) {
+export function AuthScreen({
+  onReady,
+  initialError = "",
+  onClearError,
+}: {
+  onReady: (user: User) => void;
+  initialError?: string;
+  onClearError?: () => void;
+}) {
   const submitLock = useRef(false);
   const [pending, setPending] = useState(false);
   const [mode, setMode] = useState<"login" | "register">("login");
-  const [error, setError] = useState("");
+  const [error, setError] = useState(initialError);
+  const [providers, setProviders] = useState<OAuthProvider[]>([]);
   const [form, setForm] = useState<AuthForm>({
     username: "",
     email: "",
@@ -26,6 +35,24 @@ export function AuthScreen({ onReady }: { onReady: (user: User) => void }) {
     role: "developer",
     password: "",
   });
+
+  useEffect(() => {
+    if (initialError) setError(initialError);
+  }, [initialError]);
+
+  useEffect(() => {
+    let active = true;
+    api<{ providers: OAuthProvider[] }>("/api/auth/oauth/providers")
+      .then((result) => {
+        if (active) setProviders(result.providers || []);
+      })
+      .catch(() => {
+        if (active) setProviders([]);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   function update(
     event: ChangeEvent<HTMLInputElement | HTMLSelectElement>,
@@ -49,12 +76,19 @@ export function AuthScreen({ onReady }: { onReady: (user: User) => void }) {
     });
   }
 
-  async function submit(event: FormEvent<HTMLFormElement>) {
+  function switchMode(nextMode: "login" | "register"): void {
+    setMode(nextMode);
+    setError("");
+    onClearError?.();
+  }
+
+  async function submit(event: FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault();
     if (submitLock.current) return;
     submitLock.current = true;
     setPending(true);
     setError("");
+    onClearError?.();
     try {
       const path = mode === "login" ? "/api/auth/login" : "/api/auth/register";
       const body =
@@ -65,7 +99,6 @@ export function AuthScreen({ onReady }: { onReady: (user: User) => void }) {
         method: "POST",
         body: JSON.stringify(body),
       });
-      setToken(result.token);
       onReady(result.user);
     } catch (err) {
       setError(errorMessage(err));
@@ -77,7 +110,6 @@ export function AuthScreen({ onReady }: { onReady: (user: User) => void }) {
 
   return (
     <main id="main-content" className="auth-wrap">
-      <p className="eyebrow">Studio sign in</p>
       <h1 className="auth-brand">
         <img
           src="/brand/checkpoint-logo.png"
@@ -94,22 +126,18 @@ export function AuthScreen({ onReady }: { onReady: (user: User) => void }) {
           <button
             type="button"
             className={mode === "login" ? "" : "secondary"}
+            aria-pressed={mode === "login"}
             disabled={pending}
-            onClick={() => {
-              setMode("login");
-              setError("");
-            }}
+            onClick={() => switchMode("login")}
           >
             Sign in
           </button>
           <button
             type="button"
             className={mode === "register" ? "" : "secondary"}
+            aria-pressed={mode === "register"}
             disabled={pending}
-            onClick={() => {
-              setMode("register");
-              setError("");
-            }}
+            onClick={() => switchMode("register")}
           >
             Create account
           </button>
@@ -178,6 +206,22 @@ export function AuthScreen({ onReady }: { onReady: (user: User) => void }) {
             </button>
           </fieldset>
         </form>
+        {providers.length > 0 && (
+          <>
+            <hr className="auth-divider" />
+            <div className="oauth-links">
+              {providers.map((provider) => (
+                <a
+                  key={provider.id}
+                  className="button-link secondary"
+                  href={`/api/auth/oauth/${provider.id}`}
+                >
+                  Continue with {provider.label}
+                </a>
+              ))}
+            </div>
+          </>
+        )}
       </div>
     </main>
   );

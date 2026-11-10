@@ -341,3 +341,27 @@ export interface BuildForm {
   downloadUrl: string;
   releaseNotes: string;
 }
+
+export interface OAuthProvider {
+  id: string;
+  label: string;
+}
+
+export interface OAuthRegistration {
+  provider: string;
+  email: string;
+  displayName: string;
+  suggestedUsername: string;
+}
+
+export interface LinkedProvider {
+  provider: string;
+  email: string;
+  linkedOn?: string;
+}
+
+export interface AccountResponse {
+  user: User;
+  hasPassword: boolean;
+  providers: LinkedProvider[];
+}

@@ -64,6 +64,46 @@ export async function ensureIndexes(db: Db): Promise<void> {
   await db
     .collection("users")
     .createIndex({ email: 1 }, { unique: true, name: "unique_email" });
+  await db.collection("users").createIndex(
+    { "oauthAccounts.provider": 1, "oauthAccounts.providerId": 1 },
+    { unique: true, sparse: true, name: "unique_oauth_account" },
+  );
+  await db
+    .collection("oauthStates")
+    .createIndex(
+      { expiresAt: 1 },
+      { name: "oauth_states_expiry", expireAfterSeconds: 0 },
+    );
+  await db
+    .collection("oauthLoginCodes")
+    .createIndex(
+      { expiresAt: 1 },
+      { name: "oauth_login_codes_expiry", expireAfterSeconds: 0 },
+    );
+  await db
+    .collection("oauthPendingRegistrations")
+    .createIndex(
+      { expiresAt: 1 },
+      { name: "oauth_registrations_expiry", expireAfterSeconds: 0 },
+    );
+  await db
+    .collection("oauthPendingRegistrations")
+    .createIndex(
+      { provider: 1, email: 1 },
+      { name: "oauth_registration_provider_email" },
+    );
+  await db
+    .collection("oauthLinkChallenges")
+    .createIndex(
+      { expiresAt: 1 },
+      { name: "oauth_link_challenges_expiry", expireAfterSeconds: 0 },
+    );
+  await db
+    .collection("oauthLinkChallenges")
+    .createIndex(
+      { userId: 1, provider: 1 },
+      { name: "oauth_link_challenges_user_provider" },
+    );
   await db
     .collection("teams")
     .createIndex({ createdBy: 1 }, { name: "teams_by_creator" });

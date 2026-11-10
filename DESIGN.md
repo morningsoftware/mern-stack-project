@@ -41,10 +41,13 @@ large matching KPI cards, arbitrary numbered menus, and oversized uppercase copy
 
 ## Layout
 
-Desktop: a 234px sidebar with a flexible work area. The board uses three status
-columns: To do, In progress, Done. Under 1150px, columns stack; under 760px,
-navigation moves above content and wraps. Filters wrap and inputs retain usable
-width. Detail drawers occupy the right edge on desktop and the screen on mobile.
+Desktop: a sidebar that defaults to 234px and can be resized between 200px and
+420px by dragging its right edge or using the arrow, Home, and End keys while
+the separator is focused. The chosen width persists in local storage. The board
+uses three status columns: To do, In progress, Done. Under 1150px, columns
+stack; under 760px, navigation moves above content and wraps. Filters wrap and
+inputs retain usable width. Detail drawers occupy the right edge on desktop and
+the screen on mobile.
 
 Overview totals form a compact ledger rather than four decorative cards. Use
 16–24px spacing and thin separators. Artwork and logos require separate approval.
@@ -244,7 +247,7 @@ playtesting; these controls do not imply private-project visibility.
 
 The user explicitly approved the product name `checkpoint` and requested an intuitive logo. The mark combines a completion check with a milestone flag, using the existing forest/rust palette. `client/public/brand/checkpoint-logo.png` is the approved generated raster asset. The sign-in heading and sidebar use that asset with an accessible text alternative and preserved proportions. Keep the paper backing in the dark sidebar so the dark wordmark stays readable.
 
-The integrated branch includes milestone planning, structured playtesting, discussions, deep links/draft guards, My work, screenshots, activity, in-app notifications and sessions, plus Demetri's GitHub UI. Core files use TypeScript; the previously authored advanced modules remain JS/JSX under allowJs. These modules have runtime/integration tests but are not all strictly type-checked. This is an incremental migration, not a claim of full TypeScript coverage.
+The integrated branch includes milestone planning, structured playtesting, discussions, deep links/draft guards, My work, screenshots, activity, in-app notifications and sessions, plus the GitHub UI. All client and server application source and tests use strict TypeScript.
 
 The dedicated mobile app, email verification/recovery, real browser/device validation and measured Lighthouse targets remain separate required work. Do not imply that the responsive web layout substitutes for the mobile app.
 
@@ -257,3 +260,80 @@ Mobile flow: sign in or register as a playtester → search projects → choose 
 Use 48px minimum touch controls, explicit field labels, keyboard-aware scroll layouts, native stack navigation and textual submission/error states. Preserve failed form writes and lock duplicate submissions. Attachments happen after saving the report, with a separate retry; never recreate a report when its upload fails. Current unsent drafts are in memory, so leaving a screen/restarting discards them; offline drafts are not claimed. Native credentials use SecureStore. The test-only web target uses sessionStorage and does not replace a physical-device demonstration.
 
 Lighthouse repairs reserve logo dimensions, preload that asset, defer the full authenticated menu until a saved link resolves, and keep unloaded workspace content out of layout until populated. Native platform bundles, automated browser checks, measured local Lighthouse scores and deployed/device results are separate evidence categories.
+## OAuth sign-in and account settings
+
+- Purpose: offer an alternate way to authenticate without replacing the
+  existing password form, and let signed-in users manage their sign-in methods.
+- Placement: OAuth provider links sit inside the existing auth panel below the
+  password form, separated by a horizontal rule. Account settings open by
+  selecting the profile card (avatar, name, and role) in the workspace sidebar.
+- Sidebar actions: the profile card is a button with an accessible label. Sign
+  out is an icon-only button with an accessible label and tooltip beside the
+  profile card, not below it. While account settings are open, no workspace or
+  project navigation item is marked as the current page.
+- Treatment: text-only provider links using the secondary button-link treatment.
+  Provider logos are intentionally omitted for now to avoid unofficial
+  branding; add official assets only with the provider’s current brand guidance.
+- Providers: only those returned by `GET /api/auth/oauth/providers` are shown,
+  so a provider that is not configured is never presented as an option.
+- Copy: “Continue with Google”, “Continue with GitHub”, and “Continue with
+  Discord”.
+- New-account onboarding: a full-page panel using the existing `.panel`,
+  `.stack`, and `Field` patterns. Email is read-only, username and display name
+  are editable, and role uses the existing `USER_ROLES` select.
+- Existing-account linking: a full-page password confirmation panel explaining
+  that the email already has an account and that the password is needed once to
+  link the provider.
+- Account settings: a workspace panel with password management and connected
+  accounts. Providers returned by `GET /api/auth/oauth/providers` that are not
+  linked appear below as **Link <Provider>** links.
+- Last sign-in method: when an account has no password and only one provider,
+  **Unlink** is disabled and the reason is stated in text. The server enforces
+  the same rule.
+- Accessibility: provider links are real anchors, keyboard reachable, and
+  labeled with text. Read-only email uses the existing disabled visual
+  treatment. Errors use `ErrorNote`; success messages use `role="status"`.
+- Code: `client/src/screens/AuthScreen.tsx`,
+  `client/src/screens/OAuthScreens.tsx`,
+  `client/src/screens/AccountScreen.tsx`, and
+  `client/src/components/AppShell.tsx`.
+
+## Decision Log
+
+- **2026-11-01 — OAuth sign-in:** Added Passport-based Google, GitHub, and
+  Discord sign-in. Provider emails must be verified. Existing password accounts
+  require a one-time password confirmation before a provider is linked; new
+  accounts complete an onboarding form before a user document is created. The
+  browser handoff uses hashed, single-use codes delivered in a URL fragment,
+  never a JWT in the URL. Rationale: preserve the existing JWT/Mongo auth flow
+  while avoiding account takeover through unverified local email registration.
+  Local email verification remains out of scope for this change.
+- **2026-11-09 — OAuth persistence hardening:** Added OAuth collections to
+  database setup, TTL indexes for expiring state/codes/challenges, and a unique
+  index on the provider account pair. Rationale: expire abandoned handoffs
+  automatically and make provider-account uniqueness a database guarantee
+  rather than an application-only check.
+- **2026-11-09 — Cookie sessions and CSRF:** Browser sessions now use an
+  httpOnly JWT cookie with a paired readable, HMAC-signed CSRF cookie and
+  same-origin checks on mutations. Bearer tokens remain for non-browser
+  clients. Rationale: sessionStorage exposes the token to script injection;
+  cookies keep it out of JavaScript while signed double-submit CSRF,
+  `SameSite=Lax`, and origin checks protect state-changing requests.
+- **2026-11-09 — Account settings:** Added a signed-in account screen for
+  password management and provider linking/unlinking. Unlinking the last
+  sign-in method is blocked until a password exists. Rationale: OAuth-created
+  accounts otherwise have no recovery path, and users need to manage provider
+  connections without starting a new sign-in flow.
+- **2026-11-09 — Account entry point:** Account settings open from the workspace
+  sidebar rather than the teams header so they remain reachable from every
+  project view. Rationale: the app shell owns global account actions.
+- **2026-11-10 — Sidebar account and sign-out actions:** Made the whole profile
+  card the account-settings trigger and moved sign out to an icon-only button
+  beside it. Account settings count as a separate location, so sidebar
+  navigation is no longer highlighted while they are open. Rationale: keep the
+  footer compact, make the profile area obviously interactive, and avoid
+  implying the user is still in the selected team or project view.
+- **2026-11-10 — Resizable sidebar:** Added a draggable separator on the
+  sidebar's right edge with keyboard support and a persisted width. Rationale:
+  long team and project names need more room without forcing a global layout
+  change, while the default stays compact for the board.

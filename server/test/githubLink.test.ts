@@ -20,9 +20,9 @@ before(async () => {
   process.env.GITHUB_APP_ID = "12345";
   process.env.GITHUB_PRIVATE_KEY_PATH = keyPath;
   process.env.GITHUB_WEBHOOK_SECRET = "test-webhook-secret";
-  process.env.GITHUB_CLIENT_ID = "client";
-  process.env.GITHUB_CLIENT_SECRET = "secret";
-  process.env.GITHUB_REDIRECT_URI = "http://127.0.0.1:4000/api/github/callback";
+  process.env.GITHUB_APP_CLIENT_ID = "client";
+  process.env.GITHUB_APP_CLIENT_SECRET = "secret";
+  process.env.GITHUB_APP_REDIRECT_URI = "http://127.0.0.1:4000/api/github/callback";
   process.env.CLIENT_ORIGIN = "http://127.0.0.1:5173";
   previousFetch = global.fetch;
   global.fetch = async (url, options = {}) => {

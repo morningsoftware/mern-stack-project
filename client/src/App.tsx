@@ -1,15 +1,27 @@
 import { useEffect, useRef, useState } from "react";
-import { api, getToken, setToken } from "./api";
-import type { Project, Team, User } from "./types";
-import type { ProjectView } from "./constants";
+import { api } from "./api";
 import { AppShell } from "./components/AppShell";
 import { AuthScreen } from "./screens/AuthScreen";
+import { AccountScreen } from "./screens/AccountScreen";
+import {
+  OAuthLinkScreen,
+  OAuthOnboardingScreen,
+} from "./screens/OAuthScreens";
 import { TeamsScreen } from "./screens/TeamsScreen";
 import { TeamScreen } from "./screens/TeamScreen";
 import { ProjectScreen } from "./screens/ProjectScreen";
-
+import type { ProjectView } from "./constants";
+import type { Project, Team, User } from "./types";
 import { UnsavedChanges, useLeaveGuard } from "./navigation/UnsavedChanges";
 import { parseRoute, routeHash, routeContext } from "./navigation/routes";
+import {
+  clearOAuthFragment,
+  errorMessage,
+  oauthErrorMessage,
+  oauthProviderLabel,
+  readOAuthFragment,
+} from "./oauth";
+import type { OAuthFlow } from "./oauth";
 
 export function App() {
   return (
@@ -25,10 +37,6 @@ function errorStatus(err: unknown): number | undefined {
     : undefined;
 }
 
-function errorMessage(err: unknown): string {
-  return err instanceof Error ? err.message : "Request failed";
-}
-
 function Workspace() {
   const [user, setUser] = useState<User | null>(null);
   const [ready, setReady] = useState(false);
@@ -37,8 +45,16 @@ function Workspace() {
   const [team, setTeam] = useState<Team | null>(null);
   const [project, setProject] = useState<Project | null>(null);
   const [view, setView] = useState<ProjectView>("overview");
+  const [oauthFlow, setOAuthFlow] = useState<OAuthFlow | null>(null);
+  const [authError, setAuthError] = useState("");
+  const [accountOpen, setAccountOpen] = useState(false);
+  const [accountNotice, setAccountNotice] = useState("");
+  const exchangePending = useRef(false);
+  const oauthFlowPending = useRef(false);
   const guard = useLeaveGuard();
-  const [hash, setHash] = useState(() => window.location.hash || "#/teams");
+  const [hash, setHash] = useState(() =>
+    window.location.hash.startsWith("#/") ? window.location.hash : "#/teams",
+  );
   const [routeError, setRouteError] = useState("");
   const [routing, setRouting] = useState(false);
   const [routeAttempt, setRouteAttempt] = useState(0);
@@ -47,6 +63,7 @@ function Workspace() {
     index: window.history.state?.checkpointIndex || 0,
   });
   const restoring = useRef(false);
+
   useEffect(() => {
     window.history.replaceState(
       { ...window.history.state, checkpointIndex: location.current.index },
@@ -92,6 +109,7 @@ function Workspace() {
       window.removeEventListener("popstate", onPop);
     };
   }, [guard]);
+
   function navigate(
     nextTeam: Team | null,
     nextProject: Project | null,
@@ -113,6 +131,7 @@ function Workspace() {
     setView(nextView);
     setHash(nextHash);
   }
+
   useEffect(() => {
     if (!user) return;
     const controller = new AbortController();
@@ -169,13 +188,77 @@ function Workspace() {
       });
     return () => controller.abort();
   }, [user, hash, routeAttempt]);
+
   useEffect(() => {
     const controller = new AbortController();
     setSessionError("");
-    if (!getToken()) {
-      setReady(true);
+
+    if (exchangePending.current || oauthFlowPending.current)
       return () => controller.abort();
+
+    const fragment = readOAuthFragment();
+    const hasOAuthFragment = Boolean(
+      fragment.loginCode ||
+        fragment.registrationCode ||
+        fragment.linkCode ||
+        fragment.linkedProvider ||
+        fragment.error,
+    );
+
+    if (hasOAuthFragment) clearOAuthFragment();
+
+    if (fragment.registrationCode) {
+      oauthFlowPending.current = true;
+      setOAuthFlow({ type: "register", code: fragment.registrationCode });
+      setReady(true);
+      return;
     }
+
+    if (fragment.linkCode) {
+      oauthFlowPending.current = true;
+      setOAuthFlow({
+        type: "link",
+        code: fragment.linkCode,
+        provider: fragment.provider,
+      });
+      setReady(true);
+      return;
+    }
+
+    // Link outcomes and errors can happen while the user is already signed in,
+    // so they still load the existing session below.
+    if (fragment.error) {
+      setAuthError(oauthErrorMessage(fragment.error));
+      setAccountOpen(true);
+    }
+    if (fragment.linkedProvider) {
+      setAccountNotice(
+        `${oauthProviderLabel(fragment.linkedProvider)} connected.`,
+      );
+      setAccountOpen(true);
+    }
+
+    if (fragment.loginCode) {
+      exchangePending.current = true;
+      setReady(false);
+      // Keep the exchange alive across StrictMode's effect replay. The ref
+      // guard above prevents a duplicate exchange.
+      api<{ user: User }>("/api/auth/oauth/exchange", {
+        method: "POST",
+        body: JSON.stringify({ code: fragment.loginCode }),
+      })
+        .then((result) => {
+          setUser(result.user);
+          setAuthError("");
+        })
+        .catch((err: unknown) => setAuthError(errorMessage(err)))
+        .finally(() => {
+          exchangePending.current = false;
+          setReady(true);
+        });
+      return;
+    }
+
     setReady(false);
     api<{ user: User }>("/api/auth/me", {
       signal: controller.signal,
@@ -185,17 +268,45 @@ function Workspace() {
       })
       .catch((err) => {
         if (controller.signal.aborted) return;
-        if (errorStatus(err) === 401) setToken(null);
-        else
+        if (errorStatus(err) === 401) {
+          setUser(null);
+        } else {
           setSessionError(
             "We could not restore your session. Check your connection and try again.",
           );
+        }
       })
       .finally(() => {
         if (!controller.signal.aborted) setReady(true);
       });
     return () => controller.abort();
   }, [attempt]);
+
+  async function signOut(): Promise<void> {
+    if (!(guard?.canLeave() ?? true)) return;
+    try {
+      await api("/api/auth/logout", { method: "POST" });
+    } catch {
+      // Clear local state even if the server is unreachable.
+    }
+    setUser(null);
+    setTeam(null);
+    setProject(null);
+    setView("overview");
+    setOAuthFlow(null);
+    oauthFlowPending.current = false;
+    setAccountOpen(false);
+    setAccountNotice("");
+    setAuthError("");
+    window.history.replaceState(
+      { checkpointIndex: location.current.index },
+      "",
+      "#/teams",
+    );
+    location.current.hash = "#/teams";
+    setHash("#/teams");
+  }
+
   if (!ready)
     return (
       <main id="main-content" className="auth-wrap">
@@ -211,17 +322,70 @@ function Workspace() {
         </button>
       </main>
     );
-  if (!user) return <AuthScreen onReady={setUser} />;
+  if (oauthFlow?.type === "register") {
+    return (
+      <OAuthOnboardingScreen
+        code={oauthFlow.code}
+        onReady={(nextUser) => {
+          oauthFlowPending.current = false;
+          setOAuthFlow(null);
+          setAuthError("");
+          setUser(nextUser);
+        }}
+        onCancel={() => {
+          oauthFlowPending.current = false;
+          setOAuthFlow(null);
+          setAuthError("");
+        }}
+      />
+    );
+  }
+  if (oauthFlow?.type === "link") {
+    return (
+      <OAuthLinkScreen
+        code={oauthFlow.code}
+        provider={oauthFlow.provider}
+        onReady={(nextUser) => {
+          oauthFlowPending.current = false;
+          setOAuthFlow(null);
+          setAuthError("");
+          setUser(nextUser);
+        }}
+        onCancel={() => {
+          oauthFlowPending.current = false;
+          setOAuthFlow(null);
+          setAuthError("");
+        }}
+      />
+    );
+  }
+  if (!user) {
+    return (
+      <AuthScreen
+        onReady={(nextUser) => {
+          setAuthError("");
+          setAccountOpen(false);
+          setAccountNotice("");
+          setUser(nextUser);
+        }}
+        initialError={authError}
+        onClearError={() => setAuthError("")}
+      />
+    );
+  }
+
   // Resolve a saved project link before painting the smaller teams navigation.
   // Otherwise the project menu pushes the entire mobile workspace down on load.
   let awaitingRoute = false;
-  try {
-    const requested = parseRoute(hash);
-    awaitingRoute =
-      requested.teamId !== (team?._id || null) ||
-      requested.projectId !== (project?._id || null);
-  } catch {
-    /* The route effect renders the explicit invalid-link error. */
+  if (!accountOpen) {
+    try {
+      const requested = parseRoute(hash);
+      awaitingRoute =
+        requested.teamId !== (team?._id || null) ||
+        requested.projectId !== (project?._id || null);
+    } catch {
+      /* The route effect renders the explicit invalid-link error. */
+    }
   }
   if (awaitingRoute && !routeError)
     return (
@@ -229,32 +393,45 @@ function Workspace() {
         <p role="status">Opening workspace…</p>
       </main>
     );
+
   return (
     <AppShell
       user={user}
       team={team}
       project={project}
       view={view}
-      onTeams={() => navigate(null, null, "overview")}
-      onTeam={() => navigate(team, null, "overview")}
-      onViewChange={(next) => navigate(team, project, next)}
-      onSignOut={() => {
-        if (!(guard?.canLeave() ?? true)) return;
-        setToken(null);
-        setUser(null);
-        setTeam(null);
-        setProject(null);
-        setView("overview");
-        window.history.replaceState(
-          { checkpointIndex: location.current.index },
-          "",
-          "#/teams",
-        );
-        location.current.hash = "#/teams";
-        setHash("#/teams");
+      accountOpen={accountOpen}
+      onTeams={() => {
+        setAccountOpen(false);
+        navigate(null, null, "overview");
       }}
+      onTeam={() => {
+        setAccountOpen(false);
+        navigate(team, null, "overview");
+      }}
+      onViewChange={(next) => {
+        setAccountOpen(false);
+        navigate(team, project, next);
+      }}
+      onAccount={() => {
+        setAccountNotice("");
+        setAuthError("");
+        setAccountOpen(true);
+      }}
+      onSignOut={signOut}
     >
-      {routing ? (
+      {accountOpen ? (
+        <AccountScreen
+          user={user}
+          initialNotice={accountNotice}
+          initialError={authError}
+          onBack={() => {
+            setAccountOpen(false);
+            setAccountNotice("");
+            setAuthError("");
+          }}
+        />
+      ) : routing ? (
         <p role="status">Opening workspace…</p>
       ) : routeError ? (
         <section>

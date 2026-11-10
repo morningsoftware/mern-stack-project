@@ -84,7 +84,7 @@ export function GithubRepositoryField({
     <div>
       {!account.oauthConfigured ? (
         <p className="meta">
-          GitHub sign-in is not configured yet. Add GITHUB_CLIENT_SECRET to the
+          GitHub connection is not configured yet. Add GITHUB_APP_CLIENT_SECRET to the
           server environment and set the GitHub App callback URL to{" "}
           {account.callbackUrl}.
         </p>

@@ -74,6 +74,14 @@ GITHUB_CLIENT_ID=
 GITHUB_CLIENT_SECRET=
 DISCORD_CLIENT_ID=
 DISCORD_CLIENT_SECRET=
+
+# GitHub App repository connection (separate from GitHub sign-in).
+GITHUB_APP_CLIENT_ID=
+GITHUB_APP_CLIENT_SECRET=
+GITHUB_APP_REDIRECT_URI=https://checkpoint.morning.codes/api/github/callback
+GITHUB_APP_ID=
+GITHUB_PRIVATE_KEY_PATH=/srv/checkpoint/github-app.pem
+GITHUB_WEBHOOK_SECRET=
 ```
 
 Start the app once manually, then save the PM2 process list:

@@ -8,7 +8,7 @@ Prepared November 9, 2026. This is an evidence-based check-in package, not a cla
 
 Main at the reviewed baseline is `3e02a9f`. The integrated repair branch combines the advanced Checkpoint workflows and Demetri's GitHub integration with the current deployment workflow. It restores production root `.env` loading, runs TypeScript through a stable PM2 ecosystem definition, adds three type-check gates plus frontend tests to deployment, fixes production GitHub return URLs, updates the endpoint audit for TypeScript/multiple routers, and applies the approved checkpoint logo. It remains separate from production until review, merge and deployment.
 
-The core is TypeScript, while the previously authored advanced UI and API modules remain JavaScript/JSX with allowJs. Their runtime behavior is tested; do not claim that every new module has strict static type coverage.
+All client and server application source and tests use strict TypeScript. The Expo mobile companion is also TypeScript. Runtime behavior is covered by the client and server test suites.
 
 Verification on the integrated branch: 59 API cases, 17 frontend/date cases, 68/68 inventoried API methods/paths observed with 2xx/3xx responses (redirects included), database/API/client type checks and the production build. Endpoint tests use isolated MongoDB; GitHub provider calls are mocked. These are integration tests, not a unit/branch coverage percentage. See docs/endpoint-test-evidence.json. Real browser layout checks, device testing and Lighthouse are distinct.
 

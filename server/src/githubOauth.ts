@@ -17,12 +17,12 @@ export interface GithubAccount {
 }
 
 export function githubOauthConfigured(): boolean {
-  return Boolean(process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET);
+  return Boolean(process.env.GITHUB_APP_CLIENT_ID && process.env.GITHUB_APP_CLIENT_SECRET);
 }
 
 export function githubCallbackUrl(): string {
   return (
-    process.env.GITHUB_REDIRECT_URI ||
+    process.env.GITHUB_APP_REDIRECT_URI ||
     `${process.env.CLIENT_ORIGIN || "http://127.0.0.1:4000"}/api/github/callback`
   );
 }
@@ -48,9 +48,9 @@ export function safeReturnTarget(value: unknown): string {
 }
 
 export function githubAuthorizeUrl(userId: string, returnTo: string): string {
-  const clientId = process.env.GITHUB_CLIENT_ID;
+  const clientId = process.env.GITHUB_APP_CLIENT_ID;
   const secret = process.env.JWT_SECRET;
-  if (!clientId || !process.env.GITHUB_CLIENT_SECRET) {
+  if (!clientId || !process.env.GITHUB_APP_CLIENT_SECRET) {
     throw httpError(503, "GitHub OAuth is not configured on the server");
   }
   if (!secret) throw httpError(500, "JWT_SECRET is not set");
@@ -234,8 +234,8 @@ type GithubAccess = {
 async function oauthToken(
   input: { code: string } | { refreshToken: string },
 ): Promise<GithubAccess> {
-  const clientId = process.env.GITHUB_CLIENT_ID;
-  const clientSecret = process.env.GITHUB_CLIENT_SECRET;
+  const clientId = process.env.GITHUB_APP_CLIENT_ID;
+  const clientSecret = process.env.GITHUB_APP_CLIENT_SECRET;
   if (!clientId || !clientSecret) {
     throw httpError(503, "GitHub OAuth is not configured on the server");
   }
