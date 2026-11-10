@@ -444,6 +444,7 @@ function Workspace({
           user={user}
           initialNotice={accountNotice}
           initialError={authError}
+          onUserChange={setUser}
           onBack={() => {
             setAccountOpen(false);
             setAccountNotice("");

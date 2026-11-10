@@ -1,6 +1,11 @@
 import express, { Router } from "express";
 import { Binary, ObjectId } from "mongodb";
 import { asyncRoute, httpError } from "../errors.js";
+import {
+  IMAGE_CONTENT_TYPES,
+  IMAGE_MAX_BYTES,
+  imageContentType,
+} from "../images.js";
 import { requireAuth } from "../middleware/auth.js";
 import { requireBugAccess } from "../projectAccess.js";
 import type {
@@ -45,26 +50,11 @@ bugScreenshotsRouter.get(
   }),
 );
 
-function imageType(buffer: Buffer): string {
-  if (
-    buffer.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]))
-  )
-    return "image/png";
-  if (buffer[0] === 255 && buffer[1] === 216 && buffer[2] === 255)
-    return "image/jpeg";
-  if (
-    buffer.toString("ascii", 0, 4) === "RIFF" &&
-    buffer.toString("ascii", 8, 12) === "WEBP"
-  )
-    return "image/webp";
-  throw httpError(400, "Use a PNG, JPEG, or WebP screenshot");
-}
-
 bugScreenshotsRouter.post(
   "/",
   express.raw({
-    type: ["image/png", "image/jpeg", "image/webp"],
-    limit: 2 * 1024 * 1024,
+    type: [...IMAGE_CONTENT_TYPES],
+    limit: IMAGE_MAX_BYTES,
   }),
   asyncRoute(async (req, res) => {
     if (!Buffer.isBuffer(req.body) || !req.body.length)
@@ -72,7 +62,7 @@ bugScreenshotsRouter.post(
         400,
         "Choose a PNG, JPEG, or WebP screenshot (up to 2 MB)",
       );
-    const contentType = imageType(req.body);
+    const contentType = imageContentType(req.body, "screenshot");
     if (contentType !== req.get("Content-Type")?.split(";")[0])
       throw httpError(400, "Image type does not match its contents");
     const db = req.app.locals.db;

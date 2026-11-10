@@ -52,6 +52,7 @@ export const PUBLIC_USER_FIELDS = [
   "role",
   "createdOn",
   "createdBy",
+  "avatarUpdatedOn",
 ] as const;
 
 export interface UserDocument {
@@ -66,6 +67,7 @@ export interface UserDocument {
   githubAccessToken?: string | null;
   githubRefreshToken?: string | null;
   githubTokenExpiresAt?: Date | null;
+  avatarUpdatedOn?: Date | null;
   createdOn: Date;
   createdBy: ObjectId | null;
 }
@@ -78,6 +80,7 @@ export interface PublicUser {
   role: UserRole;
   createdOn: Date;
   createdBy: ObjectId | null;
+  avatarUpdatedOn: Date | null;
 }
 
 export interface TeamDocument {
@@ -246,6 +249,15 @@ export interface ActivityDocument {
   deadline?: Date;
 }
 
+export interface UserAvatarDocument {
+  _id: ObjectId;
+  userId: ObjectId;
+  contentType: string;
+  size: number;
+  updatedOn: Date;
+  data: Binary;
+}
+
 export interface GithubDeliveryDocument {
   _id: ObjectId;
   deliveryId: string;
@@ -282,5 +294,6 @@ export function publicUser(user: UserDocument | null): PublicUser | null {
     role: user.role,
     createdOn: user.createdOn,
     createdBy: user.createdBy ?? null,
+    avatarUpdatedOn: user.avatarUpdatedOn ?? null,
   };
 }

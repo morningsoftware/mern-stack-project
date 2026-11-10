@@ -69,6 +69,9 @@ export async function ensureIndexes(db: Db): Promise<void> {
     { unique: true, sparse: true, name: "unique_oauth_account" },
   );
   await db
+    .collection("userAvatars")
+    .createIndex({ userId: 1 }, { unique: true, name: "unique_user_avatar" });
+  await db
     .collection("oauthStates")
     .createIndex(
       { expiresAt: 1 },

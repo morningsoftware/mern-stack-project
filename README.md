@@ -155,6 +155,8 @@ build otherwise.
 
 Signed-in users can open **Account** from the workspace sidebar to:
 
+- change their display name;
+- upload or remove a profile picture (PNG, JPEG, or WebP up to 2 MB);
 - view linked providers and the email returned by each provider;
 - link another configured provider;
 - unlink a provider, unless it is the account's last sign-in method and no
@@ -162,8 +164,9 @@ Signed-in users can open **Account** from the workspace sidebar to:
 - set a password on an OAuth-created account, or change the current password
   (which requires the existing password).
 
-The screen uses `GET /api/auth/account`, `POST /api/auth/password`, and
-`DELETE /api/auth/oauth/:provider`.
+The screen uses `GET /api/auth/account`, `PATCH /api/users/:id`,
+`POST`/`DELETE /api/users/:id/avatar`, `GET /api/users/:id/avatar`,
+`POST /api/auth/password`, and `DELETE /api/auth/oauth/:provider`.
 
 Local email verification for password registration is not part of this change.
 As a result, a password account whose email was pre-registered by someone else

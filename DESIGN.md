@@ -351,9 +351,11 @@ Lighthouse repairs reserve logo dimensions, preload that asset, defer the full a
 - Existing-account linking: a full-page password confirmation panel explaining
   that the email already has an account and that the password is needed once to
   link the provider.
-- Account settings: a workspace panel with password management and connected
-  accounts. Providers returned by `GET /api/auth/oauth/providers` that are not
-  linked appear below as **Link <Provider>** links.
+- Account settings: a workspace panel with profile, password, and connected
+  accounts. The profile panel shows the current picture, editable display name,
+  and a file input for PNG/JPEG/WebP images up to 2 MB. Providers returned by
+  `GET /api/auth/oauth/providers` that are not linked appear below as
+  **Link <Provider>** links.
 - Last sign-in method: when an account has no password and only one provider,
   **Unlink** is disabled and the reason is stated in text. The server enforces
   the same rule.
@@ -437,3 +439,9 @@ Lighthouse repairs reserve logo dimensions, preload that asset, defer the full a
   Rationale: the plate made the logo feel oversized and boxy, while a
   theme-specific transparent mark keeps brand contrast without adding a
   background shape.
+- **2026-11-10 — Profile settings:** Added display-name editing and a profile
+  picture to Account settings. Pictures are stored as PNG/JPEG/WebP binaries in
+  MongoDB, limited to 2 MB, and served through an authenticated endpoint. The
+  sidebar shows the picture when present and truncates long names. Rationale:
+  identity management belongs beside password and provider settings without
+  exposing arbitrary image URLs.

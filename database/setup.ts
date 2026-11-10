@@ -16,6 +16,7 @@ const COLLECTIONS = [
   "bugReports",
   "playtestFeedback",
   "builds",
+  "userAvatars",
   "taskComments",
   "bugScreenshots",
   "projectActivity",

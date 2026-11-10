@@ -6,6 +6,7 @@ import type {
   ReactNode,
 } from "react";
 import type { ProjectView } from "../constants";
+import { userAvatarUrl } from "../format";
 import { ThemeToggle } from "./ThemeToggle";
 import type { Theme } from "../theme";
 import type { Project, Team, User } from "../types";
@@ -124,6 +125,7 @@ export function AppShell({
   const resizeStart = useRef<{ x: number; width: number } | null>(null);
   const [sidebarWidth, setSidebarWidth] = useState(readSidebarWidth);
   const [resizingSidebar, setResizingSidebar] = useState(false);
+  const avatar = userAvatarUrl(user);
   const location = accountOpen
     ? "account"
     : `${team?._id || "teams"}/${project?._id || ""}/${view}`;
@@ -316,9 +318,18 @@ export function AppShell({
             title={`${user.displayName} — Account settings`}
             onClick={onAccount}
           >
-            <span className="avatar" aria-hidden="true">
-              {user.displayName.slice(0, 1).toUpperCase()}
-            </span>
+            {avatar ? (
+              <img
+                className="avatar avatar-image"
+                src={avatar}
+                alt=""
+                aria-hidden="true"
+              />
+            ) : (
+              <span className="avatar" aria-hidden="true">
+                {user.displayName.slice(0, 1).toUpperCase()}
+              </span>
+            )}
             <span className="sidebar-profile-name">
               <strong>{user.displayName}</strong>
               <small>{user.role}</small>

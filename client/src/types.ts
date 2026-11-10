@@ -21,6 +21,7 @@ export interface User {
   role: UserRole;
   createdOn?: string;
   createdBy?: string | null;
+  avatarUpdatedOn?: string | null;
 }
 
 export interface Team {
