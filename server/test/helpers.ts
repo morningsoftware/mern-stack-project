@@ -8,9 +8,11 @@ import request from "supertest";
 type ApiClient = ReturnType<typeof request>;
 import { createApp } from "../src/app.js";
 import { ensureIndexes } from "../src/db.js";
+import { OAUTH_PROVIDERS } from "../src/oauth.js";
 import type { UserRole } from "../src/schema.js";
 
 process.env.JWT_SECRET = process.env.JWT_SECRET || "test-secret";
+const oauthProviderPattern = Object.keys(OAUTH_PROVIDERS).join("|");
 
 export interface TestContext {
   db: Db;
@@ -61,7 +63,14 @@ export async function startApi(): Promise<TestContext> {
   const routeLog = process.env.CHECKPOINT_ROUTE_LOG;
   if (routeLog) {
     observed.use((req, res, next) => {
-      const requestPath = req.path.replace(/\/[a-f0-9]{24}(?=\/|$)/gi, "/:id");
+      const requestPath = req.path
+        .replace(/\/[a-f0-9]{24}(?=\/|$)/gi, "/:id")
+        .replace(
+          new RegExp(
+            `^/api/auth/oauth/(?:${oauthProviderPattern})(?=/|$)`
+          ),
+          "/api/auth/oauth/:id"
+        );
       res.once("finish", () =>
         appendFileSync(
           routeLog,
