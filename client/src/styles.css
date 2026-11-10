@@ -545,6 +545,16 @@ hr {
   margin-bottom: var(--space-5);
   min-width: 0;
 }
+.panel-heading {
+  margin: 0 0 var(--space-4);
+  padding-top: var(--space-2);
+}
+.panel-heading .eyebrow {
+  margin: 0 0 var(--space-1);
+}
+.panel-heading h2 {
+  margin: 0;
+}
 [hidden] {
   display: none !important;
 }

@@ -117,8 +117,10 @@ export function TeamScreen({
       )}
       <div className="grid" hidden={loading}>
         <section className="panel">
-          <p className="eyebrow">People</p>
-          <h2>Members</h2>
+          <header className="panel-heading">
+            <p className="eyebrow">People</p>
+            <h2>Members</h2>
+          </header>
           <ul className="list">
             {members.map((member) => (
               <li key={member._id}>
@@ -181,8 +183,10 @@ export function TeamScreen({
           )}
         </section>
         <section className="panel">
-          <p className="eyebrow">Development</p>
-          <h2>Projects</h2>
+          <header className="panel-heading">
+            <p className="eyebrow">Development</p>
+            <h2>Projects</h2>
+          </header>
           {!loading && !error && projects.length === 0 ? (
             <p>Create a project to plan milestones and assign tasks.</p>
           ) : (
