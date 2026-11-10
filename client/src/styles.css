@@ -1734,10 +1734,8 @@ button.milestone-title {
 .brand-logo {
   display: block;
   width: 100%;
+  max-width: 190px;
   height: auto;
-  padding: var(--space-2);
-  background: #fcfaf4;
-  border-radius: 4px;
 }
 .auth-brand {
   display: flex;
@@ -1749,9 +1747,15 @@ button.milestone-title {
   display: block;
   width: min(220px, 100%);
   height: auto;
-  padding: var(--space-2);
-  background: #fcfaf4;
-  border-radius: 4px;
+}
+.auth-brand .auth-logo-light {
+  display: none;
+}
+[data-theme="dark"] .auth-brand .auth-logo-dark {
+  display: none;
+}
+[data-theme="dark"] .auth-brand .auth-logo-light {
+  display: block;
 }
 .auth-wrap > p {
   margin: 0 0 var(--space-4);

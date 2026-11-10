@@ -137,10 +137,18 @@ export function AuthScreen({
       <main id="main-content" className="auth-wrap">
         <h1 className="auth-brand">
           <img
+            className="auth-logo-dark"
             src="/brand/checkpoint-logo.png"
             alt="checkpoint"
-            width="320"
-            height="102"
+            width="220"
+            height="70"
+          />
+          <img
+            className="auth-logo-light"
+            src="/brand/checkpoint-logo-light.png"
+            alt="checkpoint"
+            width="220"
+            height="70"
           />
         </h1>
         <p>Sign in to your studio workspace.</p>

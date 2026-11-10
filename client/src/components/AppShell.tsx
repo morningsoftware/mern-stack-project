@@ -243,10 +243,10 @@ export function AppShell({
         <div className="brand">
           <img
             className="brand-logo"
-            src="/brand/checkpoint-logo.png"
+            src="/brand/checkpoint-logo-light.png"
             alt="checkpoint"
-            width="210"
-            height="67"
+            width="190"
+            height="60"
           />
         </div>
         <p className="nav-label">Workspace</p>

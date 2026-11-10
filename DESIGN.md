@@ -324,11 +324,13 @@ Lighthouse repairs reserve logo dimensions, preload that asset, defer the full a
 - Purpose: offer an alternate way to authenticate without replacing the
   existing password form, and let signed-in users manage their sign-in methods.
 - Placement: the signed-out screen is a single centered glass card, at most
-  460px wide, with a 220px centered wordmark and centered tagline. The form below
-  remains left-aligned for predictable field scanning. It fits within the
-  viewport without page scrolling. OAuth provider links sit below the password
-  form, separated by a horizontal rule. Account settings open by selecting the
-  profile card (avatar, name, and role) in the workspace sidebar.
+  460px wide, with a 220px centered wordmark and centered tagline. The wordmark
+  is transparent: the dark original is used on light surfaces, and a cream/rust
+  variant is used in dark mode and on the forest sidebar (up to 190px wide). The form below remains
+  left-aligned for predictable field scanning. It fits within the viewport
+  without page scrolling. OAuth provider links sit below the password form,
+  separated by a horizontal rule. Account settings open by selecting the profile
+  card (avatar, name, and role) in the workspace sidebar.
 - Sidebar actions: the profile card is a button with an accessible label. Sign
   out is an icon-only button with an accessible label and tooltip beside the
   profile card, not below it. While account settings are open, no workspace or
@@ -421,7 +423,13 @@ Lighthouse repairs reserve logo dimensions, preload that asset, defer the full a
 - **2026-11-10 — Centered compact sign-in:** The signed-out view is now a fixed,
   viewport-centered 460px card with a 220px centered wordmark, tighter form
   rhythm, and no page scroll. The tagline is centered and shortened to one plain
-  sentence. The full approved wordmark is kept rather than introducing a second
-  logo variant; centering gives the header balance while the form stays
-  left-aligned. Rationale: the previous card was wider and taller than needed,
-  and its combined wrapper/panel padding made the form feel inset and cramped.
+  sentence. Centering gives the header balance while the form stays left-aligned.
+  Rationale: the previous card was wider and taller than needed, and its combined
+  wrapper/panel padding made the form feel inset and cramped.
+- **2026-11-10 — Transparent wordmark:** Removed the paper plate from the
+  wordmark. Light surfaces use the original dark-green mark; dark surfaces and
+  the forest sidebar use a cream wordmark with the rust flag. The raster assets
+  are downscaled to 1200px wide, and the sidebar mark is capped at 190px.
+  Rationale: the plate made the logo feel oversized and boxy, while a
+  theme-specific transparent mark keeps brand contrast without adding a
+  background shape.
