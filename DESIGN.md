@@ -107,11 +107,13 @@ states say what to do next and offer the relevant action when one exists.
 
 Use restrained, standard expressiveness rather than decorative looping
 animation. Screens and tabs fade in with a 3–7px rise over 140–240ms; drawers
-slide in from the right; controls transition background, border, and color;
-work cards lift 1px on hover. The three.js auth backdrop is the only ambient
-animation and provides scene boilerplate for a custom signed-out scene. All CSS
-motion and the backdrop respect reduced-motion preferences, and the backdrop
-pauses while the tab is hidden.
+slide in from the right and fade out before unmounting; controls transition
+background, border, and color; focused inputs transition their border color;
+list rows fade their background on hover; work cards lift 1px on hover. The
+three.js auth backdrop is the only ambient animation and provides scene
+boilerplate for a custom signed-out scene. All CSS motion and the backdrop
+respect reduced-motion preferences, and the backdrop pauses while the tab is
+hidden.
 
 ## Approved decisions and remaining scope
 

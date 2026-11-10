@@ -524,11 +524,17 @@ textarea {
   justify-content: space-between;
   gap: 16px;
   padding: 15px 0;
+  transition: background-color 120ms ease;
 }
 .list li > span,
 .list li > div {
   min-width: 0;
   overflow-wrap: anywhere;
+}
+@media (hover: hover) {
+  .list li:hover {
+    background-color: var(--surface-muted);
+  }
 }
 .list select {
   max-width: 45%;
@@ -1054,6 +1060,24 @@ button.card-title:hover {
     transform: translateX(0);
   }
 }
+@keyframes drawer-exit {
+  from {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(18px);
+  }
+}
+@keyframes backdrop-exit {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
 @keyframes backdrop-enter {
   from {
     opacity: 0;
@@ -1104,6 +1128,13 @@ button.card-title:hover {
 .item-drawer[open]::backdrop {
   animation: backdrop-enter 180ms ease-out both;
 }
+.item-drawer.is-closing {
+  pointer-events: none;
+  animation: drawer-exit 160ms ease-in forwards;
+}
+.item-drawer.is-closing::backdrop {
+  animation: backdrop-exit 160ms ease-in forwards;
+}
 .error {
   animation: alert-enter 160ms ease-out both;
 }
@@ -1135,6 +1166,11 @@ textarea {
   transition:
     border-color 140ms ease,
     background-color 140ms ease;
+}
+input:focus,
+select:focus,
+textarea:focus {
+  border-color: var(--focus);
 }
 .work-card {
   transition:

@@ -29,6 +29,7 @@ buildSync({
   format: "cjs",
   external: ["react"],
   jsx: "automatic",
+  loader: { ".glsl": "text" },
 });
 // jsdom does not implement the browser's modal focus/top-layer behavior.
 window.HTMLDialogElement.prototype.showModal = function () {
@@ -120,6 +121,7 @@ global.fetch = async (path, options = {}) => {
 };
 let root = createRoot(document.getElementById("root"));
 const tick = () => new Promise((r) => setTimeout(r, 0));
+const waitForMotion = () => new Promise((r) => setTimeout(r, 200));
 const buttons = () => [...document.querySelectorAll("button")];
 const findButton = (text) => {
   const b = buttons().find((b) => b.textContent.trim() === text);
@@ -315,6 +317,7 @@ test("board filters, task and bug detail drawers, and linked build feedback", as
       new window.Event("submit", { bubbles: true, cancelable: true }),
     );
     await tick();
+    await waitForMotion();
   });
   assert.equal(document.querySelector("dialog"), null);
   assert.equal(db.tasks[0].title, "Movement revised");
@@ -323,6 +326,7 @@ test("board filters, task and bug detail drawers, and linked build feedback", as
     const e = new window.Event("cancel", { cancelable: true });
     document.querySelector("dialog").dispatchEvent(e);
     await tick();
+    await waitForMotion();
   });
   assert.equal(document.querySelector("dialog"), null);
   await click("Bug reports");
@@ -333,6 +337,7 @@ test("board filters, task and bug detail drawers, and linked build feedback", as
       new window.Event("submit", { bubbles: true, cancelable: true }),
     );
     await tick();
+    await waitForMotion();
   });
   assert.equal(db["bug-reports"][0].severity, "low");
   await click("Builds");

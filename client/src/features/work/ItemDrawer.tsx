@@ -19,6 +19,8 @@ import type {
 
 type DrawerRecord = Task | BugReport;
 
+const DRAWER_CLOSE_MS = 160;
+
 export function ItemDrawer({
   kind,
   id,
@@ -37,9 +39,11 @@ export function ItemDrawer({
   const dialog = useRef<HTMLDialogElement>(null);
   const title = useRef<HTMLHeadingElement>(null);
   const lock = useRef(false);
+  const closeTimer = useRef<number | null>(null);
   const [record, setRecord] = useState<DrawerRecord | null>(null);
   const [loading, setLoading] = useState(true);
   const [pending, setPending] = useState(false);
+  const [closing, setClosing] = useState(false);
   const [error, setError] = useState("");
   const [attempt, setAttempt] = useState(0);
   const endpoint = kind === "task" ? "tasks" : "bug-reports";
@@ -77,6 +81,24 @@ export function ItemDrawer({
     setRecord((old) =>
       old ? ({ ...old, [key]: value } as DrawerRecord) : old
     );
+  useEffect(
+    () => () => {
+      if (closeTimer.current !== null) {
+        window.clearTimeout(closeTimer.current);
+      }
+    },
+    []
+  );
+  function requestClose(force = false): void {
+    if (closing || (pending && !force)) return;
+    setClosing(true);
+    const reduceMotion =
+      window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
+    closeTimer.current = window.setTimeout(
+      onClose,
+      reduceMotion ? 0 : DRAWER_CLOSE_MS
+    );
+  }
   async function save(event: FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault();
     if (!record || lock.current) return;
@@ -107,7 +129,7 @@ export function ItemDrawer({
         body: JSON.stringify(body),
       });
       onSaved(updated);
-      onClose();
+      requestClose(true);
     } catch (err) {
       setError((err as ApiError).message);
     } finally {
@@ -118,11 +140,11 @@ export function ItemDrawer({
   return (
     <dialog
       ref={dialog}
-      className="item-drawer"
+      className={`item-drawer${closing ? " is-closing" : ""}`}
       aria-labelledby="drawer-title"
       onCancel={(event) => {
         event.preventDefault();
-        if (!pending) onClose();
+        requestClose();
       }}
     >
       <header className="drawer-header">
@@ -138,8 +160,8 @@ export function ItemDrawer({
         <button
           type="button"
           className="secondary"
-          onClick={onClose}
-          disabled={pending}
+          onClick={() => requestClose()}
+          disabled={pending || closing}
         >
           Close
         </button>
@@ -259,7 +281,12 @@ export function ItemDrawer({
               <button type="submit">
                 {pending ? "Saving…" : "Save changes"}
               </button>
-              <button type="button" className="secondary" onClick={onClose}>
+              <button
+                type="button"
+                className="secondary"
+                onClick={() => requestClose()}
+                disabled={pending || closing}
+              >
                 Cancel
               </button>
             </div>
