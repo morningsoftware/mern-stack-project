@@ -78,5 +78,5 @@ test('fetch receives the global receiver required by browser transports', async 
 });
 test('a misconfigured server returning HTML cannot be treated as a successful write', async () => {
   const api = new ApiClient('https://api.test', async () => new Response('<html>Wrong server</html>', { status: 200 }));
-  await assert.rejects(api.request('/api/bug-reports', { method: 'POST', body: '{}' }), /did not return JSON/);
+  await assert.rejects(api.request('/api/bug-reports', { method: 'POST', body: '{}' }), /Something went wrong on our end/);
 });

@@ -20,6 +20,12 @@ export class ApiClient {
   private transport: typeof fetch;
   constructor(origin: string, transport: typeof fetch = fetch) { this.origin = origin; this.transport = transport; }
   setToken(value: string | null) { this.token = value; }
+  /** Absolute URL for an API path, for authenticated image requests that bypass request(). */
+  url(path: string): string {
+    if (!path.startsWith('/api/') || path.includes('://')) throw new Error('Use a relative API path.');
+    return this.origin + path;
+  }
+  authHeaders(): Record<string, string> { return this.token ? { Authorization: `Bearer ${this.token}` } : {}; }
   async request<T>(path: string, options: RequestInit = {}): Promise<T> {
     if (!path.startsWith('/api/') || path.includes('://')) throw new Error('Use a relative API path.');
     const token = this.token;
@@ -38,14 +44,14 @@ export class ApiClient {
       const data = await response.json().catch(() => null);
       if (!response.ok) {
         if (response.status === 401 && token && token === this.token) this.onUnauthorized?.();
-        throw new ApiError(data?.error || `Request failed (${response.status}).`, response.status);
+        throw new ApiError(data?.error || 'Something went wrong. Please try again.', response.status);
       }
-      if (data === null) throw new ApiError('The server did not return JSON. Check the API address and try again.', 502);
+      if (data === null) throw new ApiError('Something went wrong on our end. Please try again in a moment.', 502);
       return data as T;
     } catch (error) {
       if (error instanceof ApiError) throw error;
       if (options.signal?.aborted) throw error;
-      throw new Error(controller.signal.aborted ? 'The request timed out. Check your connection and try again.' : 'Could not reach checkpoint. Check your connection and API address.');
+      throw new Error(controller.signal.aborted ? 'This is taking too long. Check your internet connection and try again.' : 'Could not reach checkpoint. Check your internet connection and try again.');
     } finally {
       clearTimeout(timeout);
       options.signal?.removeEventListener('abort', abort);

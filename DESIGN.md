@@ -322,6 +322,20 @@ Mobile flow: sign in or register as a playtester → search projects → choose 
 Use 48px minimum touch controls, explicit field labels, keyboard-aware scroll layouts, native stack navigation and textual submission/error states. Preserve failed form writes and lock duplicate submissions. Attachments happen after saving the report, with a separate retry; never recreate a report when its upload fails. Current unsent drafts are in memory, so leaving a screen/restarting discards them; offline drafts are not claimed. Native credentials use SecureStore. The test-only web target uses sessionStorage and does not replace a physical-device demonstration.
 
 Lighthouse repairs reserve logo dimensions, preload that asset, defer the full authenticated menu until a saved link resolves, and keep unloaded workspace content out of layout until populated. Native platform bundles, automated browser checks, measured local Lighthouse scores and deployed/device results are separate evidence categories.
+
+## Mobile interface — November 15
+
+The mobile UI uses a shared component set (`mobile/src/components`) that reads its values from `mobile/src/theme.ts`, which mirrors the light-theme tokens above. It adds no new visual language: forest navigation, rust primary actions, warm paper surfaces, Georgia headings, 4px corners and a 4–32px spacing scale.
+
+- **Navigation.** Signed-out: sign in and register. Signed-in: three bottom tabs (Projects, My reports, Account) on the forest bar with the selected label in `#e7dba9`, plus stack screens for project, feedback, bug report and bug detail under a forest header. Tabs are text-only; icons are not introduced until a set is approved.
+- **Reusable components.** Button (primary, secondary, danger), Field (visible label, hint, inline error, character count), ChoiceGroup/RatingInput/BuildPicker/SegmentedTabs, Badge/StatusBadge/SeverityBadge/PlatformBadge, StatusTrack (Open → In progress → Resolved), ProjectCard, BuildCard, SessionCard, ReportCard, ScreenshotPicker, AuthImage, Banner, SkeletonList, ErrorState, EmptyState.
+- **States.** Every list has a skeleton while first loading, an error state with Try again, and an empty state that says what to do next. Pull-to-refresh keeps existing data on screen. Forms validate on blur, clear an error as soon as the field changes, keep drafts when a write fails, and lock duplicate submissions. Leaving a form with unsent input asks to discard it.
+- **Error copy.** Messages are plain language and say what to do next. They never mention the API, JSON or HTTPS.
+- **Status and severity** show a text label plus color, using the website badge colors. Severity values are `low`, `medium` and `high`, matching the server; the earlier `critical` option was rejected by the API and was removed.
+- **Screenshots.** Up to three PNG/JPEG/WebP images of at most 2 MB are chosen on the report form with a preview, uploaded after the report is saved, and retried individually. A failed upload never recreates the report. Saved screenshots appear on the report as authenticated thumbnails with a full-screen viewer and confirmed removal.
+- **My reports** lists the signed-in user's reports across projects, filterable by status.
+- **Gaps.** The mobile app is light-theme only (the web dark theme is not ported), and has no offline drafts.
+
 ## OAuth sign-in and account settings
 
 - Purpose: offer an alternate way to authenticate without replacing the
@@ -450,3 +464,9 @@ Lighthouse repairs reserve logo dimensions, preload that asset, defer the full a
   700ms after the signed-out form paints. Rationale: the canvas and its first
   render should blend into the page rather than appearing abruptly; reduced
   motion keeps the instant reveal.
+- **2026-11-15 — Mobile UI rebuild:** Rebuilt the mobile screens on a shared
+  component set with bottom tabs, an in-form screenshot picker, a cross-project
+  My reports tab, and plain-language error copy. Removed the `critical` severity
+  because the API only accepts low, medium and high. Rationale: the earlier
+  screens duplicated styling, offered a severity the server rejects, and gave no
+  loading or empty states.

@@ -2,7 +2,13 @@
 
 This is a separate Expo SDK 58 / React Native application in the team repository. It uses the existing Express/MongoDB API. It is not the desktop site in a WebView.
 
-Included: existing-account sign-in, playtester registration, project search, build links/release notes, open playtest sessions, rating/comments feedback, structured bug reports, own-report status tracking, and up to three authenticated screenshot attachments/removal. Team/project administration, planning boards, assignments and GitHub management stay on desktop. Feedback review/triage also stays on desktop.
+Included: existing-account sign-in, playtester registration, project search, build links/release notes, open playtest sessions, rating/comments feedback, structured bug reports with a screenshot picker and preview, a My reports tab with live status, and up to three authenticated screenshot attachments/removal. Team/project administration, planning boards, assignments and GitHub management stay on desktop. Feedback review/triage also stays on desktop.
+
+## Code layout
+
+- `src/app/` Expo Router screens: `(auth)` sign-in/register, `(app)/(tabs)` Projects, My reports and Account, and stack screens for project, feedback, report and bug detail.
+- `src/components/` reusable UI (buttons, fields, cards, badges, states, screenshot picker). `src/theme.ts` holds the design tokens from `DESIGN.md`.
+- `src/lib/` API client, session, `useResource`, upload queue, and pure helpers (`models.ts`, `format.ts`, `images.ts`) covered by `npm test`.
 
 ## Run on your Mac and phone
 
