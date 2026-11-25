@@ -33,6 +33,22 @@ export function createApp(db: Db): Express {
   const app = express();
   app.locals.db = db;
   app.locals.oauth = configureOAuth();
+  // TEMPORARY: Log incoming requests and outgoing responses
+  app.use((req, res, next) => {
+    const startTime = Date.now();
+
+    console.log(
+      `[request] ${req.method} ${req.originalUrl} origin=${req.get("origin") || "(none)"}`
+    );
+
+    res.on("finish", () => {
+      console.log(
+        `[response] ${req.method} ${req.originalUrl} ${res.statusCode} ${Date.now() - startTime}ms`
+      );
+    });
+
+    next();
+  });
 
   const clientOrigin =
     app.locals.oauth.clientOrigin || process.env.CLIENT_ORIGIN?.trim();
