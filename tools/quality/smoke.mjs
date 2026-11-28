@@ -21,34 +21,46 @@ const session = (await request(`/api/playtest-sessions?projectId=${project._id}`
 const browser = await puppeteer.launch({ headless: 'shell', pipe: true, args: ['--no-sandbox', '--disable-dev-shm-usage'] });
 const page = await browser.newPage();
 await page.setViewport({ width: 390, height: 844, deviceScaleFactor: 1, isMobile: true, hasTouch: true });
+// Unsent drafts make the browser ask before a page reload; the smoke test reloads on purpose.
+page.on('dialog', dialog => { if (dialog.type() === 'beforeunload') void dialog.accept(); });
 const errors = []; page.on('pageerror', err => errors.push(err.message));
 page.on('requestfailed', req => console.error('REQUEST FAILED', req.url(), req.failure()?.errorText));
 page.on('console', message => { if (message.type() === 'error') console.error('BROWSER', message.text()); });
 const button = title => `[role="button"][aria-label=${JSON.stringify(title)}]`;
+const buttonStarting = prefix => `[role="button"][aria-label^=${JSON.stringify(prefix)}]`;
+const radio = title => `[role="radio"][aria-label^=${JSON.stringify(title)}]`;
+const tab = title => `[role="tab"][aria-label^=${JSON.stringify(title)}]`;
+// Native confirm() dialogs back destructive actions on web; accept the next one.
+const acceptNextDialog = () => page.once('dialog', dialog => void dialog.accept());
 async function visible(selector) {
   await page.waitForFunction(selector => [...document.querySelectorAll(selector)].some(el => el.checkVisibility() && !el.closest('[aria-hidden="true"]')), {}, selector);
   for (const element of await page.$$(selector)) if (await element.evaluate(el => el.checkVisibility() && !el.closest('[aria-hidden="true"]'))) return element;
   throw new Error('No active element: ' + selector);
 }
 async function click(title) { await (await visible(button(title))).click(); }
-async function type(label, value) { await (await visible(`[aria-label=${JSON.stringify(label)}]`)).type(value); }
+async function clickSelector(selector) { await (await visible(selector)).click(); }
+// A few milliseconds between keys matches fast human typing; instant input can outrun a controlled field's re-render.
+async function type(label, value) { await (await visible(`[aria-label=${JSON.stringify(label)}]`)).type(value, { delay: 5 }); }
+// Stack screens stay mounted during a transition, so wait for the destination before clicking a label both screens share.
+async function settle(heading) { await text(heading); await new Promise(resolve => setTimeout(resolve, 600)); }
 async function text(value) { await page.waitForFunction(value => document.body.textContent.includes(value), {}, value); }
 async function shot(name) { await page.screenshot({ path: path.join(output, name + '.png'), fullPage: true }); }
 try {
   await page.goto(mobile, { waitUntil: 'networkidle0' });
   await type('Username', 'tester'); await type('Password', 'wrong-password'); await click('Sign in'); await text('Invalid username or password');
-  const password = '[aria-label="Password"]'; await page.locator(password).fill('checkpoint-demo'); await click('Sign in');
-  await text('Choose a playtest project'); await click('Open Starfall'); await text('Available builds');
+  const password = await visible('[aria-label="Password"]'); await password.click({ count: 3 }); await password.type('checkpoint-demo'); await click('Sign in');
+  await text('Pick a game to find its builds'); await clickSelector(buttonStarting('Starfall,')); await text('Builds (');
   results.push('Invalid credentials show an error; valid existing account loads real projects/builds/sessions.');
   await shot('project');
-  await click('Give feedback: Movement playtest'); await type('What worked, and what needs attention?', 'Mobile smoke: movement is responsive, but the ledge needs attention.'); await click('5'); await click('Send feedback'); await text('Feedback sent.');
+  await clickSelector(tab('Sessions')); await click('Give session feedback'); await settle('Share feedback'); await click('Send feedback'); await text('Choose a rating from 1 to 5.');
+  await type('What worked, and what needs attention?', 'Mobile smoke: movement is responsive, but the ledge needs attention.'); await clickSelector(radio('5,')); await click('Send feedback'); await text('Feedback sent');
   const notes = await request(`/api/playtest-feedback?projectId=${project._id}`, null, developer.token);
   assert(notes.some(note => note.comments.startsWith('Mobile smoke:') && note.rating === 5 && note.sessionId === session._id));
   results.push('Session feedback persists with the chosen rating, author, build and session.');
-  await click('Back to project'); await click('Bug in 0.5.0');
+  await click('Back to project'); await settle('Project'); await click('Report a bug'); await settle('Describe one reproducible issue'); await clickSelector(radio('Build 0.5.0'));
   await click('Submit bug report'); await text('Add a short bug title.');
   const title = `Mobile smoke ledge ${Date.now()}`;
-  await type('Bug title', title); await type('Steps to reproduce', 'Open level one and jump at the left ledge.'); await type('Expected result', 'Land on the platform.'); await type('Actual result', 'Player catches on the edge.'); await click('high');
+  await type('Bug title', title); await type('Steps to reproduce', 'Open level one and jump at the left ledge.'); await type('What did you expect?', 'Land on the platform.'); await type('What happened instead?', 'Player catches on the edge.'); await clickSelector(radio('High'));
   // One deliberate failed write verifies drafts survive an API error; the retry uses the real API.
   await page.setRequestInterception(true); let failOnce = true;
   page.on('request', req => {
@@ -57,7 +69,7 @@ try {
   });
   await click('Submit bug report'); await text('Temporary test failure; retry your report.');
   assert.equal(await page.$eval('[aria-label="Bug title"]', el => el.value), title);
-  await click('Submit bug report'); await text('Bug report saved.'); await text(title);
+  await click('Submit bug report'); await text('Report submitted.'); await text(title);
   let bugs = await request(`/api/bug-reports?projectId=${project._id}`, null, developer.token);
   const saved = bugs.filter(b => b.title === title); assert.equal(saved.length, 1); const bug = saved[0];
   assert.equal(bug.reportedBy, tester.user._id); assert.equal(bug.severity, 'high'); assert(bug.buildId); assert.equal(bug.actualResult, 'Player catches on the edge.');
@@ -66,30 +78,30 @@ try {
   const fixture = path.join(output, 'attachment.png');
   await fs.writeFile(fixture, Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jN1kAAAAASUVORK5CYII=', 'base64'));
   const chooser = page.waitForFileChooser(); await click('Choose screenshot'); await (await chooser).accept([fixture]);
-  await click('Attach screenshot'); await text('Screenshot attached.');
+  await click('Attach screenshots'); await text('Screenshot attached.');
   const images = await request(`/api/bug-reports/${bug._id}/screenshots`, null, tester.token); assert.equal(images.length, 1); assert.equal(images[0].contentType, 'image/png');
   const imageResponse = await fetch(origin + `/api/bug-reports/${bug._id}/screenshots/${images[0]._id}`, { headers: { Authorization: `Bearer ${tester.token}` } }); assert.equal(imageResponse.status, 200);
-  await click('Remove attachment 1'); await text('Screenshot removed.'); assert.equal((await request(`/api/bug-reports/${bug._id}/screenshots`, null, tester.token)).length, 0);
+  await clickSelector(buttonStarting('Open screenshot 1')); acceptNextDialog(); await click('Remove'); await text('Screenshot removed.'); assert.equal((await request(`/api/bug-reports/${bug._id}/screenshots`, null, tester.token)).length, 0);
   results.push('Real image picker upload, authenticated retrieval and removal persist through the screenshot API.');
   await request(`/api/bug-reports/${bug._id}`, { status: 'resolved' }, developer.token, 'PATCH');
-  await click('My bug reports'); await text(title); await text('Status: resolved'); await shot('my-reports');
+  await click('My reports'); await text(title); await text('Resolved'); await shot('my-reports');
   results.push('Developer triage is reflected in the mobile My reports view.');
   await page.reload({ waitUntil: 'networkidle0' }); await text(title); assert.equal(await page.$('[aria-label="Password"]'), null);
   results.push('Reload restores the saved session and requested route.');
   await page.goto(mobile + `/project/${project._id}`, { waitUntil: 'networkidle0' });
-  await click('Give feedback: Movement playtest'); await type('What worked, and what needs attention?', 'Retain this draft when the session closes.');
+  await clickSelector(tab('Sessions')); await click('Give session feedback'); await settle('Share feedback'); await type('What worked, and what needs attention?', 'Retain this draft when the session closes.');
   await request(`/api/playtest-sessions/${session._id}`, { status: 'closed' }, developer.token, 'PATCH');
-  await click('Send feedback'); await text('This session is closed or its deadline has passed.');
+  await clickSelector(radio('4,')); await click('Send feedback'); await text('This session is closed or its deadline has passed.');
   assert.equal(await page.$eval('[aria-label="What worked, and what needs attention?"]', el => el.value), 'Retain this draft when the session closes.');
   await request(`/api/playtest-sessions/${session._id}`, { status: 'open' }, developer.token, 'PATCH');
   results.push('A session closed after opening the form rejects feedback and retains the draft.');
-  await page.goto(mobile + '/projects', { waitUntil: 'networkidle0' }); await click('Sign out'); await text('Playtest, then report.');
+  await page.goto(mobile + '/projects', { waitUntil: 'networkidle0' }); await clickSelector(tab('Account')); acceptNextDialog(); await click('Sign out'); await text('Playtest, then report.');
   await page.reload({ waitUntil: 'networkidle0' }); await text('Playtest, then report.');
   results.push('Sign-out clears the web validation session and stays signed out after reload.');
-  await click('Create an account');
+  await click('Create a playtester account'); await settle('Join the playtest');
   const username = `mobile-${Date.now()}`;
   await type('Username', username); await type('Display name', 'Mobile smoke tester'); await type('Email', username + '@example.test'); await type('Password', 'mobile-smoke-password');
-  await click('Create playtester account'); await text('Choose a playtest project');
+  await click('Create account'); await text('Pick a game to find its builds');
   const newAccount = await request('/api/auth/login', { username, password: 'mobile-smoke-password' });
   assert.equal(newAccount.user.role, 'playtester');
   await page.evaluate(origin => sessionStorage.setItem('checkpoint.session.v1', JSON.stringify({ origin, token: 'invalid-token-for-expiry-test' })), origin);
